@@ -16,11 +16,15 @@ class ShopController extends Controller
     /**
      * 获取商店信息
      */
-    public function getShop(Request $request)
+    public function getShop($shopId)
     {
-        $request->validate([
-            'shop_id' => 'required|exists:shops,id',
-        ]);
+        // 验证商店ID
+        if (!$shopId || !is_numeric($shopId)) {
+            return response()->json([
+                'success' => false,
+                'message' => '无效的商店ID'
+            ], 400);
+        }
 
         $user = Auth::user();
         $character = Character::where('user_id', $user->id)->first();
@@ -32,7 +36,14 @@ class ShopController extends Controller
             ], 404);
         }
 
-        $shop = Shop::find($request->shop_id);
+        $shop = Shop::find($shopId);
+        
+        if (!$shop) {
+            return response()->json([
+                'success' => false,
+                'message' => '商店不存在'
+            ], 404);
+        }
         
         // 获取商店物品
         $shopItems = ShopItem::where('shop_id', $shop->id)
@@ -104,7 +115,7 @@ class ShopController extends Controller
         $totalPrice = $shopItem->price * $request->quantity;
         
         // 检查金币是否足够
-        if ($character->gold < $totalPrice) {
+        if ($user->gold < $totalPrice) {
             return response()->json([
                 'success' => false,
                 'message' => '金币不足'
@@ -112,13 +123,13 @@ class ShopController extends Controller
         }
 
         // 扣除金币
-        $character->gold -= $totalPrice;
-        $character->save();
+        $user->gold -= $totalPrice;
+        $user->save();
 
         // 添加物品到背包
         $existingItem = Inventory::where('character_id', $character->id)
             ->where('item_id', $shopItem->item_id)
-            ->where('equipped', false)
+            ->where('is_equipped', false)
             ->first();
 
         if ($existingItem) {
@@ -131,7 +142,7 @@ class ShopController extends Controller
             $inventoryItem->character_id = $character->id;
             $inventoryItem->item_id = $shopItem->item_id;
             $inventoryItem->quantity = $request->quantity;
-            $inventoryItem->equipped = false;
+            $inventoryItem->is_equipped = false;
             $inventoryItem->save();
         }
 
@@ -159,7 +170,7 @@ class ShopController extends Controller
     public function sellItem(Request $request)
     {
         $request->validate([
-            'character_item_id' => 'required|exists:character_items,id',
+            'character_item_id' => 'required|exists:inventories,id',
             'quantity' => 'required|integer|min:1',
             'shop_id' => 'required|exists:shops,id',
         ]);
@@ -188,7 +199,7 @@ class ShopController extends Controller
         }
 
         // 检查物品是否已装备
-        if ($inventoryItem->equipped) {
+        if ($inventoryItem->is_equipped) {
             return response()->json([
                 'success' => false,
                 'message' => '已装备的物品不能出售，请先卸下'
@@ -222,8 +233,8 @@ class ShopController extends Controller
         $totalSellPrice = round($sellPrice * $request->quantity);
 
         // 增加金币
-        $character->gold += $totalSellPrice;
-        $character->save();
+        $user->gold += $totalSellPrice;
+        $user->save();
 
         // 减少物品数量
         $inventoryItem->quantity -= $request->quantity;
