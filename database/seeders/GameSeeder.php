@@ -40,13 +40,50 @@ class GameSeeder extends Seeder
             'description' => '最基础的怪物，软软的，看起来人畜无害。',
             'level' => 1,
             'hp' => 50,
+            'current_hp' => 50,
             'attack' => 5,
             'defense' => 2,
             'exp_reward' => 10,
             'gold_reward' => 5,
             'respawn_time' => 30,
             'map_id' => $starterMap->id,
+            'position_x' => 400,
+            'position_y' => 300,
             'image' => 'monsters/slime.png',
+        ]);
+        
+        $goblin = Monster::create([
+            'name' => '哥布林',
+            'description' => '小型绿皮怪物，行动敏捷，喜欢成群结队地袭击旅行者。',
+            'level' => 2,
+            'hp' => 80,
+            'current_hp' => 80,
+            'attack' => 8,
+            'defense' => 3,
+            'exp_reward' => 15,
+            'gold_reward' => 8,
+            'respawn_time' => 45,
+            'map_id' => $starterMap->id,
+            'position_x' => 600,
+            'position_y' => 400,
+            'image' => 'monsters/goblin.png',
+        ]);
+        
+        $wolf = Monster::create([
+            'name' => '野狼',
+            'description' => '凶猛的野生狼，领地意识强，会主动攻击闯入者。',
+            'level' => 3,
+            'hp' => 120,
+            'current_hp' => 120,
+            'attack' => 12,
+            'defense' => 5,
+            'exp_reward' => 20,
+            'gold_reward' => 12,
+            'respawn_time' => 60,
+            'map_id' => $starterMap->id,
+            'position_x' => 800,
+            'position_y' => 500,
+            'image' => 'monsters/wolf.png',
         ]);
 
         // 创建物品

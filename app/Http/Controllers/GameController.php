@@ -133,7 +133,12 @@ class GameController extends Controller
         }
 
         // 获取地图上的怪物
-        $monsters = Monster::where('map_id', $map->id)->get();
+        $monsters = Monster::where('map_id', $map->id)
+            ->where(function($query) {
+                $query->where('is_dead', false)
+                      ->orWhereNull('is_dead');
+            })
+            ->get();
 
         // 获取地图上的其他玩家
         $otherPlayers = Character::where('current_map_id', $map->id)
@@ -220,7 +225,7 @@ class GameController extends Controller
         $monster = Monster::find($request->monster_id);
         
         // 检查怪物是否在同一地图
-        if ($monster->map_id != $character->map_id) {
+        if ($monster->map_id != $character->current_map_id) {
             return response()->json([
                 'success' => false,
                 'message' => '怪物不在当前地图'
@@ -228,7 +233,7 @@ class GameController extends Controller
         }
 
         // 计算伤害（简单示例）
-        $damage = rand($character->attack_min, $character->attack_max);
+        $damage = rand($character->getAttackMinAttribute(), $character->getAttackMaxAttribute());
         $monster->current_hp -= $damage;
 
         $result = [
@@ -247,18 +252,17 @@ class GameController extends Controller
             $goldGained = $monster->gold_reward;
             
             $character->exp += $expGained;
-            $character->gold += $goldGained;
+            $user->gold += $goldGained;
+            $user->save();
             
             // 检查是否升级
             $leveledUp = false;
-            while ($character->exp >= $character->exp_to_level) {
+            while ($character->exp >= $character->getExpToLevelAttribute()) {
                 $character->level += 1;
-                $character->exp -= $character->exp_to_level;
-                $character->exp_to_level = $character->level * 100; // 简单的升级公式
+                $character->exp -= $character->getExpToLevelAttribute();
                 $character->max_hp += 10;
                 $character->current_hp = $character->max_hp;
-                $character->attack_min += 2;
-                $character->attack_max += 3;
+                $character->attack += 2;
                 $leveledUp = true;
             }
             
@@ -280,12 +284,40 @@ class GameController extends Controller
                 'monster_name' => $monster->name,
                 'killer_id' => $character->id,
                 'killer_name' => $character->name
-            ], $character->map_id));
+            ], $character->current_map_id));
             
-            // 怪物重生逻辑（可以通过队列延迟执行）
-            // 这里简单处理，直接重置怪物生命值
-            $monster->current_hp = $monster->max_hp;
+            // 怪物重生逻辑
+            // 设置一个临时标记，表示怪物已死亡，前端可以根据这个标记隐藏怪物
+            $monster->is_dead = true;
             $monster->save();
+            
+            // 使用队列延迟执行怪物重生
+            // 这里我们使用简单的方式，通过广播一个事件通知前端怪物重生
+            $respawnTime = $monster->respawn_time ?? 60; // 默认60秒重生
+            
+            // 广播怪物即将重生的消息
+            event(new GameEvent('monster.respawning', [
+                'monster_id' => $monster->id,
+                'monster_name' => $monster->name,
+                'respawn_time' => $respawnTime
+            ], $character->current_map_id));
+            
+            // 使用队列延迟执行怪物重生
+            dispatch(function() use ($monster, $character) {
+                // 重置怪物生命值
+                $monster->current_hp = $monster->hp;
+                $monster->is_dead = false;
+                $monster->save();
+                
+                // 广播怪物重生事件
+                event(new GameEvent('monster.respawned', [
+                    'monster_id' => $monster->id,
+                    'monster_name' => $monster->name,
+                    'hp' => $monster->hp,
+                    'position_x' => $monster->position_x,
+                    'position_y' => $monster->position_y
+                ], $monster->map_id));
+            })->delay(now()->addSeconds($respawnTime));
         } else {
             $monster->save();
             
@@ -297,8 +329,8 @@ class GameController extends Controller
                 'attacker_id' => $character->id,
                 'attacker_name' => $character->name,
                 'current_hp' => $monster->current_hp,
-                'max_hp' => $monster->max_hp
-            ], $character->map_id));
+                'max_hp' => $monster->hp
+            ], $character->current_map_id));
         }
         
         return response()->json($result);

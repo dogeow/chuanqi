@@ -17,13 +17,17 @@ class Monster extends Model
         'description',
         'level',
         'hp',
+        'current_hp',
         'attack',
         'defense',
         'exp_reward',
         'gold_reward',
         'respawn_time',
         'map_id',
+        'position_x',
+        'position_y',
         'image',
+        'is_dead',
     ];
     
     /**
@@ -32,11 +36,13 @@ class Monster extends Model
     protected $casts = [
         'level' => 'integer',
         'hp' => 'integer',
+        'current_hp' => 'integer',
         'attack' => 'integer',
         'defense' => 'integer',
         'exp_reward' => 'integer',
         'gold_reward' => 'integer',
         'respawn_time' => 'integer',
+        'is_dead' => 'boolean',
     ];
     
     /**

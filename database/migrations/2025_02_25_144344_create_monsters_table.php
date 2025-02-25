@@ -17,12 +17,15 @@ return new class extends Migration
             $table->text('description');
             $table->integer('level')->default(1);
             $table->integer('hp')->default(100);
+            $table->integer('current_hp')->default(100); // 怪物当前生命值
             $table->integer('attack')->default(10);
             $table->integer('defense')->default(5);
             $table->integer('exp_reward')->default(10); // 击杀获得经验
             $table->integer('gold_reward')->default(5); // 击杀获得金币
             $table->integer('respawn_time')->default(60); // 重生时间（秒）
             $table->unsignedBigInteger('map_id'); // 所在地图
+            $table->integer('position_x')->default(0); // 怪物X坐标
+            $table->integer('position_y')->default(0); // 怪物Y坐标
             $table->string('image')->nullable(); // 怪物图片
             $table->timestamps();
             
