@@ -4,7 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Events\GameEvent;
 use App\Models\Character;
-use App\Models\CharacterItem;
+use App\Models\Inventory;
 use App\Models\Item;
 use App\Models\Shop;
 use App\Models\ShopItem;
@@ -116,7 +116,7 @@ class ShopController extends Controller
         $character->save();
 
         // 添加物品到背包
-        $existingItem = CharacterItem::where('character_id', $character->id)
+        $existingItem = Inventory::where('character_id', $character->id)
             ->where('item_id', $shopItem->item_id)
             ->where('equipped', false)
             ->first();
@@ -127,12 +127,12 @@ class ShopController extends Controller
             $existingItem->save();
         } else {
             // 没有该物品，创建新记录
-            $characterItem = new CharacterItem();
-            $characterItem->character_id = $character->id;
-            $characterItem->item_id = $shopItem->item_id;
-            $characterItem->quantity = $request->quantity;
-            $characterItem->equipped = false;
-            $characterItem->save();
+            $inventoryItem = new Inventory();
+            $inventoryItem->character_id = $character->id;
+            $inventoryItem->item_id = $shopItem->item_id;
+            $inventoryItem->quantity = $request->quantity;
+            $inventoryItem->equipped = false;
+            $inventoryItem->save();
         }
 
         // 广播购买物品事件
@@ -149,7 +149,7 @@ class ShopController extends Controller
             'success' => true,
             'message' => '成功购买' . $request->quantity . '个' . $shopItem->item->name,
             'character' => $character,
-            'inventory' => CharacterItem::where('character_id', $character->id)->with('item')->get()
+            'inventory' => Inventory::where('character_id', $character->id)->with('item')->get()
         ]);
     }
 
@@ -175,12 +175,12 @@ class ShopController extends Controller
         }
 
         // 检查物品是否属于该角色
-        $characterItem = CharacterItem::where('id', $request->character_item_id)
+        $inventoryItem = Inventory::where('id', $request->character_item_id)
             ->where('character_id', $character->id)
             ->with('item')
             ->first();
 
-        if (!$characterItem) {
+        if (!$inventoryItem) {
             return response()->json([
                 'success' => false,
                 'message' => '物品不存在或不属于该角色'
@@ -188,7 +188,7 @@ class ShopController extends Controller
         }
 
         // 检查物品是否已装备
-        if ($characterItem->equipped) {
+        if ($inventoryItem->equipped) {
             return response()->json([
                 'success' => false,
                 'message' => '已装备的物品不能出售，请先卸下'
@@ -196,7 +196,7 @@ class ShopController extends Controller
         }
 
         // 检查数量是否合法
-        if ($request->quantity > $characterItem->quantity) {
+        if ($request->quantity > $inventoryItem->quantity) {
             return response()->json([
                 'success' => false,
                 'message' => '出售数量超过拥有数量'
@@ -215,10 +215,10 @@ class ShopController extends Controller
 
         // 计算出售价格（通常为购买价的一半）
         $shopItem = ShopItem::where('shop_id', $shop->id)
-            ->where('item_id', $characterItem->item_id)
+            ->where('item_id', $inventoryItem->item_id)
             ->first();
 
-        $sellPrice = $shopItem ? $shopItem->price * 0.5 : $characterItem->item->base_price * 0.5;
+        $sellPrice = $shopItem ? $shopItem->price * 0.5 : $inventoryItem->item->base_price * 0.5;
         $totalSellPrice = round($sellPrice * $request->quantity);
 
         // 增加金币
@@ -226,28 +226,28 @@ class ShopController extends Controller
         $character->save();
 
         // 减少物品数量
-        $characterItem->quantity -= $request->quantity;
-        if ($characterItem->quantity <= 0) {
-            $characterItem->delete();
+        $inventoryItem->quantity -= $request->quantity;
+        if ($inventoryItem->quantity <= 0) {
+            $inventoryItem->delete();
         } else {
-            $characterItem->save();
+            $inventoryItem->save();
         }
 
         // 广播出售物品事件
         event(new GameEvent('shop.sell', [
             'character_id' => $character->id,
             'character_name' => $character->name,
-            'item_id' => $characterItem->item_id,
-            'item_name' => $characterItem->item->name,
+            'item_id' => $inventoryItem->item_id,
+            'item_name' => $inventoryItem->item->name,
             'quantity' => $request->quantity,
             'total_price' => $totalSellPrice
         ], $character->map_id));
 
         return response()->json([
             'success' => true,
-            'message' => '成功出售' . $request->quantity . '个' . $characterItem->item->name . '，获得' . $totalSellPrice . '金币',
+            'message' => '成功出售' . $request->quantity . '个' . $inventoryItem->item->name . '，获得' . $totalSellPrice . '金币',
             'character' => $character,
-            'inventory' => CharacterItem::where('character_id', $character->id)->with('item')->get()
+            'inventory' => Inventory::where('character_id', $character->id)->with('item')->get()
         ]);
     }
 }

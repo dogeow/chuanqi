@@ -112,7 +112,10 @@
                 <input type="password" id="password_confirmation" name="password_confirmation" required>
             </div>
             
-            <button type="submit" class="btn">注册</button>
+            <button type="submit" class="btn" id="register-button">注册</button>
+            <div id="loading-indicator" style="display: none; text-align: center; margin-top: 10px;">
+                <p>正在处理，请稍候...</p>
+            </div>
             
             <div class="links">
                 <p>已有账号？ <a href="{{ route('login') }}">立即登录</a></p>
@@ -127,39 +130,94 @@
             const form = this;
             const errorMessages = document.getElementById('error-messages');
             const errorList = errorMessages.querySelector('ul');
+            const registerButton = document.getElementById('register-button');
+            const loadingIndicator = document.getElementById('loading-indicator');
+            
+            // 清除之前的错误信息
+            errorList.innerHTML = '';
+            errorMessages.style.display = 'none';
+            
+            // 显示加载状态
+            registerButton.disabled = true;
+            registerButton.textContent = '处理中...';
+            loadingIndicator.style.display = 'block';
+            
+            console.log('开始提交注册表单...');
             
             try {
-                const response = await axios.post(form.action, {
+                const formData = {
                     name: form.name.value,
                     email: form.email.value,
                     password: form.password.value,
                     password_confirmation: form.password_confirmation.value
-                });
+                };
+                
+                console.log('表单数据:', formData);
+                
+                const response = await axios.post(form.action, formData);
+                
+                console.log('注册响应:', response.data);
                 
                 if (response.data.success) {
+                    console.log('注册成功，获取到令牌:', response.data.token.substring(0, 10) + '...');
+                    
                     // 保存token到localStorage
                     localStorage.setItem('game_token', response.data.token);
+                    console.log('令牌已保存到localStorage');
+                    
+                    // 显示成功消息
+                    alert('注册成功！正在跳转到游戏页面...');
+                    
                     // 跳转到游戏页面
                     window.location.href = response.data.redirect;
+                } else {
+                    console.error('注册响应表明失败:', response.data);
+                    errorList.innerHTML = '<li>注册失败，请稍后重试</li>';
+                    errorMessages.style.display = 'block';
+                    
+                    // 恢复按钮状态
+                    registerButton.disabled = false;
+                    registerButton.textContent = '注册';
+                    loadingIndicator.style.display = 'none';
                 }
             } catch (error) {
+                console.error('注册请求出错:', error);
+                
                 errorList.innerHTML = '';
                 errorMessages.style.display = 'block';
                 
-                if (error.response && error.response.data.errors) {
-                    const errors = error.response.data.errors;
-                    for (const field in errors) {
-                        errors[field].forEach(message => {
-                            const li = document.createElement('li');
-                            li.textContent = message;
-                            errorList.appendChild(li);
-                        });
+                if (error.response) {
+                    console.error('错误响应状态:', error.response.status);
+                    console.error('错误响应数据:', error.response.data);
+                    
+                    if (error.response.data.errors) {
+                        const errors = error.response.data.errors;
+                        for (const field in errors) {
+                            errors[field].forEach(message => {
+                                const li = document.createElement('li');
+                                li.textContent = message;
+                                errorList.appendChild(li);
+                            });
+                        }
+                    } else if (error.response.data.message) {
+                        const li = document.createElement('li');
+                        li.textContent = error.response.data.message;
+                        errorList.appendChild(li);
+                    } else {
+                        const li = document.createElement('li');
+                        li.textContent = '注册失败，请稍后重试';
+                        errorList.appendChild(li);
                     }
                 } else {
                     const li = document.createElement('li');
-                    li.textContent = '注册失败，请稍后重试';
+                    li.textContent = '网络错误，请检查您的连接';
                     errorList.appendChild(li);
                 }
+                
+                // 恢复按钮状态
+                registerButton.disabled = false;
+                registerButton.textContent = '注册';
+                loadingIndicator.style.display = 'none';
             }
         });
     </script>

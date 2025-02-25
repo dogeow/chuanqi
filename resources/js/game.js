@@ -134,20 +134,41 @@ class Game {
     async loadGameData() {
         try {
             // 从localStorage获取token
+            console.log('正在检查localStorage中的token...');
             const token = localStorage.getItem('game_token');
+            
+            // 检查所有localStorage中的键
+            console.log('localStorage中的所有键:');
+            for (let i = 0; i < localStorage.length; i++) {
+                const key = localStorage.key(i);
+                console.log(`- ${key}: ${localStorage.getItem(key).substring(0, 10)}...`);
+            }
+            
             if (!token) {
                 console.error('未找到认证令牌，请先登录');
-                window.location.href = '/login';
+                this.addMessage('未找到认证令牌，请先登录');
+                
+                
                 return;
             }
+            
+            console.log('使用令牌:', token.substring(0, 10) + '...');
             
             // 设置默认请求头
             axios.defaults.headers.common['Authorization'] = `Bearer ${token}`;
             
             // 获取角色信息
             try {
+                console.log('正在获取角色信息...');
                 const characterResponse = await axios.get('/api/character');
+                console.log('角色信息获取成功:', characterResponse.data);
                 this.character = characterResponse.data.character;
+                
+                // 如果有消息，显示给用户
+                if (characterResponse.data.message) {
+                    this.addMessage(characterResponse.data.message);
+                }
+                
                 if (this.characterInfo) {
                     this.updateCharacterInfo();
                 } else {
@@ -155,6 +176,18 @@ class Game {
                 }
             } catch (error) {
                 console.error('获取角色信息失败:', error);
+                if (error.response) {
+                    console.error('错误状态码:', error.response.status);
+                    console.error('错误数据:', error.response.data);
+                    
+                    if (error.response.status === 401) {
+                        console.error('认证失败，令牌可能已过期');
+                        localStorage.removeItem('game_token');
+                        this.addMessage('登录已过期，请重新登录');
+                        window.location.href = '/login';
+                        return;
+                    }
+                }
                 this.addMessage('获取角色信息失败');
                 return; // 如果无法获取角色信息，停止加载其他数据
             }
@@ -236,15 +269,19 @@ class Game {
             return;
         }
         
+        // 计算升级所需经验
+        const expToLevel = this.character.exp_to_level || (this.character.level * 100);
+        
         this.characterInfo.innerHTML = `
             <p>名称：${this.character.name}</p>
             <p>等级：${this.character.level}</p>
-            <p>经验：${this.character.exp}/${this.character.exp_to_level}</p>
+            <p>经验：${this.character.exp}/${expToLevel}</p>
             <p>生命：${this.character.current_hp}/${this.character.max_hp}</p>
             <p>魔法：${this.character.current_mp}/${this.character.max_mp}</p>
             <p>攻击：${this.character.attack}</p>
             <p>防御：${this.character.defense}</p>
-            <p>金币：${this.character.gold}</p>
+            <p>金币：${this.character.gold || 0}</p>
+            <p>位置：(${this.character.position_x}, ${this.character.position_y})</p>
         `;
     }
     
@@ -279,8 +316,16 @@ class Game {
             return;
         }
         
-        this.player.style.left = `${this.character.position_x}px`;
-        this.player.style.top = `${this.character.position_y}px`;
+        // 确保使用正确的属性名
+        const x = this.character.position_x;
+        const y = this.character.position_y;
+        
+        if (x !== undefined && y !== undefined) {
+            this.player.style.left = `${x}px`;
+            this.player.style.top = `${y}px`;
+        } else {
+            console.error('角色位置数据不完整:', this.character);
+        }
     }
     
     // 更新怪物显示
@@ -404,11 +449,20 @@ class Game {
     // 移动角色
     async moveCharacter(x, y) {
         try {
-            const response = await axios.post('/api/character/move', { x, y });
+            console.log(`尝试移动角色到位置: (${x}, ${y})`);
+            const response = await axios.post('/api/character/move', { 
+                x: x, 
+                y: y 
+            });
+            console.log('移动成功，服务器响应:', response.data);
             this.character = response.data.character;
             this.updatePlayerPosition();
         } catch (error) {
             console.error('移动失败:', error);
+            if (error.response) {
+                console.error('错误状态码:', error.response.status);
+                console.error('错误数据:', error.response.data);
+            }
             this.addMessage('移动失败');
         }
     }

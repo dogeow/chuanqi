@@ -14,8 +14,20 @@ class GameController extends Controller
     /**
      * 显示游戏主页
      */
-    public function index()
+    public function index(Request $request)
     {
+        // 如果会话中没有令牌，但用户已登录，则生成一个新令牌
+        if (!$request->session()->has('game_token') && Auth::check()) {
+            // 删除旧令牌
+            Auth::user()->tokens()->delete();
+            
+            // 生成新令牌
+            $token = Auth::user()->createToken('game-token')->plainTextToken;
+            
+            // 存储到会话
+            $request->session()->put('game_token', $token);
+        }
+        
         return view('game.index');
     }
 
@@ -28,10 +40,29 @@ class GameController extends Controller
         $character = Character::where('user_id', $user->id)->first();
 
         if (!$character) {
+            // 如果用户没有角色，自动创建一个
+            $character = new Character([
+                'name' => $user->name . '的角色',
+                'level' => 1,
+                'exp' => 0,
+                'max_hp' => 100,
+                'current_hp' => 100,
+                'max_mp' => 50,
+                'current_mp' => 50,
+                'attack' => 10,
+                'defense' => 5,
+                'current_map_id' => 1, // 默认从第一张地图开始
+                'position_x' => 100,
+                'position_y' => 100,
+            ]);
+            
+            $user->characters()->save($character);
+            
             return response()->json([
-                'success' => false,
-                'message' => '角色不存在'
-            ], 404);
+                'success' => true,
+                'character' => $character,
+                'message' => '已为您创建新角色'
+            ]);
         }
 
         return response()->json([
@@ -60,17 +91,17 @@ class GameController extends Controller
             ], 404);
         }
 
-        $character->x = $request->x;
-        $character->y = $request->y;
+        $character->position_x = $request->x;
+        $character->position_y = $request->y;
         $character->save();
 
         // 广播角色移动事件
         event(new GameEvent('character.move', [
             'character_id' => $character->id,
-            'x' => $character->x,
-            'y' => $character->y,
+            'x' => $character->position_x,
+            'y' => $character->position_y,
             'name' => $character->name
-        ], $character->map_id));
+        ], $character->current_map_id));
 
         return response()->json([
             'success' => true,
@@ -93,7 +124,7 @@ class GameController extends Controller
             ], 404);
         }
 
-        $map = Map::find($character->map_id);
+        $map = Map::find($character->current_map_id);
         if (!$map) {
             return response()->json([
                 'success' => false,
@@ -105,9 +136,9 @@ class GameController extends Controller
         $monsters = Monster::where('map_id', $map->id)->get();
 
         // 获取地图上的其他玩家
-        $otherPlayers = Character::where('map_id', $map->id)
+        $otherPlayers = Character::where('current_map_id', $map->id)
             ->where('id', '!=', $character->id)
-            ->get(['id', 'name', 'x', 'y', 'level']);
+            ->get(['id', 'name', 'position_x', 'position_y', 'level']);
 
         return response()->json([
             'success' => true,
@@ -136,13 +167,13 @@ class GameController extends Controller
             ], 404);
         }
 
-        $oldMapId = $character->map_id;
-        $character->map_id = $request->map_id;
+        $oldMapId = $character->current_map_id;
+        $character->current_map_id = $request->map_id;
         
         // 设置角色在新地图的初始位置
         $map = Map::find($request->map_id);
-        $character->x = $map->spawn_x;
-        $character->y = $map->spawn_y;
+        $character->position_x = $map->spawn_x;
+        $character->position_y = $map->spawn_y;
         $character->save();
 
         // 广播角色离开旧地图事件
@@ -154,11 +185,11 @@ class GameController extends Controller
         // 广播角色进入新地图事件
         event(new GameEvent('character.enter', [
             'character_id' => $character->id,
-            'x' => $character->x,
-            'y' => $character->y,
+            'x' => $character->position_x,
+            'y' => $character->position_y,
             'name' => $character->name,
             'level' => $character->level
-        ], $character->map_id));
+        ], $character->current_map_id));
 
         return response()->json([
             'success' => true,

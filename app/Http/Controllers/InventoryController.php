@@ -4,7 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Events\GameEvent;
 use App\Models\Character;
-use App\Models\CharacterItem;
+use App\Models\Inventory;
 use App\Models\Item;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
@@ -27,7 +27,7 @@ class InventoryController extends Controller
         }
 
         // 获取角色背包物品
-        $inventory = CharacterItem::where('character_id', $character->id)
+        $inventory = Inventory::where('character_id', $character->id)
             ->with('item')
             ->get();
 
@@ -43,7 +43,7 @@ class InventoryController extends Controller
     public function useItem(Request $request)
     {
         $request->validate([
-            'character_item_id' => 'required|exists:character_items,id',
+            'character_item_id' => 'required|exists:inventories,id',
         ]);
 
         $user = Auth::user();
@@ -57,19 +57,19 @@ class InventoryController extends Controller
         }
 
         // 检查物品是否属于该角色
-        $characterItem = CharacterItem::where('id', $request->character_item_id)
+        $inventoryItem = Inventory::where('id', $request->character_item_id)
             ->where('character_id', $character->id)
             ->with('item')
             ->first();
 
-        if (!$characterItem) {
+        if (!$inventoryItem) {
             return response()->json([
                 'success' => false,
                 'message' => '物品不存在或不属于该角色'
             ], 404);
         }
 
-        $item = $characterItem->item;
+        $item = $inventoryItem->item;
 
         // 检查物品是否可使用
         if ($item->type != 'consumable') {
@@ -97,11 +97,11 @@ class InventoryController extends Controller
         $character->save();
 
         // 减少物品数量
-        $characterItem->quantity -= 1;
-        if ($characterItem->quantity <= 0) {
-            $characterItem->delete();
+        $inventoryItem->quantity -= 1;
+        if ($inventoryItem->quantity <= 0) {
+            $inventoryItem->delete();
         } else {
-            $characterItem->save();
+            $inventoryItem->save();
         }
 
         // 广播使用物品事件
@@ -117,7 +117,7 @@ class InventoryController extends Controller
             'success' => true,
             'message' => $message,
             'character' => $character,
-            'inventory' => CharacterItem::where('character_id', $character->id)->with('item')->get()
+            'inventory' => Inventory::where('character_id', $character->id)->with('item')->get()
         ]);
     }
 
@@ -127,7 +127,7 @@ class InventoryController extends Controller
     public function equipItem(Request $request)
     {
         $request->validate([
-            'character_item_id' => 'required|exists:character_items,id',
+            'character_item_id' => 'required|exists:inventories,id',
         ]);
 
         $user = Auth::user();
@@ -141,19 +141,19 @@ class InventoryController extends Controller
         }
 
         // 检查物品是否属于该角色
-        $characterItem = CharacterItem::where('id', $request->character_item_id)
+        $inventoryItem = Inventory::where('id', $request->character_item_id)
             ->where('character_id', $character->id)
             ->with('item')
             ->first();
 
-        if (!$characterItem) {
+        if (!$inventoryItem) {
             return response()->json([
                 'success' => false,
                 'message' => '物品不存在或不属于该角色'
             ], 404);
         }
 
-        $item = $characterItem->item;
+        $item = $inventoryItem->item;
 
         // 检查物品是否可装备
         if ($item->type != 'equipment') {
@@ -172,7 +172,7 @@ class InventoryController extends Controller
         }
 
         // 检查是否已经装备了同类型的物品
-        $equippedItem = CharacterItem::where('character_id', $character->id)
+        $equippedItem = Inventory::where('character_id', $character->id)
             ->where('equipped', true)
             ->whereHas('item', function ($query) use ($item) {
                 $query->where('equipment_type', $item->equipment_type);
@@ -186,8 +186,8 @@ class InventoryController extends Controller
         }
 
         // 装备新物品
-        $characterItem->equipped = true;
-        $characterItem->save();
+        $inventoryItem->equipped = true;
+        $inventoryItem->save();
 
         // 更新角色属性
         $this->updateCharacterStats($character);
@@ -204,7 +204,7 @@ class InventoryController extends Controller
             'success' => true,
             'message' => '成功装备' . $item->name,
             'character' => $character,
-            'inventory' => CharacterItem::where('character_id', $character->id)->with('item')->get()
+            'inventory' => Inventory::where('character_id', $character->id)->with('item')->get()
         ]);
     }
 
@@ -214,7 +214,7 @@ class InventoryController extends Controller
     public function unequipItem(Request $request)
     {
         $request->validate([
-            'character_item_id' => 'required|exists:character_items,id',
+            'character_item_id' => 'required|exists:inventories,id',
         ]);
 
         $user = Auth::user();
@@ -228,13 +228,13 @@ class InventoryController extends Controller
         }
 
         // 检查物品是否属于该角色
-        $characterItem = CharacterItem::where('id', $request->character_item_id)
+        $inventoryItem = Inventory::where('id', $request->character_item_id)
             ->where('character_id', $character->id)
             ->where('equipped', true)
             ->with('item')
             ->first();
 
-        if (!$characterItem) {
+        if (!$inventoryItem) {
             return response()->json([
                 'success' => false,
                 'message' => '物品不存在、不属于该角色或未装备'
@@ -242,8 +242,8 @@ class InventoryController extends Controller
         }
 
         // 卸下物品
-        $characterItem->equipped = false;
-        $characterItem->save();
+        $inventoryItem->equipped = false;
+        $inventoryItem->save();
 
         // 更新角色属性
         $this->updateCharacterStats($character);
@@ -252,15 +252,15 @@ class InventoryController extends Controller
         event(new GameEvent('item.unequipped', [
             'character_id' => $character->id,
             'character_name' => $character->name,
-            'item_id' => $characterItem->item->id,
-            'item_name' => $characterItem->item->name
+            'item_id' => $inventoryItem->item->id,
+            'item_name' => $inventoryItem->item->name
         ], $character->map_id));
 
         return response()->json([
             'success' => true,
-            'message' => '成功卸下' . $characterItem->item->name,
+            'message' => '成功卸下' . $inventoryItem->item->name,
             'character' => $character,
-            'inventory' => CharacterItem::where('character_id', $character->id)->with('item')->get()
+            'inventory' => Inventory::where('character_id', $character->id)->with('item')->get()
         ]);
     }
 
@@ -270,7 +270,7 @@ class InventoryController extends Controller
     public function dropItem(Request $request)
     {
         $request->validate([
-            'character_item_id' => 'required|exists:character_items,id',
+            'character_item_id' => 'required|exists:inventories,id',
             'quantity' => 'required|integer|min:1',
         ]);
 
@@ -285,12 +285,12 @@ class InventoryController extends Controller
         }
 
         // 检查物品是否属于该角色
-        $characterItem = CharacterItem::where('id', $request->character_item_id)
+        $inventoryItem = Inventory::where('id', $request->character_item_id)
             ->where('character_id', $character->id)
             ->with('item')
             ->first();
 
-        if (!$characterItem) {
+        if (!$inventoryItem) {
             return response()->json([
                 'success' => false,
                 'message' => '物品不存在或不属于该角色'
@@ -298,7 +298,7 @@ class InventoryController extends Controller
         }
 
         // 检查物品是否已装备
-        if ($characterItem->equipped) {
+        if ($inventoryItem->equipped) {
             return response()->json([
                 'success' => false,
                 'message' => '已装备的物品不能丢弃，请先卸下'
@@ -306,7 +306,7 @@ class InventoryController extends Controller
         }
 
         // 检查数量是否合法
-        if ($request->quantity > $characterItem->quantity) {
+        if ($request->quantity > $inventoryItem->quantity) {
             return response()->json([
                 'success' => false,
                 'message' => '丢弃数量超过拥有数量'
@@ -314,26 +314,26 @@ class InventoryController extends Controller
         }
 
         // 减少物品数量
-        $characterItem->quantity -= $request->quantity;
-        if ($characterItem->quantity <= 0) {
-            $characterItem->delete();
+        $inventoryItem->quantity -= $request->quantity;
+        if ($inventoryItem->quantity <= 0) {
+            $inventoryItem->delete();
         } else {
-            $characterItem->save();
+            $inventoryItem->save();
         }
 
         // 广播丢弃物品事件
         event(new GameEvent('item.dropped', [
             'character_id' => $character->id,
             'character_name' => $character->name,
-            'item_id' => $characterItem->item->id,
-            'item_name' => $characterItem->item->name,
+            'item_id' => $inventoryItem->item->id,
+            'item_name' => $inventoryItem->item->name,
             'quantity' => $request->quantity
         ], $character->map_id));
 
         return response()->json([
             'success' => true,
-            'message' => '成功丢弃' . $request->quantity . '个' . $characterItem->item->name,
-            'inventory' => CharacterItem::where('character_id', $character->id)->with('item')->get()
+            'message' => '成功丢弃' . $request->quantity . '个' . $inventoryItem->item->name,
+            'inventory' => Inventory::where('character_id', $character->id)->with('item')->get()
         ]);
     }
 
@@ -350,7 +350,7 @@ class InventoryController extends Controller
         $character->max_mp = $character->base_max_mp;
 
         // 获取所有已装备的物品
-        $equippedItems = CharacterItem::where('character_id', $character->id)
+        $equippedItems = Inventory::where('character_id', $character->id)
             ->where('equipped', true)
             ->with('item')
             ->get();
