@@ -1,0 +1,18 @@
+{
+  "resources/css/app.css": {
+    "file": "assets/app-HZt9uwGE.css",
+    "src": "resources/css/app.css",
+    "isEntry": true
+  },
+  "resources/css/game.css": {
+    "file": "assets/game-B-8pTh16.css",
+    "src": "resources/css/game.css",
+    "isEntry": true
+  },
+  "resources/js/app.js": {
+    "file": "assets/app-mYnfOD3L.js",
+    "name": "app",
+    "src": "resources/js/app.js",
+    "isEntry": true
+  }
+}
