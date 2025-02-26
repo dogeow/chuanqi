@@ -890,6 +890,23 @@ class Game {
         }
     }
     
+    // 在攻击怪物时尝试释放所有设置为自动的技能
+    async tryAutoReleaseSkills(monsterId) {
+        // 获取所有设置为自动释放的技能
+        const autoSkills = this.skills.filter(s => s.is_auto_attacking && s.cooldown_remaining === 0);
+        
+        // 如果有可用的自动技能，依次释放
+        for (const skill of autoSkills) {
+            try {
+                await this.useSkill(skill.id, monsterId);
+                // 短暂延迟，避免同时释放多个技能导致的问题
+                await new Promise(resolve => setTimeout(resolve, 100));
+            } catch (error) {
+                console.error(`自动释放技能 ${skill.skill.name} 失败:`, error);
+            }
+        }
+    }
+    
     // 使用技能
     async useSkill(skillId, monsterId) {
         try {
@@ -1463,28 +1480,92 @@ class Game {
             this.character.gold = characterResponse.data.gold || 0;
             
             // 显示商店名称和玩家当前金币
-            shopNameEl.innerHTML = `${shop.name} <span class="player-gold">您的金币: ${this.character.gold}</span>`;
+            shopNameEl.innerHTML = `${shop.name}您的金币: ${this.character.gold}`;
             
             shopItemsEl.innerHTML = shopItems.map(item => {
                 // 检查玩家是否有足够的金币购买该物品
                 const canAfford = this.character.gold >= item.price;
                 const affordClass = canAfford ? 'can-afford' : 'cannot-afford';
-                const buyButton = canAfford ? 
-                    `<button class="btn buy-btn" onclick="game.buyItem(${item.id})">购买</button>` : 
-                    `<button class="btn buy-btn disabled" title="金币不足">购买</button>`;
                 
                 return `
-                <div class="item ${affordClass}" data-shop-item-id="${item.id}">
-                    <div class="item-icon">${item.item.image || '物'}</div>
-                    <div class="item-info">
-                        <div>${item.item.name}</div>
-                        <div class="price-info">价格：${item.price}金币 ${!canAfford ? '<span class="not-enough">(金币不足)</span>' : ''}</div>
-                        <div class="item-description">${item.item.description || ''}</div>
+                <div class="shop-item ${affordClass}" data-shop-item-id="${item.id}" data-price="${item.price}">
+                    <div class="shop-item-header">
+                        <div class="shop-item-icon">${item.item.image || '物'}</div>
+                        <div class="shop-item-name">${item.item.name}</div>
                     </div>
-                    ${buyButton}
+                    <div class="shop-item-details">
+                        <div class="shop-item-description">${item.item.description || ''}</div>
+                        <div class="shop-item-price">价格：${item.price}金币 ${!canAfford ? '<span class="not-enough">(金币不足)</span>' : ''}</div>
+                    </div>
+                    <div class="shop-item-actions">
+                        <div class="quantity-selector">
+                            <button class="quantity-btn" data-quantity="1">x1</button>
+                            <button class="quantity-btn" data-quantity="10">x10</button>
+                            <button class="quantity-btn" data-quantity="100">x100</button>
+                        </div>
+                        <button class="btn buy-btn ${!canAfford ? 'disabled' : ''}" 
+                                ${!canAfford ? 'title="金币不足"' : ''} 
+                                data-shop-item-id="${item.id}">
+                            购买
+                        </button>
+                    </div>
                 </div>
                 `;
             }).join('');
+            
+            // 添加购买数量选择事件
+            const quantityBtns = shopItemsEl.querySelectorAll('.quantity-btn');
+            quantityBtns.forEach(btn => {
+                btn.addEventListener('click', (e) => {
+                    // 移除同级按钮的选中状态
+                    const parent = e.target.parentElement;
+                    parent.querySelectorAll('.quantity-btn').forEach(b => b.classList.remove('selected'));
+                    
+                    // 添加当前按钮的选中状态
+                    e.target.classList.add('selected');
+                    
+                    // 设置购买按钮的数量属性
+                    const shopItem = e.target.closest('.shop-item');
+                    const buyBtn = shopItem.querySelector('.buy-btn');
+                    const quantity = parseInt(e.target.dataset.quantity);
+                    const price = parseInt(shopItem.dataset.price);
+                    
+                    // 更新按钮状态
+                    buyBtn.dataset.quantity = quantity;
+                    
+                    // 检查是否有足够的金币购买指定数量
+                    const totalPrice = price * quantity;
+                    const canAfford = this.character.gold >= totalPrice;
+                    
+                    if (canAfford) {
+                        buyBtn.classList.remove('disabled');
+                        buyBtn.removeAttribute('title');
+                    } else {
+                        buyBtn.classList.add('disabled');
+                        buyBtn.setAttribute('title', '金币不足');
+                    }
+                });
+            });
+            
+            // 默认选中x1数量
+            quantityBtns.forEach(btn => {
+                if (btn.dataset.quantity === '1') {
+                    btn.click();
+                }
+            });
+            
+            // 添加购买按钮事件
+            const buyBtns = shopItemsEl.querySelectorAll('.buy-btn');
+            buyBtns.forEach(btn => {
+                btn.addEventListener('click', (e) => {
+                    if (btn.classList.contains('disabled')) return;
+                    
+                    const shopItemId = parseInt(btn.dataset.shopItemId);
+                    const quantity = parseInt(btn.dataset.quantity || 1);
+                    
+                    this.buyItem(shopItemId, quantity);
+                });
+            });
             
             shopModal.style.display = 'block';
             
@@ -1558,10 +1639,7 @@ class Game {
         // 更新技能列表显示
         this.renderSkillsList();
         
-        // 如果开启了自动释放且技能不在冷却中，立即尝试使用
-        if (skillObj.is_auto_attacking && skillObj.cooldown_remaining === 0) {
-            this.tryAutoUseSkill(skillObj);
-        }
+        // 移除立即尝试使用技能的逻辑，只在攻击怪物时才会自动释放
     }
     
     // 攻击怪物
@@ -1576,6 +1654,9 @@ class Game {
                 monster_id: monsterId,
                 timestamp: new Date().toISOString()
             });
+            
+            // 在攻击怪物前，检查是否有技能可以自动释放
+            this.tryAutoReleaseSkills(monsterId);
             
             const response = await axios.post('/api/monster/attack', { monster_id: monsterId });
             console.log('攻击怪物响应:', response.data);
@@ -1672,11 +1753,11 @@ class Game {
     }
     
     // 购买物品
-    async buyItem(shopItemId) {
+    async buyItem(shopItemId, quantity = 1) {
         try {
             const response = await axios.post('/api/shop/buy', {
                 shop_item_id: shopItemId,
-                quantity: 1
+                quantity: quantity
             });
             
             console.log('购买物品响应:', response.data);
@@ -1691,6 +1772,13 @@ class Game {
                     playerGoldEl.textContent = `您的金币: ${this.character.gold}`;
                 }
                 
+                // 更新商店名称中的金币显示
+                const shopNameEl = document.getElementById('shop-name');
+                if (shopNameEl) {
+                    const shopName = shopNameEl.textContent.split('您的金币:')[0];
+                    shopNameEl.innerHTML = `${shopName}您的金币: ${this.character.gold}`;
+                }
+                
                 // 更新物品列表
                 if (response.data.inventory) {
                     this.updateInventoryList(response.data.inventory);
@@ -1700,7 +1788,8 @@ class Game {
                 this.updateShopItemsAffordability();
                 
                 // 显示购买成功消息
-                this.addMessage(`成功购买 ${response.data.item_name}`, 'success');
+                const quantityText = quantity > 1 ? `${quantity}个` : '';
+                this.addMessage(`成功购买${quantityText} ${response.data.item_name}`, 'success');
                 this.addMessage(`剩余金币: ${this.character.gold}`, 'gold');
             } else {
                 this.addMessage(response.data.message || '购买失败', 'error');
@@ -1719,53 +1808,52 @@ class Game {
     
     // 更新商店物品的可购买状态
     updateShopItemsAffordability() {
-        const shopItems = document.querySelectorAll('#shop-items .item');
+        const shopItems = document.querySelectorAll('.shop-item');
         shopItems.forEach(item => {
-            const priceText = item.querySelector('.price-info');
-            if (priceText) {
-                const priceMatch = priceText.textContent.match(/价格：(\d+)金币/);
-                if (priceMatch && priceMatch[1]) {
-                    const price = parseInt(priceMatch[1]);
-                    const canAfford = (this.character.gold || 0) >= price;
-                    
-                    // 更新样式类
-                    if (canAfford) {
-                        item.classList.remove('cannot-afford');
-                        item.classList.add('can-afford');
-                        
-                        // 更新价格显示
-                        const notEnoughSpan = priceText.querySelector('.not-enough');
-                        if (notEnoughSpan) {
-                            notEnoughSpan.remove();
-                        }
-                        
-                        // 更新按钮
-                        const buyBtn = item.querySelector('.buy-btn');
-                        if (buyBtn) {
-                            buyBtn.classList.remove('disabled');
-                            buyBtn.removeAttribute('title');
-                            
-                            // 确保点击事件可用
-                            const itemId = item.dataset.shopItemId;
-                            buyBtn.setAttribute('onclick', `game.buyItem(${itemId})`);
-                        }
-                    } else {
-                        item.classList.remove('can-afford');
-                        item.classList.add('cannot-afford');
-                        
-                        // 更新价格显示
-                        if (!priceText.querySelector('.not-enough')) {
-                            priceText.innerHTML = `价格：${price}金币 <span class="not-enough">(金币不足)</span>`;
-                        }
-                        
-                        // 更新按钮
-                        const buyBtn = item.querySelector('.buy-btn');
-                        if (buyBtn) {
-                            buyBtn.classList.add('disabled');
-                            buyBtn.setAttribute('title', '金币不足');
-                            buyBtn.removeAttribute('onclick');
-                        }
-                    }
+            const price = parseInt(item.dataset.price || 0);
+            
+            // 获取当前选中的数量
+            const selectedQuantityBtn = item.querySelector('.quantity-btn.selected');
+            const quantity = selectedQuantityBtn ? parseInt(selectedQuantityBtn.dataset.quantity) : 1;
+            
+            // 计算总价
+            const totalPrice = price * quantity;
+            
+            // 判断是否有足够的金币
+            const canAfford = (this.character.gold || 0) >= totalPrice;
+            
+            // 更新样式类
+            if (canAfford) {
+                item.classList.remove('cannot-afford');
+                item.classList.add('can-afford');
+                
+                // 更新价格显示
+                const priceEl = item.querySelector('.shop-item-price');
+                if (priceEl) {
+                    priceEl.innerHTML = `价格：${price}金币 × ${quantity} = ${totalPrice}金币`;
+                }
+                
+                // 更新按钮
+                const buyBtn = item.querySelector('.buy-btn');
+                if (buyBtn) {
+                    buyBtn.classList.remove('disabled');
+                    buyBtn.removeAttribute('title');
+                }
+            } else {
+                item.classList.remove('can-afford');
+                item.classList.add('cannot-afford');
+                
+                // 更新价格显示
+                const priceEl = item.querySelector('.shop-item-price');
+                if (priceEl) {
+                    priceEl.innerHTML = `价格：${price}金币 × ${quantity} = ${totalPrice}金币 <span class="not-enough">(金币不足)</span>`;
+                }
+                
+                // 更新按钮
+                const buyBtn = item.querySelector('.buy-btn');
+                if (buyBtn) {
+                    buyBtn.classList.add('disabled');
+                    buyBtn.setAttribute('title', '金币不足');
                 }
             }
         });

@@ -1080,4 +1080,132 @@ body {
     border-radius: 4px;
     font-size: 12px;
     margin-left: 8px;
+}
+
+/* 商店样式 */
+.shop-item {
+    display: flex;
+    flex-direction: column;
+    margin-bottom: 15px;
+    padding: 10px;
+    background-color: #444;
+    border-radius: 8px;
+    border-left: 4px solid transparent;
+    transition: all 0.3s ease;
+}
+
+.shop-item:hover {
+    background-color: #555;
+}
+
+.can-afford {
+    border-left: 4px solid #2ecc71;
+}
+
+.cannot-afford {
+    border-left: 4px solid #e74c3c;
+    opacity: 0.8;
+}
+
+.shop-item-header {
+    display: flex;
+    align-items: center;
+    margin-bottom: 8px;
+}
+
+.shop-item-icon {
+    width: 40px;
+    height: 40px;
+    background-color: #333;
+    border-radius: 4px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin-right: 10px;
+    font-size: 20px;
+}
+
+.shop-item-name {
+    font-weight: bold;
+    font-size: 16px;
+    color: #ffcc00;
+}
+
+.shop-item-details {
+    margin-bottom: 10px;
+}
+
+.shop-item-description {
+    font-size: 12px;
+    color: #bdc3c7;
+    margin-bottom: 5px;
+}
+
+.shop-item-price {
+    font-size: 14px;
+    color: #f1c40f;
+}
+
+.shop-item-actions {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.quantity-selector {
+    display: flex;
+    gap: 5px;
+}
+
+.quantity-btn {
+    padding: 5px 10px;
+    background-color: #333;
+    border: 1px solid #555;
+    border-radius: 4px;
+    color: white;
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+
+.quantity-btn:hover {
+    background-color: #444;
+}
+
+.quantity-btn.selected {
+    background-color: #2980b9;
+    border-color: #3498db;
+}
+
+.buy-btn {
+    padding: 5px 15px;
+    background-color: #2ecc71;
+    color: white;
+    border: none;
+    border-radius: 4px;
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+
+.buy-btn:hover {
+    background-color: #27ae60;
+}
+
+.buy-btn.disabled {
+    background-color: #95a5a6;
+    cursor: not-allowed;
+}
+
+/* 商店模态框标题样式 */
+#shop-name {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 15px;
+    padding-bottom: 10px;
+    border-bottom: 1px solid #555;
+}
+
+.player-gold {
+    color: #f1c40f;
+    font-weight: bold;
 } 
