@@ -58,6 +58,8 @@ body {
     justify-content: center;
     line-height: 1.2;
     padding: 2px;
+    position: absolute;
+    transform-origin: center;
     transform: translate(-50%, -50%);
 }
 
@@ -72,13 +74,13 @@ body {
 
 @keyframes playerMove {
     0% {
-        transform: scale(1);
+        transform: translate(-50%, -50%) scale(1);
     }
     50% {
-        transform: scale(1.1);
+        transform: translate(-50%, -50%) scale(1.1);
     }
     100% {
-        transform: scale(1);
+        transform: translate(-50%, -50%) scale(1);
     }
 }
 
@@ -95,11 +97,11 @@ body {
 
 @keyframes moveTrail {
     0% {
-        transform: scale(1);
+        transform: translate(-50%, -50%) scale(1);
         opacity: 0.5;
     }
     100% {
-        transform: scale(1.5);
+        transform: translate(-50%, -50%) scale(1.5);
         opacity: 0;
     }
 }
@@ -438,7 +440,6 @@ body {
 
 /* 提示文本 */
 [title] {
-    position: relative;
     cursor: help;
 }
 

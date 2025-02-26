@@ -372,8 +372,8 @@ class Game {
                 
                 // 获取点击位置相对于地图的坐标
                 const rect = this.gameMap.getBoundingClientRect();
-                const x = event.clientX - rect.left;
-                const y = event.clientY - rect.top;
+                const x = Math.round(event.clientX - rect.left);
+                const y = Math.round(event.clientY - rect.top);
                 
                 console.log(`地图点击事件: (${x}, ${y})`);
                 
@@ -859,6 +859,7 @@ class Game {
             playerElement = document.createElement('div');
             playerElement.className = 'player';
             this.gameMap.appendChild(playerElement);
+            console.log('创建了新的玩家元素');
         }
         
         // 设置玩家位置 - 确保使用正确的坐标
@@ -868,7 +869,7 @@ class Game {
         // 设置玩家名称和等级
         playerElement.innerHTML = `${this.character.name} <span class="player-level">Lv.${this.character.level}</span>`;
         
-        console.log(`更新玩家位置: (${this.character.position_x}, ${this.character.position_y})`);
+        console.log(`更新玩家位置: (${this.character.position_x}, ${this.character.position_y}), CSS位置: left=${playerElement.style.left}, top=${playerElement.style.top}`);
     }
     
     // 更新怪物显示
@@ -927,9 +928,10 @@ class Game {
             
             // 设置位置 - 确保使用正确的坐标
             if (player.position_x !== undefined && player.position_y !== undefined) {
+                // 直接设置位置，不需要额外计算偏移，CSS中的transform已经处理了居中
                 playerElement.style.left = `${player.position_x}px`;
                 playerElement.style.top = `${player.position_y}px`;
-                console.log(`设置玩家 ${player.name} 位置: (${player.position_x}, ${player.position_y})`);
+                console.log(`设置玩家 ${player.name} 位置: (${player.position_x}, ${player.position_y}), CSS位置: left=${playerElement.style.left}, top=${playerElement.style.top}`);
             } else {
                 console.warn(`玩家 ${player.name} 缺少位置信息:`, player);
                 // 使用默认位置
@@ -1230,6 +1232,8 @@ class Game {
             return;
         }
         
+        console.log(`尝试移动角色到坐标: (${x}, ${y})`);
+        
         try {
             // 正常移动
             const response = await axios.post('/api/character/move', { 
@@ -1242,6 +1246,7 @@ class Game {
             // 更新角色数据
             if (response.data.character) {
                 this.character = response.data.character;
+                console.log(`角色位置已更新为: (${this.character.position_x}, ${this.character.position_y})`);
                 this.updatePlayerPosition();
             }
         } catch (error) {
@@ -1893,8 +1898,11 @@ class Game {
             playerElement.title = `${data.character.name} (等级 ${data.character.level || 1})`;
             
             // 设置初始位置 - 使用绝对位置
+            // 直接设置位置，CSS中的transform已经处理了居中
             playerElement.style.left = `${data.character.position_x}px`;
             playerElement.style.top = `${data.character.position_y}px`;
+            
+            console.log(`设置新玩家 ${data.character.name} 初始位置: (${data.character.position_x}, ${data.character.position_y}), CSS位置: left=${playerElement.style.left}, top=${playerElement.style.top}`);
             
             // 将玩家添加到地图
             if (this.gameMap) {
@@ -1937,8 +1945,11 @@ class Game {
             
             // 更新玩家位置（直接设置位置）
             playerElement.style.transition = `left ${animationTime}ms ease-out, top ${animationTime}ms ease-out`;
+            // 直接设置位置，CSS中的transform已经处理了居中
             playerElement.style.left = `${targetX}px`;
             playerElement.style.top = `${targetY}px`;
+            
+            console.log(`更新玩家 ${data.character.name} 位置: (${targetX}, ${targetY}), CSS位置: left=${playerElement.style.left}, top=${playerElement.style.top}`);
             
             // 移动完成后更新实际位置
             setTimeout(() => {
@@ -1952,7 +1963,7 @@ class Game {
                     this.otherPlayers[playerIndex].position_y = targetY;
                 }
                 
-                console.log(`玩家 ${data.character.name} 移动完成`);
+                console.log(`玩家 ${data.character.name} 移动完成, 最终位置: (${targetX}, ${targetY})`);
             }, animationTime);
         }
     }
