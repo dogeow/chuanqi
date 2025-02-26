@@ -32,11 +32,8 @@ Route::middleware('auth:sanctum')->group(function () {
     // 地图相关
     Route::get('/map/{id}', [GameController::class, 'getMap']);
     Route::post('/map/enter', [GameController::class, 'enterMap']);
-    Route::post('/map/admin/create', [GameController::class, 'createMap']);
-    Route::post('/map/admin/create-teleport', [GameController::class, 'createTeleportPoint']);
     Route::post('/map/change', [GameController::class, 'changeMap']);
     Route::get('/maps', [GameController::class, 'getAllMaps']); // 获取所有地图
-    Route::post('/map/teleport-points', [GameController::class, 'manageTeleportPoints']); // 管理传送点
     
     // 怪物相关
     Route::post('/monster/attack', [GameController::class, 'attackMonster']);

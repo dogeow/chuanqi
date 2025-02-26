@@ -16,15 +16,8 @@
 </head>
 <body>
     <div class="game-container">
-        <div class="game-map-container">
-            <div id="game-map" class="game-map">
-                <div id="player" class="player"></div>
-                <!-- 怪物和其他玩家会动态添加到这里 -->
-            </div>
-        </div>
-        
-        <div class="sidebar">
-            <div class="section">
+        <div class="vertical-sidebar">
+            <div class="section character-section">
                 <h3>角色信息</h3>
                 <div id="character-details">
                     <!-- 角色信息会动态添加到这里 -->
@@ -32,25 +25,38 @@
                 </div>
             </div>
             
-            <div class="section">
+            <div class="section skills-section">
                 <h3>技能</h3>
                 <div id="skills-list">
                     <!-- 技能列表会动态添加到这里 -->
                     <p>加载中...</p>
                 </div>
             </div>
+        </div>
+        
+        <div class="game-content">
+            <div class="game-map-container">
+                <div id="game-map" class="game-map">
+                    <div id="player" class="player"></div>
+                    <!-- 怪物和其他玩家会动态添加到这里 -->
+                </div>
+            </div>
             
-            <div class="section">
+            <div class="messages-container">
+                <div class="messages" id="messages">
+                    <!-- 游戏消息会动态添加到这里 -->
+                    <p>欢迎来到传奇游戏！</p>
+                </div>
+            </div>
+        </div>
+        
+        <div class="inventory-sidebar">
+            <div class="section inventory-section">
                 <h3>背包</h3>
                 <div id="inventory-list">
                     <!-- 背包物品会动态添加到这里 -->
                     <p>加载中...</p>
                 </div>
-            </div>
-            
-            <div class="messages" id="messages">
-                <!-- 游戏消息会动态添加到这里 -->
-                <p>欢迎来到传奇游戏！</p>
             </div>
         </div>
     </div>

@@ -55,8 +55,7 @@ class Game {
             { icon: '🔍', title: '查看地图', action: 'showMapInfo' },
             { icon: '🗺️', title: '地图指南', action: 'showMapGuide' },
             { icon: '💰', title: '商店指南', action: 'showShopGuide' },
-            { icon: '⚔️', title: '战斗指南', action: 'showCombatGuide' },
-            { icon: '⚙️', title: '地图管理', action: 'showMapAdmin' }
+            { icon: '⚔️', title: '战斗指南', action: 'showCombatGuide' }
         ];
         
         controls.forEach(control => {
@@ -95,9 +94,6 @@ class Game {
                 break;
             case 'showCombatGuide':
                 this.showCombatGuide();
-                break;
-            case 'showMapAdmin':
-                this.showMapAdmin();
                 break;
         }
     }
@@ -167,195 +163,6 @@ class Game {
         this.addMessage('- 获得足够经验可以升级', 'info');
         this.addMessage(`您当前的攻击力: ${this.character.attack}`, 'combat');
         this.addMessage(`您当前的防御力: ${this.character.defense}`, 'combat');
-    }
-    
-    // 显示地图管理界面
-    async showMapAdmin() {
-        this.addMessage('正在加载地图管理界面...', 'system');
-        
-        try {
-            // 获取所有地图数据
-            const response = await axios.get('/api/maps');
-            const maps = response.data.maps;
-            
-            // 创建管理界面
-            let adminPanel = document.querySelector('.map-admin-panel');
-            if (adminPanel) {
-                adminPanel.remove();
-            }
-            
-            adminPanel = document.createElement('div');
-            adminPanel.className = 'map-admin-panel';
-            adminPanel.innerHTML = `
-                <div class="admin-header">
-                    <h2>地图传送点管理</h2>
-                    <span class="close-admin">&times;</span>
-                </div>
-                <div class="admin-content">
-                    <div class="admin-section">
-                        <h3>创建双向传送点</h3>
-                        <form id="create-teleport-form">
-                            <div class="form-group">
-                                <label>源地图:</label>
-                                <select id="source-map" required>
-                                    ${maps.map(map => `<option value="${map.id}">${map.name}</option>`).join('')}
-                                </select>
-                            </div>
-                            <div class="form-group">
-                                <label>源坐标:</label>
-                                <input type="number" id="source-x" placeholder="X坐标" required>
-                                <input type="number" id="source-y" placeholder="Y坐标" required>
-                            </div>
-                            <div class="form-group">
-                                <label>目标地图:</label>
-                                <select id="target-map" required>
-                                    ${maps.map(map => `<option value="${map.id}">${map.name}</option>`).join('')}
-                                </select>
-                            </div>
-                            <div class="form-group">
-                                <label>目标坐标:</label>
-                                <input type="number" id="target-x" placeholder="X坐标" required>
-                                <input type="number" id="target-y" placeholder="Y坐标" required>
-                            </div>
-                            <button type="submit" class="admin-btn">创建传送点</button>
-                        </form>
-                    </div>
-                    
-                    <div class="admin-section">
-                        <h3>现有传送点</h3>
-                        <div class="teleport-list">
-                            <p>正在加载传送点数据...</p>
-                        </div>
-                    </div>
-                </div>
-            `;
-            
-            document.body.appendChild(adminPanel);
-            
-            // 添加关闭按钮事件
-            adminPanel.querySelector('.close-admin').addEventListener('click', () => {
-                adminPanel.remove();
-            });
-            
-            // 添加表单提交事件
-            const form = document.getElementById('create-teleport-form');
-            form.addEventListener('submit', async (e) => {
-                e.preventDefault();
-                
-                const sourceMapId = document.getElementById('source-map').value;
-                const sourceX = document.getElementById('source-x').value;
-                const sourceY = document.getElementById('source-y').value;
-                const targetMapId = document.getElementById('target-map').value;
-                const targetX = document.getElementById('target-x').value;
-                const targetY = document.getElementById('target-y').value;
-                
-                try {
-                    const response = await axios.post('/api/map/teleport-points', {
-                        action: 'create_bidirectional',
-                        map_id: sourceMapId,
-                        x: sourceX,
-                        y: sourceY,
-                        target_map_id: targetMapId,
-                        target_x: targetX,
-                        target_y: targetY
-                    });
-                    
-                    if (response.data.success) {
-                        this.addMessage(response.data.message, 'success');
-                        // 刷新管理界面
-                        this.showMapAdmin();
-                    } else {
-                        this.addMessage(`创建传送点失败: ${response.data.message}`, 'error');
-                    }
-                } catch (error) {
-                    console.error('创建传送点错误:', error);
-                    this.addMessage(`创建传送点错误: ${error.response?.data?.message || error.message}`, 'error');
-                }
-            });
-            
-            // 异步加载传送点列表
-            const teleportListContainer = adminPanel.querySelector('.teleport-list');
-            let teleportListHtml = '';
-            
-            for (const map of maps) {
-                let pointsHtml = '<li>没有传送点</li>';
-                
-                try {
-                    // 确保传送点是数组
-                    const teleportPoints = Array.isArray(map.teleport_points) ? map.teleport_points : [];
-                    
-                    if (teleportPoints.length > 0) {
-                        pointsHtml = teleportPoints.map((point, index) => {
-                            // 查找目标地图名称
-                            const targetMap = maps.find(m => m.id === point.target_map_id);
-                            const targetMapName = targetMap ? targetMap.name : '未知地图';
-                            
-                            return `
-                                <li>
-                                    传送点 #${index + 1}: 
-                                    (${point.x}, ${point.y}) → 
-                                    ${targetMapName} (${point.target_x}, ${point.target_y})
-                                    <button class="delete-teleport" 
-                                            data-map-id="${map.id}" 
-                                            data-x="${point.x}" 
-                                            data-y="${point.y}">
-                                        删除
-                                    </button>
-                                </li>
-                            `;
-                        }).join('');
-                    }
-                } catch (error) {
-                    console.error(`处理地图 ${map.name} 的传送点时出错:`, error);
-                    pointsHtml = '<li>加载传送点数据出错</li>';
-                }
-                
-                teleportListHtml += `
-                    <div class="map-teleports">
-                        <h4>${map.name}</h4>
-                        <ul>${pointsHtml}</ul>
-                    </div>
-                `;
-            }
-            
-            teleportListContainer.innerHTML = teleportListHtml;
-            
-            // 添加删除按钮事件
-            document.querySelectorAll('.delete-teleport').forEach(button => {
-                button.addEventListener('click', async () => {
-                    const mapId = button.dataset.mapId;
-                    const x = button.dataset.x;
-                    const y = button.dataset.y;
-                    
-                    if (confirm(`确定要删除这个传送点吗？`)) {
-                        try {
-                            const response = await axios.post('/api/map/teleport-points', {
-                                action: 'remove',
-                                map_id: mapId,
-                                x: x,
-                                y: y
-                            });
-                            
-                            if (response.data.success) {
-                                this.addMessage(response.data.message, 'success');
-                                // 刷新管理界面
-                                this.showMapAdmin();
-                            } else {
-                                this.addMessage(`删除传送点失败: ${response.data.message}`, 'error');
-                            }
-                        } catch (error) {
-                            console.error('删除传送点错误:', error);
-                            this.addMessage(`删除传送点错误: ${error.response?.data?.message || error.message}`, 'error');
-                        }
-                    }
-                });
-            });
-            
-            this.addMessage('地图管理界面已加载', 'success');
-        } catch (error) {
-            console.error('加载地图管理界面错误:', error);
-            this.addMessage(`加载地图管理界面错误: ${error.response?.data?.message || error.message}`, 'error');
-        }
     }
     
     // 初始化事件监听器

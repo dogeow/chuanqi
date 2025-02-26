@@ -30,9 +30,9 @@ class GameSeeder extends Seeder
                 ['x' => 300, 'y' => 300],
             ]),
             'teleport_points' => json_encode([
-                ['x' => 950, 'y' => 400, 'target_map_id' => 2, 'target_x' => 50, 'target_y' => 400],
+                ['x' => 950, 'y' => 100, 'target_map_id' => 2, 'target_x' => 50, 'target_y' => 400],
                 ['x' => 950, 'y' => 200, 'target_map_id' => 3, 'target_x' => 50, 'target_y' => 200],
-                ['x' => 950, 'y' => 600, 'target_map_id' => 4, 'target_x' => 50, 'target_y' => 400],
+                ['x' => 950, 'y' => 300, 'target_map_id' => 4, 'target_x' => 50, 'target_y' => 400],
             ]),
         ]);
 
@@ -92,7 +92,7 @@ class GameSeeder extends Seeder
                 ['x' => 600, 'y' => 400],
             ]),
             'teleport_points' => json_encode([
-                ['x' => 50, 'y' => 400, 'target_map_id' => 1, 'target_x' => 950, 'target_y' => 600],
+                ['x' => 50, 'y' => 400, 'target_map_id' => 1, 'target_x' => 950, 'target_y' => 500],
                 ['x' => 950, 'y' => 200, 'target_map_id' => 3, 'target_x' => 950, 'target_y' => 400],
             ]),
         ]);
@@ -249,8 +249,8 @@ class GameSeeder extends Seeder
             'gold_reward' => 100,
             'respawn_time' => 240,
             'map_id' => $desertMap->id,
-            'position_x' => 800,
-            'position_y' => 600,
+            'position_x' => 600,
+            'position_y' => 400,
             'image' => 'monsters/mummy.png',
         ]);
 
