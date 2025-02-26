@@ -11,6 +11,9 @@ class Game {
         
         // 加载游戏数据
         this.loadGameData();
+        
+        // 初始化技能冷却定时器
+        this.skillCooldownInterval = null;
     }
     
     // 初始化DOM元素引用
@@ -212,18 +215,14 @@ class Game {
             // 移除此处的事件监听器，避免重复触发
         }
         
-        // 技能点击事件
-        if (this.skillsList) {
-            this.skillsList.addEventListener('click', (event) => {
-                const skillElement = event.target.closest('.skill');
-                if (skillElement) {
-                    const skillId = skillElement.dataset.skillId;
-                    if (skillId) {
-                        this.showSkillSelectModal(skillId);
-                    }
-                }
-            });
-        }
+        // 技能点击事件 - 直接切换自动释放状态
+        this.skillsList.addEventListener('click', (e) => {
+            const skillElement = e.target.closest('.skill');
+            if (skillElement) {
+                const skillId = skillElement.dataset.skillId;
+                this.toggleAutoSkill(skillId);
+            }
+        });
         
         // 物品点击事件
         if (this.inventoryList) {
@@ -241,10 +240,6 @@ class Game {
         // 怪物模态窗口按钮事件
         document.getElementById('attack-monster')?.addEventListener('click', () => {
             this.attackMonster();
-        });
-        
-        document.getElementById('use-skill')?.addEventListener('click', () => {
-            this.showSkillSelectModal();
         });
         
         document.getElementById('auto-attack-btn')?.addEventListener('click', () => {
@@ -790,17 +785,123 @@ class Game {
             return;
         }
         
-        this.skills = skills; // 保存技能列表引用
+        this.skills = skills.map(skill => {
+            return {
+                ...skill,
+                is_auto_attacking: false, // 添加自动释放状态标志
+                cooldown_remaining: 0, // 添加冷却时间剩余
+                last_used: null // 添加上次使用时间
+            };
+        });
         
-        this.skillsList.innerHTML = skills.map(skill => `
-            <div class="skill" data-skill-id="${skill.id}">
-                <div class="skill-icon">${skill.skill.icon || '技'}</div>
-                <div class="skill-info">
-                    <div>${skill.skill.name} Lv.${skill.level}</div>
-                    <div>MP消耗：${skill.skill.mp_cost}</div>
+        this.renderSkillsList();
+        
+        // 启动技能冷却检查定时器
+        if (!this.skillCooldownInterval) {
+            this.skillCooldownInterval = setInterval(() => this.updateSkillCooldowns(), 1000);
+        }
+    }
+    
+    // 渲染技能列表
+    renderSkillsList() {
+        if (!this.skillsList || !this.skills) return;
+        
+        this.skillsList.innerHTML = this.skills.map(skill => {
+            const cooldownDisplay = skill.cooldown_remaining > 0 ? 
+                `<div class="skill-cooldown">${skill.cooldown_remaining}秒</div>` : '';
+            
+            const autoClass = skill.is_auto_attacking ? 'skill-auto-active' : '';
+            
+            return `
+                <div class="skill ${autoClass}" data-skill-id="${skill.id}">
+                    <div class="skill-icon">${skill.skill.icon || '技'}</div>
+                    <div class="skill-info">
+                        <div>${skill.skill.name} Lv.${skill.level}</div>
+                        <div>MP消耗：${skill.skill.mp_cost}</div>
+                        ${cooldownDisplay}
+                    </div>
+                    <div class="skill-auto-indicator">${skill.is_auto_attacking ? '自动' : ''}</div>
                 </div>
-            </div>
-        `).join('');
+            `;
+        }).join('');
+    }
+    
+    // 更新技能冷却时间
+    updateSkillCooldowns() {
+        let needsUpdate = false;
+        
+        this.skills.forEach(skill => {
+            if (skill.cooldown_remaining > 0) {
+                skill.cooldown_remaining--;
+                needsUpdate = true;
+            }
+            
+            // 如果技能已冷却完毕且开启了自动释放，尝试释放技能
+            if (skill.cooldown_remaining === 0 && skill.is_auto_attacking) {
+                this.tryAutoUseSkill(skill);
+            }
+        });
+        
+        if (needsUpdate) {
+            this.renderSkillsList();
+        }
+    }
+    
+    // 尝试自动释放技能
+    async tryAutoUseSkill(skill) {
+        // 检查是否有怪物可以攻击
+        if (!this.monsters || this.monsters.length === 0) {
+            return;
+        }
+        
+        // 找到最近的活着的怪物
+        const liveMonsters = this.monsters.filter(m => !m.is_dead);
+        if (liveMonsters.length === 0) {
+            return;
+        }
+        
+        // 简单地选择第一个活着的怪物作为目标
+        const targetMonster = liveMonsters[0];
+        
+        // 使用技能攻击怪物
+        try {
+            await this.useSkill(skill.id, targetMonster.id);
+        } catch (error) {
+            console.error('自动释放技能失败:', error);
+        }
+    }
+    
+    // 使用技能
+    async useSkill(skillId, monsterId) {
+        try {
+            // 找到技能对象
+            const skillObj = this.skills.find(s => s.id === parseInt(skillId));
+            if (!skillObj) {
+                console.error('未找到技能:', skillId);
+                return;
+            }
+            
+            // 检查技能是否在冷却中
+            if (skillObj.cooldown_remaining > 0) {
+                this.addMessage(`技能 ${skillObj.skill.name} 正在冷却中，剩余 ${skillObj.cooldown_remaining} 秒`, 'warning');
+                return;
+            }
+            
+            const response = await axios.post('/api/skill/use', {
+                skill_id: skillId,
+                monster_id: monsterId
+            });
+            
+            // 设置技能冷却时间
+            skillObj.cooldown_remaining = skillObj.skill.cooldown || 0;
+            skillObj.last_used = new Date();
+            this.renderSkillsList();
+            
+            this.handleCombatResult(response.data);
+        } catch (error) {
+            console.error('使用技能失败:', error);
+            this.addMessage('使用技能失败');
+        }
     }
     
     // 更新背包列表
@@ -817,15 +918,200 @@ class Game {
         
         this.inventory = inventory; // 保存背包列表引用
         
+        // 移除所有现有的物品弹出窗口
+        document.querySelectorAll('.item-tooltip').forEach(tooltip => tooltip.remove());
+        
         this.inventoryList.innerHTML = inventory.map(item => `
             <div class="item" data-item-id="${item.id}">
                 <div class="item-icon">${item.item.image || '物'}</div>
-                <div class="item-info">
-                    <div>${item.item.name} x${item.quantity}</div>
-                    <div>${item.is_equipped ? '已装备' : ''}</div>
-                </div>
+                ${item.quantity > 1 ? `<span class="item-badge">${item.quantity}</span>` : ''}
+                ${item.is_equipped ? '<span class="item-equipped">已装备</span>' : ''}
             </div>
         `).join('');
+        
+        // 添加鼠标悬停事件
+        document.querySelectorAll('#inventory-list .item').forEach(itemElement => {
+            const itemId = itemElement.dataset.itemId;
+            const inventoryItem = this.inventory.find(i => i.id === parseInt(itemId));
+            
+            if (inventoryItem) {
+                // 点击物品显示弹出窗口
+                itemElement.addEventListener('click', (e) => {
+                    e.stopPropagation(); // 阻止事件冒泡
+                    
+                    // 移除所有现有的物品弹出窗口
+                    document.querySelectorAll('.item-tooltip').forEach(tooltip => tooltip.remove());
+                    
+                    // 创建物品信息弹出窗口
+                    const tooltip = document.createElement('div');
+                    tooltip.className = 'item-tooltip';
+                    tooltip.innerHTML = `
+                        <div class="item-tooltip-header">
+                            <div class="item-tooltip-icon">${inventoryItem.item.image || '物'}</div>
+                            <div class="item-tooltip-title">
+                                <div class="item-tooltip-name">${inventoryItem.item.name}</div>
+                                <div class="item-tooltip-quantity">数量: ${inventoryItem.quantity}</div>
+                            </div>
+                            <div class="tooltip-close">×</div>
+                        </div>
+                        <div class="item-tooltip-description">${inventoryItem.item.description || '无描述'}</div>
+                        ${this.getItemAttributesHTML(inventoryItem.item)}
+                        ${inventoryItem.is_equipped ? '<div class="item-tooltip-equipped">已装备</div>' : ''}
+                        <div class="item-tooltip-actions">
+                            ${inventoryItem.item.is_consumable ? 
+                                `<button class="item-action-btn use-btn" data-action="use" data-item-id="${inventoryItem.id}">使用</button>` : ''}
+                            ${inventoryItem.item.type === 'equipment' ? 
+                                (inventoryItem.is_equipped ? 
+                                    `<button class="item-action-btn unequip-btn" data-action="unequip" data-item-id="${inventoryItem.id}">卸下</button>` : 
+                                    `<button class="item-action-btn equip-btn" data-action="equip" data-item-id="${inventoryItem.id}">装备</button>`) 
+                                : ''}
+                            <button class="item-action-btn drop-btn" data-action="drop" data-item-id="${inventoryItem.id}">丢弃</button>
+                        </div>
+                    `;
+                    
+                    // 将弹出窗口添加到文档中
+                    document.body.appendChild(tooltip);
+                    this.positionTooltip(tooltip, e);
+                    
+                    // 添加关闭按钮点击事件
+                    tooltip.querySelector('.tooltip-close').addEventListener('click', (event) => {
+                        event.stopPropagation(); // 阻止事件冒泡
+                        if (tooltip.parentNode) {
+                            tooltip.parentNode.removeChild(tooltip);
+                        }
+                    });
+                    
+                    // 添加按钮点击事件
+                    tooltip.querySelectorAll('.item-action-btn').forEach(btn => {
+                        btn.addEventListener('click', (event) => {
+                            event.stopPropagation(); // 阻止事件冒泡
+                            const action = btn.dataset.action;
+                            const itemId = parseInt(btn.dataset.itemId);
+                            
+                            // 根据动作类型调用相应方法
+                            switch(action) {
+                                case 'use':
+                                    this.useItem(itemId);
+                                    break;
+                                case 'equip':
+                                    this.equipItem(itemId);
+                                    break;
+                                case 'unequip':
+                                    this.unequipItem(itemId);
+                                    break;
+                                case 'drop':
+                                    this.dropItem(itemId);
+                                    break;
+                            }
+                            
+                            // 移除弹出窗口
+                            if (tooltip.parentNode) {
+                                tooltip.parentNode.removeChild(tooltip);
+                            }
+                        });
+                    });
+                    
+                    // 点击文档其他地方关闭弹出窗口
+                    const closeTooltip = (event) => {
+                        if (!tooltip.contains(event.target) && !itemElement.contains(event.target)) {
+                            if (tooltip.parentNode) {
+                                tooltip.parentNode.removeChild(tooltip);
+                                document.removeEventListener('click', closeTooltip);
+                            }
+                        }
+                    };
+                    
+                    // 延迟添加点击事件，避免立即触发
+                    setTimeout(() => {
+                        document.addEventListener('click', closeTooltip);
+                    }, 100);
+                });
+            }
+        });
+    }
+    
+    // 获取物品属性HTML
+    getItemAttributesHTML(item) {
+        if (!item) return '';
+        
+        let attributesHTML = '<div class="item-tooltip-attributes">';
+        
+        // 添加物品类型
+        if (item.type) {
+            attributesHTML += `<div class="item-attribute">类型: ${this.getItemTypeName(item.type)}</div>`;
+        }
+        
+        // 添加物品稀有度
+        if (item.rarity) {
+            attributesHTML += `<div class="item-attribute item-rarity-${item.rarity}">稀有度: ${this.getItemRarityName(item.rarity)}</div>`;
+        }
+        
+        // 添加物品属性加成
+        if (item.hp_bonus > 0) attributesHTML += `<div class="item-attribute item-bonus">生命值: +${item.hp_bonus}</div>`;
+        if (item.mp_bonus > 0) attributesHTML += `<div class="item-attribute item-bonus">魔法值: +${item.mp_bonus}</div>`;
+        if (item.attack_bonus > 0) attributesHTML += `<div class="item-attribute item-bonus">攻击力: +${item.attack_bonus}</div>`;
+        if (item.defense_bonus > 0) attributesHTML += `<div class="item-attribute item-bonus">防御力: +${item.defense_bonus}</div>`;
+        
+        // 添加物品价值
+        if (item.price > 0) {
+            attributesHTML += `<div class="item-attribute">价值: ${item.price}金币</div>`;
+        }
+        
+        attributesHTML += '</div>';
+        return attributesHTML;
+    }
+    
+    // 获取物品类型名称
+    getItemTypeName(type) {
+        const typeNames = {
+            'weapon': '武器',
+            'armor': '护甲',
+            'accessory': '饰品',
+            'consumable': '消耗品',
+            'material': '材料',
+            'quest': '任务物品',
+            'skill_book': '技能书',
+            'equipment': '装备'
+        };
+        return typeNames[type] || type;
+    }
+    
+    // 获取物品稀有度名称
+    getItemRarityName(rarity) {
+        const rarityNames = {
+            '1': '普通',
+            '2': '优秀',
+            '3': '精良',
+            '4': '稀有',
+            '5': '史诗',
+            '6': '传说'
+        };
+        return rarityNames[rarity] || rarity;
+    }
+    
+    // 定位弹出窗口
+    positionTooltip(tooltip, event) {
+        const padding = 10;
+        const tooltipWidth = tooltip.offsetWidth;
+        const tooltipHeight = tooltip.offsetHeight;
+        
+        // 计算位置，避免超出视口
+        let left = event.clientX + padding;
+        let top = event.clientY + padding;
+        
+        // 检查右边界
+        if (left + tooltipWidth > window.innerWidth) {
+            left = event.clientX - tooltipWidth - padding;
+        }
+        
+        // 检查下边界
+        if (top + tooltipHeight > window.innerHeight) {
+            top = event.clientY - tooltipHeight - padding;
+        }
+        
+        // 设置位置
+        tooltip.style.left = `${left}px`;
+        tooltip.style.top = `${top}px`;
     }
     
     // 更新传送点显示
@@ -1193,6 +1479,12 @@ class Game {
     
     // 显示物品模态框
     showItemModal(itemId) {
+        // 这个方法现在不再需要显示模态框，因为我们在弹出窗口中处理物品操作
+        console.log('物品操作已移至弹出窗口，不再需要模态框');
+        // 不再显示模态框
+        return;
+        
+        // 以下代码保留但不执行
         const inventoryItem = this.inventory.find(i => i.id === parseInt(itemId));
         if (!inventoryItem) return;
         
@@ -1229,30 +1521,28 @@ class Game {
         itemModal.style.display = 'block';
     }
     
-    // 显示技能选择模态框
-    showSkillSelectModal() {
-        const monsterModal = document.getElementById('monster-modal');
-        const skillSelectListEl = document.getElementById('skill-select-list');
-        const skillSelectModal = document.getElementById('skill-select-modal');
-        
-        if (!monsterModal || !skillSelectListEl || !skillSelectModal) {
-            console.error('技能选择模态框元素未找到');
+    // 切换技能自动释放状态
+    toggleAutoSkill(skillId) {
+        const skillObj = this.skills.find(s => s.id === parseInt(skillId));
+        if (!skillObj) {
+            console.error('未找到技能:', skillId);
             return;
         }
         
-        const monsterId = monsterModal.dataset.monsterId;
+        // 切换自动释放状态
+        skillObj.is_auto_attacking = !skillObj.is_auto_attacking;
         
-        skillSelectListEl.innerHTML = this.skills.map(skill => `
-            <div class="skill" onclick="game.useSkill(${skill.id}, ${monsterId})">
-                <div class="skill-icon">${skill.skill.icon || '技'}</div>
-                <div class="skill-info">
-                    <div>${skill.skill.name} Lv.${skill.level}</div>
-                    <div>MP消耗：${skill.skill.mp_cost}</div>
-                </div>
-            </div>
-        `).join('');
+        // 显示状态变更消息
+        const statusText = skillObj.is_auto_attacking ? '开启' : '关闭';
+        this.addMessage(`已${statusText}技能 ${skillObj.skill.name} 的自动释放`, 'info');
         
-        skillSelectModal.style.display = 'block';
+        // 更新技能列表显示
+        this.renderSkillsList();
+        
+        // 如果开启了自动释放且技能不在冷却中，立即尝试使用
+        if (skillObj.is_auto_attacking && skillObj.cooldown_remaining === 0) {
+            this.tryAutoUseSkill(skillObj);
+        }
     }
     
     // 攻击怪物
@@ -2016,6 +2306,19 @@ class Game {
         while (this.messages.children.length > maxMessages) {
             this.messages.removeChild(this.messages.children[0]);
         }
+    }
+    
+    // 清理游戏资源
+    cleanup() {
+        // ... existing code ...
+        
+        // 清理技能冷却定时器
+        if (this.skillCooldownInterval) {
+            clearInterval(this.skillCooldownInterval);
+            this.skillCooldownInterval = null;
+        }
+        
+        // ... existing code ...
     }
 }
 

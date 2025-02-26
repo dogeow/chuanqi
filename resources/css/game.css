@@ -774,4 +774,281 @@ body {
         height: 60vh;
         min-height: auto;
     }
+}
+
+/* 物品样式 */
+.item {
+    position: relative;
+    width: 40px;
+    height: 40px;
+    margin: 5px;
+    display: inline-block;
+    background-color: #444;
+    border-radius: 4px;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    border: 1px solid #555;
+}
+
+.item:hover {
+    transform: scale(1.1);
+    box-shadow: 0 0 10px rgba(255, 255, 255, 0.3);
+    z-index: 10;
+}
+
+.item-icon {
+    width: 100%;
+    height: 100%;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    font-size: 20px;
+}
+
+.item-badge {
+    position: absolute;
+    bottom: -5px;
+    right: -5px;
+    background-color: #ff6b6b;
+    color: white;
+    border-radius: 50%;
+    width: 18px;
+    height: 18px;
+    font-size: 10px;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    border: 1px solid #333;
+}
+
+.item-equipped {
+    position: absolute;
+    top: -5px;
+    left: -5px;
+    background-color: #4CAF50;
+    color: white;
+    border-radius: 3px;
+    font-size: 8px;
+    padding: 2px;
+    line-height: 1;
+    border: 1px solid #333;
+}
+
+/* 物品弹出窗口样式 */
+.item-tooltip {
+    position: fixed;
+    background-color: rgba(0, 0, 0, 0.9);
+    border: 1px solid #666;
+    border-radius: 5px;
+    padding: 10px;
+    width: 250px;
+    z-index: 1000;
+    color: #fff;
+    box-shadow: 0 0 15px rgba(0, 0, 0, 0.7);
+    pointer-events: auto; /* 修改为auto以允许点击 */
+}
+
+.item-tooltip-header {
+    display: flex;
+    margin-bottom: 8px;
+    border-bottom: 1px solid #555;
+    padding-bottom: 5px;
+}
+
+.tooltip-close {
+    cursor: pointer;
+    font-size: 18px;
+    margin-left: 5px;
+    color: #aaa;
+    font-weight: bold;
+    line-height: 1;
+}
+
+.tooltip-close:hover {
+    color: #fff;
+}
+
+.item-tooltip-icon {
+    width: 40px;
+    height: 40px;
+    background-color: #444;
+    border-radius: 4px;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    font-size: 20px;
+    margin-right: 10px;
+    border: 1px solid #555;
+}
+
+.item-tooltip-title {
+    flex: 1;
+}
+
+.item-tooltip-name {
+    font-weight: bold;
+    font-size: 16px;
+    color: #ffcc00;
+}
+
+.item-tooltip-quantity {
+    font-size: 12px;
+    color: #aaa;
+}
+
+.item-tooltip-description {
+    margin-bottom: 8px;
+    font-size: 12px;
+    color: #ccc;
+    line-height: 1.4;
+}
+
+.item-tooltip-attributes {
+    font-size: 12px;
+    color: #aaa;
+}
+
+.item-attribute {
+    margin: 2px 0;
+}
+
+.item-bonus {
+    color: #4CAF50;
+}
+
+.item-tooltip-equipped {
+    margin-top: 8px;
+    font-weight: bold;
+    color: #4CAF50;
+    border-top: 1px solid #555;
+    padding-top: 5px;
+}
+
+/* 物品稀有度颜色 */
+.item-rarity-1 { color: #aaa; } /* 普通 */
+.item-rarity-2 { color: #55ff55; } /* 优秀 */
+.item-rarity-3 { color: #5555ff; } /* 精良 */
+.item-rarity-4 { color: #a335ee; } /* 稀有 */
+.item-rarity-5 { color: #ff8000; } /* 史诗 */
+.item-rarity-6 { color: #ff4444; } /* 传说 */
+
+/* 添加物品操作按钮样式 */
+.item-tooltip-actions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 5px;
+    margin-top: 10px;
+    border-top: 1px solid #555;
+    padding-top: 8px;
+}
+
+.item-action-btn {
+    padding: 5px 10px;
+    border: none;
+    border-radius: 3px;
+    font-size: 12px;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    flex: 1;
+    min-width: 60px;
+    text-align: center;
+}
+
+.use-btn {
+    background-color: #4CAF50;
+    color: white;
+}
+
+.use-btn:hover {
+    background-color: #3e8e41;
+}
+
+.equip-btn {
+    background-color: #2196F3;
+    color: white;
+}
+
+.equip-btn:hover {
+    background-color: #0b7dda;
+}
+
+.unequip-btn {
+    background-color: #ff9800;
+    color: white;
+}
+
+.unequip-btn:hover {
+    background-color: #e68a00;
+}
+
+.drop-btn {
+    background-color: #f44336;
+    color: white;
+}
+
+.drop-btn:hover {
+    background-color: #da190b;
+}
+
+/* 技能样式 */
+.skill {
+    display: flex;
+    align-items: center;
+    padding: 8px;
+    margin-bottom: 8px;
+    background-color: #2c3e50;
+    border-radius: 4px;
+    cursor: pointer;
+    position: relative;
+    transition: all 0.3s ease;
+}
+
+.skill:hover {
+    background-color: #34495e;
+}
+
+.skill-auto-active {
+    background-color: #2980b9;
+    border: 1px solid #3498db;
+}
+
+.skill-auto-active:hover {
+    background-color: #3498db;
+}
+
+.skill-icon {
+    width: 40px;
+    height: 40px;
+    background-color: #34495e;
+    border-radius: 4px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin-right: 10px;
+    font-size: 20px;
+}
+
+.skill-info {
+    flex: 1;
+    position: relative;
+}
+
+.skill-cooldown {
+    position: absolute;
+    top: 0;
+    right: 0;
+    background-color: rgba(231, 76, 60, 0.8);
+    color: white;
+    padding: 2px 6px;
+    border-radius: 4px;
+    font-size: 12px;
+}
+
+.skill-auto-indicator {
+    background-color: #e74c3c;
+    color: white;
+    padding: 2px 6px;
+    border-radius: 4px;
+    font-size: 12px;
+    margin-left: 8px;
 } 
