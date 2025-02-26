@@ -73,7 +73,7 @@ class ShopController extends Controller
         }
 
         // 获取当前地图的商店
-        $shops = Shop::where('map_id', $character->map_id)->get();
+        $shops = Shop::where('map_id', $character->current_map_id)->get();
 
         return response()->json([
             'success' => true,
@@ -104,7 +104,7 @@ class ShopController extends Controller
         $shopItem = ShopItem::with('item', 'shop')->find($request->shop_item_id);
         
         // 检查商店是否在当前地图
-        if ($shopItem->shop->map_id != $character->map_id) {
+        if ($shopItem->shop->map_id != $character->current_map_id) {
             return response()->json([
                 'success' => false,
                 'message' => '商店不在当前地图'
@@ -217,7 +217,7 @@ class ShopController extends Controller
         $shop = Shop::find($request->shop_id);
         
         // 检查商店是否在当前地图
-        if ($shop->map_id != $character->map_id) {
+        if ($shop->map_id != $character->current_map_id) {
             return response()->json([
                 'success' => false,
                 'message' => '商店不在当前地图'

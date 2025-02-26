@@ -165,6 +165,8 @@ class GameController extends Controller
     {
         $request->validate([
             'map_id' => 'required|exists:maps,id',
+            'target_x' => 'nullable|numeric',
+            'target_y' => 'nullable|numeric',
         ]);
 
         $user = Auth::user();
@@ -182,8 +184,26 @@ class GameController extends Controller
         
         // 设置角色在新地图的初始位置
         $map = Map::find($request->map_id);
-        $character->position_x = $map->spawn_x;
-        $character->position_y = $map->spawn_y;
+        
+        if ($request->has('target_x') && $request->has('target_y')) {
+            // 如果请求中指定了目标位置，则使用指定位置
+            $character->position_x = $request->target_x;
+            $character->position_y = $request->target_y;
+        } else {
+            // 否则使用地图的默认出生点
+            $spawnPoints = $map->spawn_points;
+            if (is_array($spawnPoints) && count($spawnPoints) > 0) {
+                // 随机选择一个出生点
+                $spawnPoint = $spawnPoints[array_rand($spawnPoints)];
+                $character->position_x = $spawnPoint['x'];
+                $character->position_y = $spawnPoint['y'];
+            } else {
+                // 如果没有出生点，则使用默认位置
+                $character->position_x = 100;
+                $character->position_y = 100;
+            }
+        }
+        
         $character->save();
 
         // 广播角色离开旧地图事件
