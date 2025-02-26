@@ -208,27 +208,8 @@ class Game {
                 }
             });
             
-            // 传送点点击事件
-            this.gameMap.addEventListener('click', (event) => {
-                if (event.target.classList.contains('teleport-point')) {
-                    const teleportPointId = event.target.dataset.teleportId;
-                    const teleportPoints = this.currentMap.teleport_points;
-                    
-                    if (teleportPoints && teleportPoints.length > 0) {
-                        // 查找传送点数据
-                        const teleportPoint = teleportPoints.find(tp => tp.id == teleportPointId);
-                        
-                        if (teleportPoint) {
-                            this.showTeleportConfirm(
-                                teleportPoint.target_map_id,
-                                teleportPoint.target_position_x,
-                                teleportPoint.target_position_y,
-                                teleportPoint.name
-                            );
-                        }
-                    }
-                }
-            });
+            // 注意：传送点点击事件已在 updateTeleportPoints 方法中为每个传送点单独添加
+            // 移除此处的事件监听器，避免重复触发
         }
         
         // 技能点击事件
@@ -570,20 +551,14 @@ class Game {
                     // 更新其他玩家列表
                     this.otherPlayers = data.other_players || [];
                     
-                    // 更新地图显示
+                    // 更新地图显示（这会调用 updateMonsters、updateShops、updateTeleportPoints 和 updateOtherPlayers）
                     this.updateMap();
                     
-                    // 更新怪物显示
-                    this.updateMonsters();
-                    
-                    // 更新商店显示
-                    this.updateShops();
-                    
-                    // 更新传送点显示
-                    this.updateTeleportPoints();
-                    
-                    // 更新其他玩家显示
-                    this.updateOtherPlayers();
+                    // 移除重复调用
+                    // this.updateMonsters();
+                    // this.updateShops();
+                    // this.updateTeleportPoints();
+                    // this.updateOtherPlayers();
                     
                     // 检查地图ID是否改变
                     const newMapId = this.character.current_map_id || this.character.map_id;
@@ -706,14 +681,18 @@ class Game {
             return;
         }
         
-        console.log('更新怪物显示，当前怪物列表:', this.monsters);
+        console.log(`更新怪物显示，当前怪物列表: ${this.monsters.length}个怪物`);
         
         // 清除现有怪物
         document.querySelectorAll('.monster').forEach(monster => monster.remove());
         
         // 添加怪物（只显示未死亡的怪物）
-        this.monsters.filter(monster => !monster.is_dead).forEach(monster => {
-            console.log('添加怪物到地图:', monster);
+        const liveMonsters = this.monsters.filter(monster => !monster.is_dead);
+        console.log(`添加${liveMonsters.length}个活着的怪物到地图`);
+        
+        liveMonsters.forEach(monster => {
+            // 移除详细的怪物日志，减少控制台噪音
+            // console.log('添加怪物到地图:', monster);
             const monsterElement = document.createElement('div');
             monsterElement.className = 'monster';
             monsterElement.dataset.monsterId = monster.id;
@@ -856,8 +835,8 @@ class Game {
             return;
         }
         
-        // 清除现有传送点和地图标签
-        document.querySelectorAll('.teleport-point, .map-label').forEach(element => element.remove());
+        // 清除现有传送点、地图标签和地图指示器
+        document.querySelectorAll('.teleport-point, .map-label, .map-indicator').forEach(element => element.remove());
         
         // 确保传送点数据是数组
         let teleportPoints = [];
@@ -888,19 +867,14 @@ class Game {
                 teleportElement.className = 'teleport-point';
                 teleportElement.style.left = `${point.x}px`;
                 teleportElement.style.top = `${point.y}px`;
-                teleportElement.innerHTML = '传送';
+                
+                // 获取目标地图名称
+                const targetMapName = point.target_map_name || `地图${point.target_map_id}`;
+                
+                // 添加点击事件
                 teleportElement.dataset.targetMapId = point.target_map_id;
                 teleportElement.dataset.targetX = point.target_x;
                 teleportElement.dataset.targetY = point.target_y;
-                
-                // 获取目标地图名称（如果可用）
-                let targetMapName = '未知地图';
-                if (point.target_map_id === 1) targetMapName = '新手村';
-                else if (point.target_map_id === 2) targetMapName = '幽暗森林';
-                else if (point.target_map_id === 3) targetMapName = '古老矿洞';
-                else if (point.target_map_id === 4) targetMapName = '炽热沙漠';
-                
-                // 添加点击事件
                 teleportElement.addEventListener('click', () => {
                     this.showTeleportConfirm(point.target_map_id, point.target_x, point.target_y, targetMapName);
                 });
@@ -909,7 +883,8 @@ class Game {
                 teleportElement.title = `传送到${targetMapName}`;
                 
                 this.gameMap.appendChild(teleportElement);
-                console.log(`已添加传送点: ${point.x}, ${point.y} -> 地图${point.target_map_id}(${targetMapName})`);
+                // 减少日志输出，只在调试模式下显示详细信息
+                // console.log(`已添加传送点: ${point.x}, ${point.y} -> 地图${point.target_map_id}(${targetMapName})`);
                 
                 // 添加地图标签
                 const mapLabel = document.createElement('div');
@@ -928,81 +903,85 @@ class Game {
         }
         
         // 添加当前地图名称指示器
-        if (!document.querySelector('.map-indicator')) {
-            const mapIndicator = document.createElement('div');
-            mapIndicator.className = 'map-indicator';
-            mapIndicator.textContent = `当前地图: ${this.currentMap.name}`;
-            this.gameMap.appendChild(mapIndicator);
-        }
+        const mapIndicator = document.createElement('div');
+        mapIndicator.className = 'map-indicator';
+        mapIndicator.textContent = `当前地图: ${this.currentMap.name}`;
+        this.gameMap.appendChild(mapIndicator);
     }
     
     // 显示传送确认
     showTeleportConfirm(targetMapId, targetX, targetY, targetMapName) {
-        // 不直接创建额外的确认对话框，而是直接显示一条消息，然后传送
-        this.addMessage(`准备传送到${targetMapName}，等待确认...`, 'system');
+        // 显示传送确认消息
+        this.addMessage(`准备传送到${targetMapName}...`, 'system');
         
         // 创建一个过渡动画元素
         let transitionEl = document.querySelector('.map-transition');
         if (!transitionEl) {
             transitionEl = document.createElement('div');
             transitionEl.className = 'map-transition';
+            transitionEl.innerHTML = `<div class="loading-text">正在加载 ${targetMapName}...</div>`;
             document.body.appendChild(transitionEl);
+        } else {
+            transitionEl.innerHTML = `<div class="loading-text">正在加载 ${targetMapName}...</div>`;
         }
         
-        // 激活过渡动画
+        // 激活过渡动画，但使用较短的淡入时间
         setTimeout(() => { 
             transitionEl.classList.add('active');
             
-            // 执行传送
+            // 执行传送，减少等待时间
             setTimeout(async () => {
                 await this.teleportToMap(targetMapId, targetX, targetY);
                 
-                // 延迟后关闭过渡动画
-                setTimeout(() => {
-                    transitionEl.classList.remove('active');
-                }, 500);
-            }, 500);
-        }, 100);
+                // 传送完成后立即开始淡出动画
+                transitionEl.classList.remove('active');
+            }, 300);
+        }, 50);
     }
     
     // 传送到其他地图
     async teleportToMap(targetMapId, targetX, targetY) {
         try {
-            console.log(`尝试传送到地图: ${targetMapId}, 位置: (${targetX}, ${targetY})`);
-            
-            this.addMessage(`正在传送到新地图...`, 'system');
+            // 验证目标坐标，如果是 undefined 则设置为 null
+            const validTargetX = targetX !== undefined ? targetX : null;
+            const validTargetY = targetY !== undefined ? targetY : null;
             
             // 显示传送动画
             this.showTeleportingEffect();
             
-            // 传送请求
+            // 预先加载目标地图数据，避免切换后再加载导致的延迟
             const response = await axios.post('/api/map/change', { 
                 map_id: targetMapId,
-                target_x: targetX,
-                target_y: targetY
+                target_x: validTargetX,
+                target_y: validTargetY
             });
             
             // 更新角色信息和地图
             this.character = response.data.character;
             this.currentMap = response.data.map;
             
-            // 重新加载地图数据
+            // 重新加载地图数据（这会调用 updateMap）
             await this.loadMapData();
             
-            // 更新地图显示
-            this.updateMap();
+            // 移除重复调用
+            // this.updateMap();
             
             // 显示传送成功消息
             this.addMessage(`成功传送到${this.currentMap.name}`, 'success');
-            this.addMessage(`当前地图等级需求: ${this.currentMap.level_required}级`, 'info');
             
             // 如果角色等级低于地图要求，显示警告
             if (this.character.level < this.currentMap.level_required) {
-                this.addMessage(`警告: 您的等级低于地图要求，将面临更大危险！`, 'warning');
+                this.addMessage(`警告: 您的等级低于地图要求(${this.currentMap.level_required}级)，将面临更大危险！`, 'warning');
             }
             
             // 播放传送完成动画
             this.showTeleportCompleteEffect();
+            
+            // 确保地图容器可见
+            const gameMapContainer = document.querySelector('.game-map-container');
+            if (gameMapContainer) {
+                gameMapContainer.style.display = 'block';
+            }
         } catch (error) {
             console.error('传送失败:', error);
             if (error.response) {
@@ -1016,6 +995,12 @@ class Game {
                 }
             }
             this.addMessage('传送失败，请重试', 'error');
+            
+            // 移除过渡动画
+            const transitionEl = document.querySelector('.map-transition');
+            if (transitionEl) {
+                transitionEl.classList.remove('active');
+            }
         }
     }
     
