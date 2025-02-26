@@ -1,4 +1,3 @@
-// 游戏核心类
 class Game {
     constructor() {
         this.character = null;
@@ -335,11 +334,14 @@ class Game {
             return;
         }
         
+        console.log('更新怪物显示，当前怪物列表:', this.monsters);
+        
         // 清除现有怪物
         document.querySelectorAll('.monster').forEach(monster => monster.remove());
         
-        // 添加怪物
-        this.monsters.forEach(monster => {
+        // 添加怪物（只显示未死亡的怪物）
+        this.monsters.filter(monster => !monster.is_dead).forEach(monster => {
+            console.log('添加怪物到地图:', monster);
             const monsterElement = document.createElement('div');
             monsterElement.className = 'monster';
             monsterElement.dataset.monsterId = monster.id;
@@ -475,7 +477,10 @@ class Game {
         document.getElementById('monster-name').textContent = monster.name;
         document.getElementById('monster-details').innerHTML = `
             <p>等级：${monster.level}</p>
-            <p>生命：${monster.current_hp}/${monster.hp}</p>
+            <p>生命：<span class="monster-hp">${monster.current_hp}/${monster.hp}</span></p>
+            <div class="hp-bar-container">
+                <div class="monster-hp-bar" style="width: ${monster.hp_percentage || (monster.current_hp / monster.hp * 100)}%;"></div>
+            </div>
             <p>攻击：${monster.attack}</p>
             <p>防御：${monster.defense}</p>
         `;
@@ -559,7 +564,55 @@ class Game {
     async attackMonster() {
         const monsterId = document.getElementById('monster-modal').dataset.monsterId;
         try {
+            console.log('开始攻击怪物，ID:', monsterId);
+            
+            // 发送测试请求记录数据
+            await axios.post('/api/test/log', { 
+                action: 'attack_monster',
+                monster_id: monsterId,
+                timestamp: new Date().toISOString()
+            });
+            
             const response = await axios.post('/api/monster/attack', { monster_id: monsterId });
+            console.log('攻击怪物响应:', response.data);
+            
+            // 更新怪物信息
+            if (response.data.monster) {
+                const monster = this.monsters.find(m => m.id === parseInt(monsterId));
+                if (monster) {
+                    console.log('更新前怪物数据:', { ...monster });
+                    monster.current_hp = response.data.monster.current_hp;
+                    monster.hp_percentage = (response.data.monster.current_hp / response.data.monster.hp) * 100;
+                    
+                    // 检查怪物是否已死亡
+                    if (response.data.monster_killed) {
+                        monster.is_dead = true;
+                    }
+                    
+                    console.log('更新后怪物数据:', { ...monster });
+                    
+                    // 更新怪物模态窗口中的血量显示
+                    const monsterModal = document.getElementById('monster-modal');
+                    if (monsterModal && monsterModal.style.display === 'block') {
+                        const monsterHpElement = monsterModal.querySelector('.monster-hp');
+                        if (monsterHpElement) {
+                            console.log('更新怪物血量文本:', `${response.data.monster.current_hp}/${response.data.monster.hp}`);
+                            monsterHpElement.textContent = `${response.data.monster.current_hp}/${response.data.monster.hp}`;
+                        } else {
+                            console.error('未找到怪物血量元素');
+                        }
+                        
+                        const monsterHpBar = monsterModal.querySelector('.monster-hp-bar');
+                        if (monsterHpBar) {
+                            console.log('更新怪物血量条宽度:', `${monster.hp_percentage}%`);
+                            monsterHpBar.style.width = `${monster.hp_percentage}%`;
+                        } else {
+                            console.error('未找到怪物血量条元素');
+                        }
+                    }
+                }
+            }
+            
             this.handleCombatResult(response.data);
         } catch (error) {
             console.error('攻击失败:', error);
@@ -670,21 +723,53 @@ class Game {
     // 处理战斗结果
     handleCombatResult(result) {
         if (result.success) {
+            console.log('处理战斗结果:', result);
+            
+            // 更新角色信息
             this.character = result.character;
             this.updateCharacterInfo();
             
+            // 构建消息
             let message = `对怪物造成${result.damage}点伤害`;
             if (result.monster_killed) {
                 message += `，击杀怪物获得${result.exp_gained}经验和${result.gold_gained}金币`;
                 if (result.leveled_up) {
                     message += `，升级到${result.new_level}级！`;
                 }
-            }
-            this.addMessage(message);
-            
-            if (result.monster_killed) {
+                
+                // 处理怪物死亡
+                console.log('怪物被击杀，处理怪物死亡');
+                const monsterId = document.getElementById('monster-modal').dataset.monsterId;
+                
+                // 标记怪物为死亡状态
+                const monster = this.monsters.find(m => m.id === parseInt(monsterId));
+                if (monster) {
+                    monster.is_dead = true;
+                    console.log('标记怪物为死亡状态:', monster);
+                }
+                
+                // 从地图上移除怪物元素
+                const monsterElement = document.querySelector(`.monster[data-monster-id="${monsterId}"]`);
+                if (monsterElement) {
+                    console.log('从DOM中移除怪物元素');
+                    monsterElement.remove();
+                } else {
+                    console.error('未找到怪物元素，无法从DOM中移除');
+                }
+                
+                // 从怪物列表中移除（改为保留但标记为死亡）
+                // this.monsters = this.monsters.filter(m => m.id !== parseInt(monsterId));
+                
+                // 关闭模态框
                 document.getElementById('monster-modal').style.display = 'none';
+                
+                // 更新怪物显示
+                this.updateMonsters();
             }
+            
+            this.addMessage(message);
+        } else {
+            console.error('战斗失败:', result);
         }
     }
     
@@ -705,6 +790,12 @@ class Game {
                 break;
             case 'monster.killed':
                 this.handleMonsterKilled(event.data);
+                break;
+            case 'monster.respawning':
+                this.handleMonsterRespawning(event.data);
+                break;
+            case 'monster.respawned':
+                this.handleMonsterRespawned(event.data);
                 break;
             case 'item.used':
             case 'item.equipped':
@@ -753,6 +844,22 @@ class Game {
         const monster = this.monsters.find(m => m.id === data.monster_id);
         if (monster) {
             monster.current_hp = data.current_hp;
+            monster.hp_percentage = data.hp_percentage;
+            
+            // 更新怪物模态窗口中的血量显示
+            const monsterModal = document.getElementById('monster-modal');
+            if (monsterModal && monsterModal.style.display === 'block') {
+                const monsterHpElement = monsterModal.querySelector('.monster-hp');
+                if (monsterHpElement) {
+                    monsterHpElement.textContent = `${data.current_hp}/${monster.hp}`;
+                }
+                
+                const monsterHpBar = monsterModal.querySelector('.monster-hp-bar');
+                if (monsterHpBar) {
+                    monsterHpBar.style.width = `${data.hp_percentage}%`;
+                }
+            }
+            
             if (data.attacker_id !== this.character.id) {
                 this.addMessage(`${data.attacker_name}对${data.monster_name}造成${data.damage}点伤害`);
             }
@@ -761,13 +868,78 @@ class Game {
     
     // 处理怪物死亡事件
     handleMonsterKilled(data) {
+        console.log('处理怪物死亡事件:', data);
         const monster = this.monsters.find(m => m.id === data.monster_id);
         if (monster) {
+            console.log('找到被击杀的怪物:', monster);
             monster.current_hp = 0;
+            monster.is_dead = true;
+            
+            // 从地图上移除怪物元素
+            const monsterElement = document.querySelector(`.monster[data-monster-id="${data.monster_id}"]`);
+            if (monsterElement) {
+                console.log('从DOM中移除怪物元素');
+                monsterElement.remove();
+            } else {
+                console.error('未找到怪物元素，无法从DOM中移除');
+            }
+            
+            // 不从怪物列表中移除，只标记为死亡
+            // this.monsters = this.monsters.filter(m => m.id !== data.monster_id);
+            
+            // 更新怪物显示
+            this.updateMonsters();
+            
             if (data.killer_id !== this.character.id) {
                 this.addMessage(`${data.killer_name}击杀了${data.monster_name}`);
             }
+        } else {
+            console.error('未找到被击杀的怪物:', data.monster_id);
         }
+    }
+    
+    // 处理怪物即将重生事件
+    handleMonsterRespawning(data) {
+        console.log('怪物即将重生:', data);
+        this.addMessage(`${data.monster_name}将在${data.respawn_time}秒后重生`);
+    }
+    
+    // 处理怪物重生事件
+    handleMonsterRespawned(data) {
+        console.log('怪物重生:', data);
+        
+        // 查找怪物是否已存在于列表中
+        const existingMonsterIndex = this.monsters.findIndex(m => m.id === data.monster_id);
+        
+        if (existingMonsterIndex !== -1) {
+            // 更新现有怪物数据
+            this.monsters[existingMonsterIndex] = {
+                ...this.monsters[existingMonsterIndex],
+                current_hp: data.current_hp,
+                hp: data.hp,
+                hp_percentage: data.hp_percentage,
+                is_dead: false,
+                position_x: data.position_x,
+                position_y: data.position_y
+            };
+        } else {
+            // 添加新怪物到列表
+            this.monsters.push({
+                id: data.monster_id,
+                name: data.monster_name,
+                current_hp: data.current_hp,
+                hp: data.hp,
+                hp_percentage: data.hp_percentage,
+                is_dead: false,
+                position_x: data.position_x,
+                position_y: data.position_y
+            });
+        }
+        
+        // 更新怪物显示
+        this.updateMonsters();
+        
+        this.addMessage(`${data.monster_name}已重生`);
     }
     
     // 添加游戏消息

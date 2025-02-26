@@ -335,21 +335,24 @@ class GameController extends Controller
             $monster->save();
             
             // 广播怪物受伤事件
-            event(new GameEvent('monster.damaged', [
+            broadcast(new GameEvent('monster.damaged', [
                 'monster_id' => $monster->id,
                 'monster_name' => $monster->name,
-                'damage' => $damage,
                 'attacker_id' => $character->id,
                 'attacker_name' => $character->name,
+                'damage' => $damage,
                 'current_hp' => $monster->current_hp,
-                'max_hp' => $monster->hp,
                 'hp_percentage' => ($monster->current_hp / $monster->hp) * 100,
                 'is_dead' => false
-            ], $character->current_map_id));
+            ]));
         }
         
         // 重新获取最新的怪物信息
         $monster = Monster::find($monster->id);
+        
+        // 确保返回的怪物数据包含hp_percentage
+        $monster->hp_percentage = ($monster->current_hp / $monster->hp) * 100;
+        
         $result['monster'] = $monster;
         
         return response()->json($result);

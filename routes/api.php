@@ -6,6 +6,7 @@ use App\Http\Controllers\GameController;
 use App\Http\Controllers\SkillController;
 use App\Http\Controllers\InventoryController;
 use App\Http\Controllers\ShopController;
+use App\Http\Controllers\TestController;
 
 /*
 |--------------------------------------------------------------------------
@@ -53,4 +54,7 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::get('/shops/map/{mapId}', [ShopController::class, 'getShopsByMap']);
     Route::post('/shop/buy', [ShopController::class, 'buyItem']);
     Route::post('/shop/sell', [ShopController::class, 'sellItem']);
-}); 
+});
+
+// 测试路由
+Route::post('/test/log', [TestController::class, 'logRequest']); 
