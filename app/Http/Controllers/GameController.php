@@ -94,9 +94,22 @@ class GameController extends Controller
             ], 404);
         }
 
+        // 记录原始位置用于日志
+        $oldX = $character->position_x;
+        $oldY = $character->position_y;
+        
+        // 更新角色位置
         $character->position_x = $request->x;
         $character->position_y = $request->y;
         $character->save();
+
+        // 记录位置变更日志
+        \Log::info('角色移动', [
+            'character_id' => $character->id,
+            'name' => $character->name,
+            'from' => ['x' => $oldX, 'y' => $oldY],
+            'to' => ['x' => $character->position_x, 'y' => $character->position_y]
+        ]);
 
         // 广播角色移动事件
         event(new GameEvent('character.move', [

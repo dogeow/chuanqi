@@ -55,4 +55,15 @@ class GameEvent implements ShouldBroadcast
     {
         return 'game.event';
     }
+
+    /**
+     * 获取广播数据
+     */
+    public function broadcastWith(): array
+    {
+        return [
+            'type' => $this->type,
+            'data' => $this->data
+        ];
+    }
 }

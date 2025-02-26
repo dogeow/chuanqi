@@ -46,6 +46,7 @@ body {
     cursor: pointer;
     user-select: none;
     transform-origin: center;
+    transform: translate(-50%, -50%);
 }
 
 .other-player {
@@ -57,6 +58,7 @@ body {
     justify-content: center;
     line-height: 1.2;
     padding: 2px;
+    transform: translate(-50%, -50%);
 }
 
 .player-level {

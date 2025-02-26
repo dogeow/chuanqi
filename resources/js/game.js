@@ -362,69 +362,91 @@ class Game {
     initEventListeners() {
         // 地图点击事件
         if (this.gameMap) {
-            this.gameMap.addEventListener('click', (e) => {
-                if (e.target === this.gameMap) {
-                    this.moveCharacter(e.offsetX, e.offsetY);
+            this.gameMap.addEventListener('click', (event) => {
+                // 如果点击的是怪物、商店或传送点，则不处理移动
+                if (event.target.classList.contains('monster') || 
+                    event.target.classList.contains('shop') || 
+                    event.target.classList.contains('teleport-point')) {
+                    return;
+                }
+                
+                // 获取点击位置相对于地图的坐标
+                const rect = this.gameMap.getBoundingClientRect();
+                const x = event.clientX - rect.left;
+                const y = event.clientY - rect.top;
+                
+                console.log(`地图点击事件: (${x}, ${y})`);
+                
+                // 移动角色到点击位置
+                this.moveCharacter(x, y);
+            });
+            
+            // 怪物点击事件
+            this.gameMap.addEventListener('click', (event) => {
+                if (event.target.classList.contains('monster')) {
+                    const monsterId = event.target.dataset.monsterId;
+                    if (monsterId) {
+                        this.showMonsterModal(monsterId);
+                    }
+                }
+            });
+            
+            // 商店点击事件
+            this.gameMap.addEventListener('click', (event) => {
+                if (event.target.classList.contains('shop')) {
+                    const shopId = event.target.dataset.shopId;
+                    if (shopId) {
+                        this.showShopModal(shopId);
+                    }
+                }
+            });
+            
+            // 传送点点击事件
+            this.gameMap.addEventListener('click', (event) => {
+                if (event.target.classList.contains('teleport-point')) {
+                    const teleportPointId = event.target.dataset.teleportId;
+                    const teleportPoints = this.currentMap.teleport_points;
+                    
+                    if (teleportPoints && teleportPoints.length > 0) {
+                        // 查找传送点数据
+                        const teleportPoint = teleportPoints.find(tp => tp.id == teleportPointId);
+                        
+                        if (teleportPoint) {
+                            this.showTeleportConfirm(
+                                teleportPoint.target_map_id,
+                                teleportPoint.target_position_x,
+                                teleportPoint.target_position_y,
+                                teleportPoint.name
+                            );
+                        }
+                    }
                 }
             });
         }
         
-        // 怪物点击事件
-        document.addEventListener('click', (e) => {
-            if (e.target.classList.contains('monster')) {
-                this.showMonsterModal(e.target.dataset.monsterId);
-            }
-        });
-        
-        // 商店点击事件
-        document.addEventListener('click', (e) => {
-            if (e.target.classList.contains('shop')) {
-                this.showShopModal(e.target.dataset.shopId);
-            }
-        });
+        // 技能点击事件
+        if (this.skillsList) {
+            this.skillsList.addEventListener('click', (event) => {
+                const skillElement = event.target.closest('.skill');
+                if (skillElement) {
+                    const skillId = skillElement.dataset.skillId;
+                    if (skillId) {
+                        this.showSkillSelectModal(skillId);
+                    }
+                }
+            });
+        }
         
         // 物品点击事件
-        document.addEventListener('click', (e) => {
-            if (e.target.classList.contains('item')) {
-                this.showItemModal(e.target.dataset.itemId);
-            }
-        });
-        
-        // 技能点击事件
-        document.addEventListener('click', (e) => {
-            if (e.target.classList.contains('skill')) {
-                this.showSkillModal(e.target.dataset.skillId);
-            }
-        });
-        
-        // 关闭模态框按钮事件
-        document.querySelectorAll('.close').forEach(closeBtn => {
-            closeBtn.addEventListener('click', () => {
-                closeBtn.closest('.modal').style.display = 'none';
-            });
-        });
-        
-        // 攻击怪物按钮事件
-        const attackButton = document.getElementById('attack-monster');
-        if (attackButton) {
-            attackButton.addEventListener('click', () => {
-                this.attackMonster();
-            });
-        }
-        
-        // 使用技能按钮事件
-        const skillButton = document.getElementById('use-skill');
-        if (skillButton) {
-            skillButton.addEventListener('click', () => {
-                this.showSkillSelectModal();
-            });
-        }
-        
-        // 自动攻击按钮事件
-        const autoAttackButton = document.getElementById('auto-attack-btn');
-        if (autoAttackButton) {
-            autoAttackButton.addEventListener('click', () => {
-                this.toggleAutoAttack();
+        if (this.inventoryList) {
+            this.inventoryList.addEventListener('click', (event) => {
+                const itemElement = event.target.closest('.item');
+                if (itemElement) {
+                    const itemId = itemElement.dataset.itemId;
+                    if (itemId) {
+                        this.showItemModal(itemId);
+                    }
+                }
             });
         }
     }
@@ -473,9 +495,23 @@ class Game {
                 console.log('成功创建地图频道:', `map.${mapId}`);
                 
                 // 监听广播的游戏事件
-                this.mapChannel.listen('.game.event', (event) => {
-                    console.log('收到游戏事件:', event);
-                    this.handleGameEvent(event);
+                this.mapChannel.listen('.game.event', (eventData) => {
+                    console.log('收到原始游戏事件数据:', eventData);
+                    // 检查事件数据格式
+                    if (eventData && eventData.type) {
+                        console.log(`处理游戏事件: ${eventData.type}`, eventData.data);
+                        this.handleGameEvent({
+                            type: eventData.type,
+                            data: eventData.data
+                        });
+                    } else {
+                        console.warn('收到无效的游戏事件数据:', eventData);
+                    }
+                });
+
+                // 添加额外的事件监听器用于调试
+                this.mapChannel.listenToAll((eventName, eventData) => {
+                    console.log(`收到地图频道事件: ${eventName}`, eventData);
                 });
                 
                 // 处理玩家加入事件
@@ -808,23 +844,31 @@ class Game {
         this.updateTeleportPoints();
     }
     
-    // 更新角色位置
+    // 更新玩家位置显示
     updatePlayerPosition() {
-        if (!this.player || !this.character) {
-            console.error('角色元素或数据未找到，无法更新位置');
+        if (!this.character || !this.gameMap) {
+            console.error('无法更新玩家位置：角色数据或地图容器不存在');
             return;
         }
         
-        // 确保使用正确的属性名
-        const x = this.character.position_x;
-        const y = this.character.position_y;
+        // 获取玩家元素
+        let playerElement = document.querySelector('.player:not(.other-player)');
         
-        if (x !== undefined && y !== undefined) {
-            this.player.style.left = `${x}px`;
-            this.player.style.top = `${y}px`;
-        } else {
-            console.error('角色位置数据不完整:', this.character);
+        // 如果玩家元素不存在，则创建一个
+        if (!playerElement) {
+            playerElement = document.createElement('div');
+            playerElement.className = 'player';
+            this.gameMap.appendChild(playerElement);
         }
+        
+        // 设置玩家位置 - 确保使用正确的坐标
+        playerElement.style.left = `${this.character.position_x}px`;
+        playerElement.style.top = `${this.character.position_y}px`;
+        
+        // 设置玩家名称和等级
+        playerElement.innerHTML = `${this.character.name} <span class="player-level">Lv.${this.character.level}</span>`;
+        
+        console.log(`更新玩家位置: (${this.character.position_x}, ${this.character.position_y})`);
     }
     
     // 更新怪物显示
@@ -858,51 +902,46 @@ class Game {
     
     // 更新其他玩家显示
     updateOtherPlayers() {
-        if (!this.gameMap || !this.otherPlayers || !this.character) {
-            console.error('地图容器或玩家数据未找到，无法更新其他玩家');
+        // 清除现有的其他玩家元素
+        const existingPlayers = document.querySelectorAll('.other-player');
+        existingPlayers.forEach(player => player.remove());
+        
+        // 如果没有地图容器，则退出
+        if (!this.gameMap) {
+            console.error('找不到地图容器，无法更新其他玩家');
             return;
         }
         
-        console.log('更新其他玩家显示，当前列表:', this.otherPlayers);
-        
-        // 清除现有其他玩家
-        document.querySelectorAll('.other-player').forEach(player => {
-            console.log('移除现有玩家元素:', player.dataset.playerId);
-            player.remove();
-        });
-        
-        // 添加其他玩家
+        // 添加其他玩家到地图
         this.otherPlayers.forEach(player => {
-            // 检查玩家数据是否完整
-            if (player.id && player.name && player.position_x !== undefined && 
-                player.position_y !== undefined && player.id !== this.character.id) {
-                
-                console.log('创建其他玩家元素:', player);
-                
-                const playerElement = document.createElement('div');
-                playerElement.className = 'player other-player';
-                playerElement.dataset.playerId = player.id; // 使用dataset设置data-player-id属性
+            // 创建玩家元素
+            const playerElement = document.createElement('div');
+            playerElement.className = 'player other-player';
+            playerElement.dataset.playerId = player.id;
+            
+            // 添加玩家名称和等级显示
+            playerElement.innerHTML = `${player.name} <span class="player-level">Lv.${player.level || 1}</span>`;
+            
+            // 添加玩家信息提示
+            playerElement.title = `${player.name} (等级 ${player.level || 1})`;
+            
+            // 设置位置 - 确保使用正确的坐标
+            if (player.position_x !== undefined && player.position_y !== undefined) {
                 playerElement.style.left = `${player.position_x}px`;
                 playerElement.style.top = `${player.position_y}px`;
-                playerElement.innerHTML = `${player.name} <span class="player-level">Lv.${player.level || 1}</span>`;
-                
-                // 添加玩家信息提示
-                playerElement.title = `${player.name} (等级 ${player.level || 1})`;
-                
-                // 将玩家添加到地图
-                this.gameMap.appendChild(playerElement);
-                
-                console.log('已添加其他玩家元素:', {
-                    id: player.id,
-                    name: player.name,
-                    x: player.position_x, 
-                    y: player.position_y,
-                    element: playerElement.outerHTML
-                });
+                console.log(`设置玩家 ${player.name} 位置: (${player.position_x}, ${player.position_y})`);
             } else {
-                console.warn('接收到不完整的玩家数据，跳过显示:', player);
+                console.warn(`玩家 ${player.name} 缺少位置信息:`, player);
+                // 使用默认位置
+                playerElement.style.left = '100px';
+                playerElement.style.top = '100px';
             }
+            
+            // 将玩家添加到地图
+            this.gameMap.appendChild(playerElement);
         });
+        
+        console.log(`更新了 ${this.otherPlayers.length} 个其他玩家`);
     }
     
     // 更新商店显示
@@ -1179,29 +1218,19 @@ class Game {
     
     // 移动角色
     async moveCharacter(x, y) {
+        // 检查是否有角色数据
+        if (!this.character) {
+            console.error('无法移动角色：角色数据不存在');
+            return;
+        }
+        
+        // 检查是否在传送中
+        if (this.isTeleporting) {
+            console.log('角色正在传送中，忽略移动请求');
+            return;
+        }
+        
         try {
-            console.log(`尝试移动角色到位置: (${x}, ${y})`);
-            
-            // 首先检查是否在传送点上
-            const teleportPoint = this.checkTeleportPoint(x, y);
-            if (teleportPoint) {
-                // 获取目标地图名称
-                let targetMapName = '未知地图';
-                if (teleportPoint.target_map_id === 1) targetMapName = '新手村';
-                else if (teleportPoint.target_map_id === 2) targetMapName = '幽暗森林';
-                else if (teleportPoint.target_map_id === 3) targetMapName = '古老矿洞';
-                else if (teleportPoint.target_map_id === 4) targetMapName = '炽热沙漠';
-                
-                // 如果在传送点上，则显示传送确认
-                this.showTeleportConfirm(
-                    teleportPoint.target_map_id, 
-                    teleportPoint.target_x, 
-                    teleportPoint.target_y,
-                    targetMapName
-                );
-                return;
-            }
-            
             // 正常移动
             const response = await axios.post('/api/character/move', { 
                 x: x, 
@@ -1792,40 +1821,48 @@ class Game {
     // 处理游戏事件
     handleGameEvent(event) {
         console.log('处理游戏事件:', event);
+        
+        if (!event || !event.type) {
+            console.warn('收到无效的游戏事件:', event);
+            return;
+        }
+        
+        // 根据事件类型分发到不同的处理函数
         switch (event.type) {
             case 'character.move':
                 this.handleCharacterMove(event.data);
                 break;
+                
             case 'character.enter':
                 this.handleCharacterEnter(event.data);
                 break;
+                
             case 'character.leave':
-                this.handleCharacterLeave(event.data);
+                this.handleCharacterExit(event.data);
                 break;
+                
             case 'monster.damaged':
                 this.handleMonsterDamaged(event.data);
                 break;
+                
             case 'monster.killed':
                 this.handleMonsterKilled(event.data);
                 break;
+                
             case 'monster.respawning':
                 this.handleMonsterRespawning(event.data);
                 break;
+                
             case 'monster.respawned':
                 this.handleMonsterRespawned(event.data);
                 break;
+                
             case 'map.updated':
                 this.handleMapUpdated(event.data);
                 break;
-            case 'item.used':
-            case 'item.equipped':
-            case 'item.unequipped':
-            case 'item.dropped':
-                this.addMessage(event.data.message);
-                break;
-            case 'shop.buy':
-            case 'shop.sell':
-                this.addMessage(event.data.message);
+                
+            default:
+                console.warn('未知的游戏事件类型:', event.type);
                 break;
         }
     }
@@ -1855,7 +1892,7 @@ class Game {
             // 添加玩家信息提示
             playerElement.title = `${data.character.name} (等级 ${data.character.level || 1})`;
             
-            // 设置初始位置
+            // 设置初始位置 - 使用绝对位置
             playerElement.style.left = `${data.character.position_x}px`;
             playerElement.style.top = `${data.character.position_y}px`;
             
@@ -1898,17 +1935,15 @@ class Game {
             // 添加移动动画类
             playerElement.classList.add('moving');
             
-            // 更新玩家位置（使用 CSS transform 实现平滑移动）
-            playerElement.style.transition = `transform ${animationTime}ms ease-out`;
-            playerElement.style.transform = `translate(${targetX - currentX}px, ${targetY - currentY}px)`;
+            // 更新玩家位置（直接设置位置）
+            playerElement.style.transition = `left ${animationTime}ms ease-out, top ${animationTime}ms ease-out`;
+            playerElement.style.left = `${targetX}px`;
+            playerElement.style.top = `${targetY}px`;
             
             // 移动完成后更新实际位置
             setTimeout(() => {
                 playerElement.classList.remove('moving');
                 playerElement.style.transition = 'none';
-                playerElement.style.transform = 'none';
-                playerElement.style.left = `${targetX}px`;
-                playerElement.style.top = `${targetY}px`;
                 
                 // 更新玩家列表中的位置
                 const playerIndex = this.otherPlayers.findIndex(p => p.id === data.character.id);
