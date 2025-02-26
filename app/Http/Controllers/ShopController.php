@@ -115,7 +115,7 @@ class ShopController extends Controller
         $totalPrice = $shopItem->price * $request->quantity;
         
         // 检查金币是否足够
-        if ($user->gold < $totalPrice) {
+        if (!$user->gold || $user->gold < $totalPrice) {
             return response()->json([
                 'success' => false,
                 'message' => '金币不足'

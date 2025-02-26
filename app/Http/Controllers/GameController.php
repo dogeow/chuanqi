@@ -61,13 +61,15 @@ class GameController extends Controller
             return response()->json([
                 'success' => true,
                 'character' => $character,
+                'gold' => $user->gold ?? 0,
                 'message' => '已为您创建新角色'
             ]);
         }
 
         return response()->json([
             'success' => true,
-            'character' => $character
+            'character' => $character,
+            'gold' => $user->gold ?? 0
         ]);
     }
 

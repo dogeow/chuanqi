@@ -181,6 +181,8 @@ class Game {
             // 获取角色数据
             const characterResponse = await axios.get('/api/character');
             this.character = characterResponse.data.character;
+            // 将gold值添加到角色对象中
+            this.character.gold = characterResponse.data.gold || 0;
             console.log('获取到角色数据:', this.character);
             
             // 更新角色信息显示
@@ -812,7 +814,12 @@ class Game {
             this.addMessage(response.data.message);
         } catch (error) {
             console.error('购买失败:', error);
-            this.addMessage('购买失败');
+            // 如果有具体的错误消息，则显示它
+            if (error.response && error.response.data && error.response.data.message) {
+                this.addMessage('购买失败: ' + error.response.data.message);
+            } else {
+                this.addMessage('购买失败，请重试');
+            }
         }
     }
     
