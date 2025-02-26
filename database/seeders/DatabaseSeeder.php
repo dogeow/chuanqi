@@ -24,6 +24,8 @@ class DatabaseSeeder extends Seeder
             GameSeeder::class,
             TestUserSeeder::class,
             ItemsTableSeeder::class,
+            SkillsTableSeeder::class,
+            SkillItemsSeeder::class,
         ]);
     }
 }
