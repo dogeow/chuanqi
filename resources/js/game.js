@@ -71,12 +71,31 @@ class Game {
             controlsPanel.appendChild(btn);
         });
         
-        // 添加到游戏地图容器
-        const mapContainer = document.querySelector('.game-map-container');
-        if (mapContainer) {
-            mapContainer.appendChild(controlsPanel);
+        // 将控制面板添加到垂直侧边栏而不是地图内
+        const sidebar = document.querySelector('.vertical-sidebar');
+        if (sidebar) {
+            // 创建一个新的section来容纳控制按钮
+            const controlsSection = document.createElement('div');
+            controlsSection.className = 'section controls-section';
+            
+            const sectionTitle = document.createElement('h3');
+            sectionTitle.textContent = '游戏指南';
+            controlsSection.appendChild(sectionTitle);
+            
+            controlsSection.appendChild(controlsPanel);
+            
+            // 将section添加到侧边栏的顶部
+            sidebar.insertBefore(controlsSection, sidebar.firstChild);
         } else {
-            this.gameMap.appendChild(controlsPanel);
+            // 如果找不到侧边栏，则添加到页面顶部
+            const gameContainer = document.querySelector('.game-container');
+            if (gameContainer) {
+                controlsPanel.classList.add('top-controls');
+                gameContainer.insertBefore(controlsPanel, gameContainer.firstChild);
+            } else {
+                // 最后的备选方案，添加到body
+                document.body.appendChild(controlsPanel);
+            }
         }
     }
     
