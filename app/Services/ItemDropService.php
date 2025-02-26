@@ -75,7 +75,7 @@ class ItemDropService
         $droppedItems = [];
         
         // 根据怪物等级决定掉落概率和物品稀有度
-        $dropChance = 100; // 基础掉落概率10%，随等级提高，最高30%
+        $dropChance = min(30, 10 + $monster->level); // 基础掉落概率10%，随等级提高，最高30%
         
         // 记录调试信息
         Log::info('尝试生成随机掉落', [
