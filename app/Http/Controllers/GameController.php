@@ -100,10 +100,13 @@ class GameController extends Controller
 
         // 广播角色移动事件
         event(new GameEvent('character.move', [
-            'character_id' => $character->id,
-            'x' => $character->position_x,
-            'y' => $character->position_y,
-            'name' => $character->name
+            'character' => [
+                'id' => $character->id,
+                'name' => $character->name,
+                'level' => $character->level,
+                'position_x' => $character->position_x,
+                'position_y' => $character->position_y
+            ]
         ], $character->current_map_id));
 
         return response()->json([
@@ -147,7 +150,7 @@ class GameController extends Controller
             }
             
             // 更新角色当前地图
-            $character->map_id = $mapId;
+            $character->current_map_id = $mapId;
             $character->save();
             
             // 获取地图上的怪物
@@ -216,7 +219,6 @@ class GameController extends Controller
         }
 
         $oldMapId = $character->current_map_id;
-        $character->current_map_id = $request->map_id;
         
         // 设置角色在新地图的初始位置
         $map = Map::find($request->map_id);
@@ -239,24 +241,36 @@ class GameController extends Controller
                 $character->position_y = 100;
             }
         }
-        
-        $character->save();
 
         // 广播角色离开旧地图事件
         event(new GameEvent('character.leave', [
             'character_id' => $character->id,
-            'name' => $character->name
+            'character' => [
+                'id' => $character->id,
+                'name' => $character->name,
+                'level' => $character->level,
+                'position_x' => $character->position_x,
+                'position_y' => $character->position_y
+            ]
         ], $oldMapId));
+
+        // 更新角色当前地图
+        $character->current_map_id = $request->map_id;
+        $character->save();
 
         // 广播角色进入新地图事件
         event(new GameEvent('character.enter', [
             'character_id' => $character->id,
-            'x' => $character->position_x,
-            'y' => $character->position_y,
-            'name' => $character->name,
-            'level' => $character->level
+            'character' => [
+                'id' => $character->id,
+                'name' => $character->name,
+                'level' => $character->level,
+                'position_x' => $character->position_x,
+                'position_y' => $character->position_y
+            ]
         ], $character->current_map_id));
 
+        // 返回更新后的角色和地图数据
         return response()->json([
             'success' => true,
             'character' => $character,
@@ -584,7 +598,7 @@ class GameController extends Controller
             }
             
             // 更新角色当前地图
-            $character->map_id = $mapId;
+            $character->current_map_id = $mapId;
             $character->save();
             
             // 广播角色进入地图事件

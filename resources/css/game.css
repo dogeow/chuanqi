@@ -37,14 +37,69 @@ body {
     position: absolute;
     width: 32px;
     height: 32px;
-    background-color: #ffcc00;
+    background-color: #4CAF50;
+    color: white;
+    text-align: center;
+    line-height: 32px;
     border-radius: 50%;
-    transform: translate(-50%, -50%);
-    z-index: 10;
+    z-index: 100;
+    cursor: pointer;
+    user-select: none;
+    transform-origin: center;
 }
 
 .other-player {
-    background-color: #66ccff;
+    background-color: #2196F3;
+    font-size: 12px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    line-height: 1.2;
+    padding: 2px;
+}
+
+.player-level {
+    font-size: 10px;
+    opacity: 0.8;
+}
+
+.player.moving {
+    animation: playerMove 0.3s ease-out;
+}
+
+@keyframes playerMove {
+    0% {
+        transform: scale(1);
+    }
+    50% {
+        transform: scale(1.1);
+    }
+    100% {
+        transform: scale(1);
+    }
+}
+
+/* 添加玩家移动轨迹效果 */
+.player.moving::after {
+    content: '';
+    position: absolute;
+    width: 100%;
+    height: 100%;
+    background-color: rgba(33, 150, 243, 0.3);
+    border-radius: 50%;
+    animation: moveTrail 0.3s ease-out;
+}
+
+@keyframes moveTrail {
+    0% {
+        transform: scale(1);
+        opacity: 0.5;
+    }
+    100% {
+        transform: scale(1.5);
+        opacity: 0;
+    }
 }
 
 .monster {
