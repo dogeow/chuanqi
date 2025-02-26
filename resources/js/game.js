@@ -651,6 +651,15 @@ class Game {
     // 更新传送点显示
     updateTeleportPoints() {
         if (!this.gameMap || !this.currentMap || !this.currentMap.teleport_points) {
+            console.warn('无法更新传送点: gameMap或currentMap为空，或传送点数据不存在');
+            // 添加调试信息
+            if (this.currentMap) {
+                console.log('当前地图数据:', {
+                    id: this.currentMap.id,
+                    name: this.currentMap.name,
+                    teleport_points: this.currentMap.teleport_points
+                });
+            }
             return;
         }
         
@@ -659,10 +668,12 @@ class Game {
         
         // 添加传送点
         if (Array.isArray(this.currentMap.teleport_points)) {
+            console.log(`正在添加${this.currentMap.teleport_points.length}个传送点`);
+            
             this.currentMap.teleport_points.forEach(point => {
                 const teleportElement = document.createElement('div');
                 teleportElement.className = 'teleport-point';
-                teleportElement.style.left = `${point.x}px`;
+                teleportElement.style.left = `${point.x}px`; // 修复：添加左侧定位
                 teleportElement.style.top = `${point.y}px`;
                 teleportElement.innerHTML = '传送';
                 teleportElement.dataset.targetMapId = point.target_map_id;
@@ -685,6 +696,7 @@ class Game {
                 teleportElement.title = `传送到${targetMapName}`;
                 
                 this.gameMap.appendChild(teleportElement);
+                console.log(`已添加传送点: ${point.x}, ${point.y} -> 地图${point.target_map_id}(${targetMapName})`);
                 
                 // 添加地图标签
                 const mapLabel = document.createElement('div');
@@ -694,6 +706,12 @@ class Game {
                 mapLabel.style.top = `${point.y - 10}px`;
                 this.gameMap.appendChild(mapLabel);
             });
+            
+            // 添加调试消息
+            this.addMessage(`此地图上有${this.currentMap.teleport_points.length}个传送点`, 'info');
+        } else {
+            console.warn('传送点数据不是数组:', this.currentMap.teleport_points);
+            this.addMessage('此地图上没有传送点数据', 'warning');
         }
         
         // 添加当前地图名称指示器
