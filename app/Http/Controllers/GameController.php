@@ -139,6 +139,11 @@ class GameController extends Controller
                       ->orWhereNull('is_dead');
             })
             ->get();
+            
+        // 为每个怪物添加血量百分比信息
+        $monsters->each(function($monster) {
+            $monster->hp_percentage = ($monster->current_hp / $monster->hp) * 100;
+        });
 
         // 获取地图上的其他玩家
         $otherPlayers = Character::where('current_map_id', $map->id)
@@ -236,6 +241,11 @@ class GameController extends Controller
         $damage = rand($character->getAttackMinAttribute(), $character->getAttackMaxAttribute());
         $monster->current_hp -= $damage;
 
+        // 确保生命值不会小于0
+        if ($monster->current_hp < 0) {
+            $monster->current_hp = 0;
+        }
+
         $result = [
             'success' => true,
             'damage' => $damage,
@@ -314,8 +324,11 @@ class GameController extends Controller
                     'monster_id' => $monster->id,
                     'monster_name' => $monster->name,
                     'hp' => $monster->hp,
+                    'current_hp' => $monster->current_hp,
+                    'hp_percentage' => 100, // 重生时血量为满
                     'position_x' => $monster->position_x,
-                    'position_y' => $monster->position_y
+                    'position_y' => $monster->position_y,
+                    'is_dead' => false
                 ], $monster->map_id));
             })->delay(now()->addSeconds($respawnTime));
         } else {
@@ -329,9 +342,15 @@ class GameController extends Controller
                 'attacker_id' => $character->id,
                 'attacker_name' => $character->name,
                 'current_hp' => $monster->current_hp,
-                'max_hp' => $monster->hp
+                'max_hp' => $monster->hp,
+                'hp_percentage' => ($monster->current_hp / $monster->hp) * 100,
+                'is_dead' => false
             ], $character->current_map_id));
         }
+        
+        // 重新获取最新的怪物信息
+        $monster = Monster::find($monster->id);
+        $result['monster'] = $monster;
         
         return response()->json($result);
     }
