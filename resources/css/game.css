@@ -85,12 +85,67 @@ body {
     color: white;
     text-shadow: 0 0 3px black;
     animation: pulse 2s infinite;
+    box-shadow: 0 0 15px rgba(153, 102, 255, 0.7);
+    border: 2px solid #fff;
+}
+
+.teleport-point::before {
+    content: '📍';
+    font-size: 16px;
+    margin-bottom: 2px;
 }
 
 @keyframes pulse {
-    0% { transform: translate(-50%, -50%) scale(1); opacity: 0.8; }
-    50% { transform: translate(-50%, -50%) scale(1.1); opacity: 1; }
-    100% { transform: translate(-50%, -50%) scale(1); opacity: 0.8; }
+    0% { transform: translate(-50%, -50%) scale(1); opacity: 0.8; box-shadow: 0 0 15px rgba(153, 102, 255, 0.7); }
+    50% { transform: translate(-50%, -50%) scale(1.1); opacity: 1; box-shadow: 0 0 20px rgba(153, 102, 255, 0.9); }
+    100% { transform: translate(-50%, -50%) scale(1); opacity: 0.8; box-shadow: 0 0 15px rgba(153, 102, 255, 0.7); }
+}
+
+/* 地图名称指示器 */
+.map-indicator {
+    position: absolute;
+    top: 10px;
+    left: 10px;
+    background: rgba(0, 0, 0, 0.6);
+    color: white;
+    padding: 5px 10px;
+    border-radius: 4px;
+    z-index: 20;
+    font-weight: bold;
+    border-left: 3px solid #ffcc00;
+}
+
+/* 增加地图过渡动画 */
+.map-transition {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background-color: black;
+    z-index: 1000;
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 0.5s ease;
+}
+
+.map-transition.active {
+    opacity: 1;
+    pointer-events: all;
+}
+
+/* 地图说明标签 */
+.map-label {
+    position: absolute;
+    background: rgba(0, 0, 0, 0.7);
+    color: white;
+    font-size: 11px;
+    padding: 2px 6px;
+    border-radius: 10px;
+    transform: translate(-50%, -100%);
+    white-space: nowrap;
+    pointer-events: none;
+    z-index: 5;
 }
 
 .section {
@@ -379,4 +434,91 @@ body {
         width: 100%;
         max-height: 40vh;
     }
+}
+
+/* 传送动画效果 */
+.teleporting {
+    animation: teleporting 2s ease;
+    box-shadow: 0 0 20px rgba(153, 102, 255, 0.9);
+    opacity: 0.5;
+    z-index: 20 !important;
+}
+
+.teleport-complete {
+    animation: teleportComplete 1s ease;
+}
+
+@keyframes teleporting {
+    0% { transform: translate(-50%, -50%) scale(1); opacity: 1; }
+    50% { transform: translate(-50%, -50%) scale(0.5) rotate(180deg); opacity: 0.5; }
+    100% { transform: translate(-50%, -50%) scale(0); opacity: 0; }
+}
+
+@keyframes teleportComplete {
+    0% { transform: translate(-50%, -50%) scale(0); opacity: 0; box-shadow: 0 0 30px #ffcc00; }
+    50% { transform: translate(-50%, -50%) scale(1.2); opacity: 0.7; box-shadow: 0 0 30px #ffcc00; }
+    100% { transform: translate(-50%, -50%) scale(1); opacity: 1; box-shadow: none; }
+}
+
+/* 增强版传送点 */
+.teleport-point:hover {
+    transform: translate(-50%, -50%) scale(1.2);
+    box-shadow: 0 0 25px rgba(153, 102, 255, 1);
+    z-index: 10;
+}
+
+.teleport-point:active {
+    transform: translate(-50%, -50%) scale(0.9);
+}
+
+/* 显示目标地图等级要求 */
+.map-level-required {
+    position: absolute;
+    background: rgba(0, 0, 0, 0.7);
+    color: white;
+    font-size: 10px;
+    padding: 1px 5px;
+    border-radius: 8px;
+    transform: translate(-50%, 100%);
+    bottom: -15px;
+    left: 50%;
+    white-space: nowrap;
+}
+
+/* 地图过渡全屏效果 */
+.map-transition-screen {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background-color: black;
+    z-index: 1000;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 0.8s ease;
+    color: white;
+    font-size: 24px;
+}
+
+.map-transition-screen.active {
+    opacity: 1;
+    pointer-events: all;
+}
+
+.loading-spinner {
+    width: 40px;
+    height: 40px;
+    border: 4px solid rgba(255, 255, 255, 0.3);
+    border-radius: 50%;
+    border-top-color: #fff;
+    animation: spin 1s ease-in-out infinite;
+    margin-right: 15px;
+}
+
+@keyframes spin {
+    to { transform: rotate(360deg); }
 } 

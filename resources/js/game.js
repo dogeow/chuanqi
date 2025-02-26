@@ -53,6 +53,7 @@ class Game {
         const controls = [
             { icon: '❓', title: '游戏帮助', action: 'showHelp' },
             { icon: '🔍', title: '查看地图', action: 'showMapInfo' },
+            { icon: '🗺️', title: '地图指南', action: 'showMapGuide' },
             { icon: '💰', title: '商店指南', action: 'showShopGuide' },
             { icon: '⚔️', title: '战斗指南', action: 'showCombatGuide' }
         ];
@@ -85,6 +86,9 @@ class Game {
             case 'showMapInfo':
                 this.showMapInfo();
                 break;
+            case 'showMapGuide':
+                this.showMapGuide();
+                break;
             case 'showShopGuide':
                 this.showShopGuide();
                 break;
@@ -115,6 +119,26 @@ class Game {
             this.addMessage(`商店数量: ${this.shops.length}`, 'info');
         } else {
             this.addMessage('地图数据未加载', 'error');
+        }
+    }
+    
+    // 显示地图指南
+    showMapGuide() {
+        this.addMessage('==== 地图指南 ====', 'system');
+        this.addMessage('游戏世界由以下地图组成：', 'info');
+        this.addMessage('1. 新手村 - 初始区域，适合新手（等级需求：1级）', 'info');
+        this.addMessage('2. 幽暗森林 - 茂密的森林，隐藏着危险生物（等级需求：5级）', 'info');
+        this.addMessage('3. 古老矿洞 - 昏暗的地下洞窟，曾是矮人的矿场（等级需求：10级）', 'info');
+        this.addMessage('4. 炽热沙漠 - 荒芜的沙漠，隐藏着远古遗迹（等级需求：15级）', 'info');
+        this.addMessage('寻找紫色的传送点，点击后可传送到其他地图', 'info');
+        
+        // 检测当前地图上的传送点
+        const currentTelepoints = document.querySelectorAll('.teleport-point');
+        if (currentTelepoints.length > 0) {
+            this.addMessage(`当前地图上有 ${currentTelepoints.length} 个传送点`, 'success');
+            this.addMessage('将鼠标悬停在传送点上可查看目标地图', 'info');
+        } else {
+            this.addMessage('当前地图上没有传送点', 'warning');
         }
     }
     
@@ -367,6 +391,9 @@ class Game {
                 return;
             }
             
+            // 显示加载状态
+            this.addMessage(`正在加载地图数据...`, 'system');
+            
             // 获取地图数据
             const mapResponse = await axios.get(`/api/map/${this.character.current_map_id}`);
             console.log('获取到地图数据:', mapResponse.data);
@@ -375,6 +402,11 @@ class Game {
             this.monsters = mapResponse.data.monsters;
             this.otherPlayers = mapResponse.data.otherPlayers;
             
+            // 检查角色等级是否满足地图要求
+            if (this.character.level < this.currentMap.level_required) {
+                this.addMessage(`警告: 当前地图需要${this.currentMap.level_required}级，您可能面临更大危险！`, 'warning');
+            }
+            
             // 获取商店数据
             try {
                 const shopsResponse = await axios.get(`/api/shops/map/${this.character.current_map_id}`);
@@ -382,7 +414,7 @@ class Game {
                 this.shops = shopsResponse.data.shops;
             } catch (error) {
                 console.error('获取商店信息失败:', error);
-                this.addMessage('获取商店信息失败');
+                this.addMessage('获取商店信息失败', 'error');
             }
             
             // 更新地图显示
@@ -391,6 +423,7 @@ class Game {
             // 添加地图信息消息
             this.addMessage(`进入地图：${this.currentMap.name}`, 'info');
             this.addMessage(`描述：${this.currentMap.description}`, 'info');
+            this.addMessage(`等级需求：${this.currentMap.level_required}级`, 'info');
             
             // 重新初始化WebSocket连接（如果地图改变）
             this.initWebSocket();
@@ -621,8 +654,8 @@ class Game {
             return;
         }
         
-        // 清除现有传送点
-        document.querySelectorAll('.teleport-point').forEach(point => point.remove());
+        // 清除现有传送点和地图标签
+        document.querySelectorAll('.teleport-point, .map-label').forEach(element => element.remove());
         
         // 添加传送点
         if (Array.isArray(this.currentMap.teleport_points)) {
@@ -631,16 +664,203 @@ class Game {
                 teleportElement.className = 'teleport-point';
                 teleportElement.style.left = `${point.x}px`;
                 teleportElement.style.top = `${point.y}px`;
-                teleportElement.innerHTML = '传送点';
+                teleportElement.innerHTML = '传送';
                 teleportElement.dataset.targetMapId = point.target_map_id;
                 teleportElement.dataset.targetX = point.target_x;
                 teleportElement.dataset.targetY = point.target_y;
                 
+                // 获取目标地图名称（如果可用）
+                let targetMapName = '未知地图';
+                if (point.target_map_id === 1) targetMapName = '新手村';
+                else if (point.target_map_id === 2) targetMapName = '幽暗森林';
+                else if (point.target_map_id === 3) targetMapName = '古老矿洞';
+                else if (point.target_map_id === 4) targetMapName = '炽热沙漠';
+                
+                // 添加点击事件
+                teleportElement.addEventListener('click', () => {
+                    this.showTeleportConfirm(point.target_map_id, point.target_x, point.target_y, targetMapName);
+                });
+                
                 // 添加提示信息
-                teleportElement.title = `传送点 (点击传送到其他地图)`;
+                teleportElement.title = `传送到${targetMapName}`;
                 
                 this.gameMap.appendChild(teleportElement);
+                
+                // 添加地图标签
+                const mapLabel = document.createElement('div');
+                mapLabel.className = 'map-label';
+                mapLabel.textContent = targetMapName;
+                mapLabel.style.left = `${point.x}px`;
+                mapLabel.style.top = `${point.y - 10}px`;
+                this.gameMap.appendChild(mapLabel);
             });
+        }
+        
+        // 添加当前地图名称指示器
+        if (!document.querySelector('.map-indicator')) {
+            const mapIndicator = document.createElement('div');
+            mapIndicator.className = 'map-indicator';
+            mapIndicator.textContent = `当前地图: ${this.currentMap.name}`;
+            this.gameMap.appendChild(mapIndicator);
+        }
+    }
+    
+    // 显示传送确认
+    showTeleportConfirm(targetMapId, targetX, targetY, targetMapName) {
+        // 不直接创建额外的确认对话框，而是直接显示一条消息，然后传送
+        this.addMessage(`准备传送到${targetMapName}，等待确认...`, 'system');
+        
+        // 创建一个过渡动画元素
+        let transitionEl = document.querySelector('.map-transition');
+        if (!transitionEl) {
+            transitionEl = document.createElement('div');
+            transitionEl.className = 'map-transition';
+            document.body.appendChild(transitionEl);
+        }
+        
+        // 激活过渡动画
+        setTimeout(() => { 
+            transitionEl.classList.add('active');
+            
+            // 执行传送
+            setTimeout(async () => {
+                await this.teleportToMap(targetMapId, targetX, targetY);
+                
+                // 延迟后关闭过渡动画
+                setTimeout(() => {
+                    transitionEl.classList.remove('active');
+                }, 500);
+            }, 500);
+        }, 100);
+    }
+    
+    // 传送到其他地图
+    async teleportToMap(targetMapId, targetX, targetY) {
+        try {
+            console.log(`尝试传送到地图: ${targetMapId}, 位置: (${targetX}, ${targetY})`);
+            
+            this.addMessage(`正在传送到新地图...`, 'system');
+            
+            // 显示传送动画
+            this.showTeleportingEffect();
+            
+            // 传送请求
+            const response = await axios.post('/api/map/change', { 
+                map_id: targetMapId,
+                target_x: targetX,
+                target_y: targetY
+            });
+            
+            // 更新角色信息和地图
+            this.character = response.data.character;
+            this.currentMap = response.data.map;
+            
+            // 重新加载地图数据
+            await this.loadMapData();
+            
+            // 更新地图显示
+            this.updateMap();
+            
+            // 显示传送成功消息
+            this.addMessage(`成功传送到${this.currentMap.name}`, 'success');
+            this.addMessage(`当前地图等级需求: ${this.currentMap.level_required}级`, 'info');
+            
+            // 如果角色等级低于地图要求，显示警告
+            if (this.character.level < this.currentMap.level_required) {
+                this.addMessage(`警告: 您的等级低于地图要求，将面临更大危险！`, 'warning');
+            }
+            
+            // 播放传送完成动画
+            this.showTeleportCompleteEffect();
+        } catch (error) {
+            console.error('传送失败:', error);
+            if (error.response) {
+                console.error('错误状态码:', error.response.status);
+                console.error('错误数据:', error.response.data);
+                
+                // 检查是否因等级问题无法传送
+                if (error.response.data && error.response.data.message) {
+                    this.addMessage(`传送失败: ${error.response.data.message}`, 'error');
+                    return;
+                }
+            }
+            this.addMessage('传送失败，请重试', 'error');
+        }
+    }
+    
+    // 显示传送中动画效果
+    showTeleportingEffect() {
+        const player = document.getElementById('player');
+        if (player) {
+            player.classList.add('teleporting');
+            
+            // 2秒后移除动画效果
+            setTimeout(() => {
+                player.classList.remove('teleporting');
+            }, 2000);
+        }
+    }
+    
+    // 显示传送完成效果
+    showTeleportCompleteEffect() {
+        const player = document.getElementById('player');
+        if (player) {
+            player.classList.add('teleport-complete');
+            
+            // 1秒后移除动画效果
+            setTimeout(() => {
+                player.classList.remove('teleport-complete');
+            }, 1000);
+        }
+    }
+    
+    // 移动角色
+    async moveCharacter(x, y) {
+        try {
+            console.log(`尝试移动角色到位置: (${x}, ${y})`);
+            
+            // 首先检查是否在传送点上
+            const teleportPoint = this.checkTeleportPoint(x, y);
+            if (teleportPoint) {
+                // 获取目标地图名称
+                let targetMapName = '未知地图';
+                if (teleportPoint.target_map_id === 1) targetMapName = '新手村';
+                else if (teleportPoint.target_map_id === 2) targetMapName = '幽暗森林';
+                else if (teleportPoint.target_map_id === 3) targetMapName = '古老矿洞';
+                else if (teleportPoint.target_map_id === 4) targetMapName = '炽热沙漠';
+                
+                // 如果在传送点上，则显示传送确认
+                this.showTeleportConfirm(
+                    teleportPoint.target_map_id, 
+                    teleportPoint.target_x, 
+                    teleportPoint.target_y,
+                    targetMapName
+                );
+                return;
+            }
+            
+            // 正常移动
+            const response = await axios.post('/api/character/move', { 
+                x: x, 
+                y: y 
+            });
+            console.log('移动成功，服务器响应:', response.data);
+            this.character = response.data.character;
+            this.updatePlayerPosition();
+        } catch (error) {
+            console.error('移动失败:', error);
+            if (error.response) {
+                console.error('错误状态码:', error.response.status);
+                console.error('错误数据:', error.response.data);
+                
+                // 如果是等级不够的错误
+                if (error.response.data && error.response.data.message && 
+                    error.response.data.message.includes('等级不够')) {
+                    this.addMessage(error.response.data.message, 'error');
+                    return;
+                }
+            }
+            this.addMessage('移动失败', 'error');
         }
     }
     
@@ -662,75 +882,6 @@ class Game {
             }) : null;
             
         return teleportPoint;
-    }
-    
-    // 传送到其他地图
-    async teleportToMap(targetMapId, targetX, targetY) {
-        try {
-            console.log(`尝试传送到地图: ${targetMapId}, 位置: (${targetX}, ${targetY})`);
-            
-            this.addMessage(`正在传送到新地图...`, 'system');
-            
-            const response = await axios.post('/api/map/change', { 
-                map_id: targetMapId,
-                target_x: targetX,
-                target_y: targetY
-            });
-            
-            // 更新角色信息和地图
-            this.character = response.data.character;
-            this.currentMap = response.data.map;
-            
-            // 重新加载地图数据
-            await this.loadMapData();
-            
-            // 更新地图显示
-            this.updateMap();
-            
-            this.addMessage(`成功传送到${this.currentMap.name}`, 'success');
-        } catch (error) {
-            console.error('传送失败:', error);
-            if (error.response) {
-                console.error('错误状态码:', error.response.status);
-                console.error('错误数据:', error.response.data);
-            }
-            this.addMessage('传送失败', 'error');
-        }
-    }
-    
-    // 移动角色
-    async moveCharacter(x, y) {
-        try {
-            console.log(`尝试移动角色到位置: (${x}, ${y})`);
-            
-            // 首先检查是否在传送点上
-            const teleportPoint = this.checkTeleportPoint(x, y);
-            if (teleportPoint) {
-                // 如果在传送点上，则触发传送
-                await this.teleportToMap(
-                    teleportPoint.target_map_id, 
-                    teleportPoint.target_x, 
-                    teleportPoint.target_y
-                );
-                return;
-            }
-            
-            // 正常移动
-            const response = await axios.post('/api/character/move', { 
-                x: x, 
-                y: y 
-            });
-            console.log('移动成功，服务器响应:', response.data);
-            this.character = response.data.character;
-            this.updatePlayerPosition();
-        } catch (error) {
-            console.error('移动失败:', error);
-            if (error.response) {
-                console.error('错误状态码:', error.response.status);
-                console.error('错误数据:', error.response.data);
-            }
-            this.addMessage('移动失败', 'error');
-        }
     }
     
     // 显示怪物模态框
