@@ -6,6 +6,7 @@ use App\Events\GameEvent;
 use App\Models\Character;
 use App\Models\Map;
 use App\Models\Monster;
+use App\Models\Shop;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 
@@ -112,52 +113,85 @@ class GameController extends Controller
     }
 
     /**
-     * 获取地图信息
+     * 获取地图数据，包括怪物、商店和其他玩家
      */
-    public function getMap(Request $request)
+    public function getMap($mapId)
     {
-        $user = Auth::user();
-        $character = Character::where('user_id', $user->id)->first();
-
-        if (!$character) {
-            return response()->json([
-                'success' => false,
-                'message' => '角色不存在'
-            ], 404);
-        }
-
-        $map = Map::find($character->current_map_id);
-        if (!$map) {
-            return response()->json([
-                'success' => false,
-                'message' => '地图不存在'
-            ], 404);
-        }
-
-        // 获取地图上的怪物
-        $monsters = Monster::where('map_id', $map->id)
-            ->where(function($query) {
-                $query->where('is_dead', false)
-                      ->orWhereNull('is_dead');
-            })
-            ->get();
+        try {
+            // 获取地图基本信息
+            $map = Map::find($mapId);
+            if (!$map) {
+                return response()->json([
+                    'success' => false,
+                    'message' => '地图不存在',
+                ], 404);
+            }
             
-        // 为每个怪物添加血量百分比信息
-        $monsters->each(function($monster) {
-            $monster->hp_percentage = ($monster->current_hp / $monster->hp) * 100;
-        });
+            // 处理传送点数据
+            if (is_string($map->teleport_points)) {
+                $map->teleport_points = json_decode($map->teleport_points, true);
+            }
+            
+            if (is_null($map->teleport_points)) {
+                $map->teleport_points = [];
+            }
 
-        // 获取地图上的其他玩家
-        $otherPlayers = Character::where('current_map_id', $map->id)
-            ->where('id', '!=', $character->id)
-            ->get(['id', 'name', 'position_x', 'position_y', 'level']);
+            // 获取当前角色
+            $user = Auth::user();
+            $character = Character::where('user_id', $user->id)->first();
+            if (!$character) {
+                return response()->json([
+                    'success' => false,
+                    'message' => '角色不存在',
+                ], 400);
+            }
+            
+            // 更新角色当前地图
+            $character->map_id = $mapId;
+            $character->save();
+            
+            // 获取地图上的怪物
+            $monsters = Monster::where('map_id', $mapId)->get();
+            
+            // 获取地图上的商店
+            $shops = Shop::where('map_id', $mapId)->get();
+            
+            // 获取同一地图上的其他玩家
+            $otherPlayers = Character::where('current_map_id', $mapId)
+                ->where('id', '!=', $character->id)
+                ->where('updated_at', '>', now()->subMinutes(5)) // 只获取5分钟内活跃的角色
+                ->select('id', 'name', 'level', 'position_x', 'position_y')
+                ->get();
 
-        return response()->json([
-            'success' => true,
-            'map' => $map,
-            'monsters' => $monsters,
-            'otherPlayers' => $otherPlayers
-        ]);
+            // 记录调试信息
+            \Log::info('地图数据请求', [
+                'map_id' => $mapId,
+                'character_id' => $character->id,
+                'other_players_count' => $otherPlayers->count(),
+                'monsters_count' => $monsters->count(),
+                'shops_count' => $shops->count()
+            ]);
+            
+            // 返回完整地图数据
+            return response()->json([
+                'success' => true,
+                'map' => $map,
+                'character' => $character,
+                'monsters' => $monsters,
+                'shops' => $shops,
+                'other_players' => $otherPlayers
+            ]);
+        } catch (\Exception $e) {
+            \Log::error('获取地图数据异常: ' . $e->getMessage(), [
+                'map_id' => $mapId,
+                'trace' => $e->getTraceAsString()
+            ]);
+            
+            return response()->json([
+                'success' => false,
+                'message' => '获取地图数据失败: ' . $e,
+            ], 500);
+        }
     }
 
     /**
@@ -259,11 +293,11 @@ class GameController extends Controller
             ], 400);
         }
 
-        // 计算伤害（简单示例）
+        // 计算角色对怪物的伤害
         $damage = rand($character->getAttackMinAttribute(), $character->getAttackMaxAttribute());
         $monster->current_hp -= $damage;
 
-        // 确保生命值不会小于0
+        // 确保怪物生命值不会小于0
         if ($monster->current_hp < 0) {
             $monster->current_hp = 0;
         }
@@ -273,6 +307,40 @@ class GameController extends Controller
             'damage' => $damage,
             'monster' => $monster,
         ];
+        
+        // 怪物反击（如果怪物没有死亡）
+        if ($monster->current_hp > 0) {
+            // 计算怪物对角色的伤害
+            $monsterDamage = max(1, round($monster->attack * (1 - $character->defense / 100)));
+            $character->current_hp -= $monsterDamage;
+            
+            // 确保角色生命值不会小于0
+            if ($character->current_hp < 0) {
+                $character->current_hp = 0;
+            }
+            
+            $character->save();
+            
+            // 添加怪物反击信息到结果
+            $result['monster_damage'] = $monsterDamage;
+            $result['character'] = $character;
+            
+            // 检查角色是否死亡
+            if ($character->current_hp <= 0) {
+                $result['character_died'] = true;
+                
+                // 角色死亡处理（可以在这里添加复活逻辑）
+                // 例如：将角色传送回新手村，恢复一定生命值等
+                $character->current_hp = max(1, round($character->max_hp * 0.1)); // 恢复10%生命值
+                $character->current_map_id = 1; // 传送回新手村
+                $character->position_x = 100;
+                $character->position_y = 100;
+                $character->save();
+                
+                $result['character'] = $character;
+                $result['respawn_message'] = '您已被击败，已传送回新手村并恢复少量生命值';
+            }
+        }
 
         // 检查怪物是否死亡
         if ($monster->current_hp <= 0) {
@@ -378,5 +446,246 @@ class GameController extends Controller
         $result['monster'] = $monster;
         
         return response()->json($result);
+    }
+
+    /**
+     * 管理地图传送点
+     */
+    public function manageTeleportPoints(Request $request)
+    {
+        $request->validate([
+            'action' => 'required|string|in:add,remove,create_bidirectional',
+            'map_id' => 'required|exists:maps,id',
+            'x' => 'required|numeric',
+            'y' => 'required|numeric',
+            'target_map_id' => 'required_unless:action,remove|exists:maps,id',
+            'target_x' => 'required_unless:action,remove|numeric',
+            'target_y' => 'required_unless:action,remove|numeric',
+        ]);
+
+        $map = Map::find($request->map_id);
+        
+        if (!$map) {
+            return response()->json([
+                'success' => false,
+                'message' => '地图不存在'
+            ], 404);
+        }
+
+        $result = false;
+        $message = '';
+
+        switch ($request->action) {
+            case 'add':
+                $result = $map->addTeleportPoint(
+                    $request->x, 
+                    $request->y, 
+                    $request->target_map_id, 
+                    $request->target_x, 
+                    $request->target_y
+                );
+                $message = $result ? '成功添加传送点' : '添加传送点失败';
+                break;
+                
+            case 'remove':
+                $result = $map->removeTeleportPoint($request->x, $request->y);
+                $message = $result ? '成功移除传送点' : '移除传送点失败';
+                break;
+                
+            case 'create_bidirectional':
+                $targetMap = Map::find($request->target_map_id);
+                if (!$targetMap) {
+                    return response()->json([
+                        'success' => false,
+                        'message' => '目标地图不存在'
+                    ], 404);
+                }
+                
+                $result = $map->createBidirectionalTeleport(
+                    $targetMap,
+                    $request->x,
+                    $request->y,
+                    $request->target_x,
+                    $request->target_y
+                );
+                $message = $result ? '成功创建双向传送点' : '创建双向传送点失败';
+                break;
+        }
+
+        // 广播地图更新事件
+        if ($result) {
+            event(new GameEvent('map.updated', [
+                'map_id' => $map->id,
+                'message' => $message
+            ]));
+            
+            // 如果是双向传送点，也广播目标地图的更新
+            if ($request->action === 'create_bidirectional') {
+                event(new GameEvent('map.updated', [
+                    'map_id' => $request->target_map_id,
+                    'message' => '地图传送点已更新'
+                ]));
+            }
+        }
+
+        return response()->json([
+            'success' => $result,
+            'message' => $message,
+            'map' => $map
+        ]);
+    }
+    
+    /**
+     * 获取所有地图信息
+     */
+    public function getAllMaps()
+    {
+        $maps = Map::all();
+        
+        // 确保每个地图的teleport_points是数组
+        $maps->each(function($map) {
+            // 如果teleport_points是字符串，则解析为数组
+            if (is_string($map->teleport_points)) {
+                $map->teleport_points = json_decode($map->teleport_points, true);
+            }
+            
+            // 如果teleport_points为null，则设置为空数组
+            if ($map->teleport_points === null) {
+                $map->teleport_points = [];
+            }
+        });
+        
+        return response()->json([
+            'success' => true,
+            'maps' => $maps
+        ]);
+    }
+
+    /**
+     * 处理角色进入地图事件
+     */
+    public function enterMap(Request $request)
+    {
+        try {
+            $mapId = $request->input('map_id');
+            if (!$mapId) {
+                return response()->json([
+                    'success' => false,
+                    'message' => '地图ID不能为空'
+                ], 400);
+            }
+            
+            $character = Character::where('user_id', Auth::id())->first();
+            if (!$character) {
+                return response()->json([
+                    'success' => false,
+                    'message' => '角色不存在'
+                ], 400);
+            }
+            
+            // 更新角色当前地图
+            $character->map_id = $mapId;
+            $character->save();
+            
+            // 广播角色进入地图事件
+            event(new GameEvent('character.enter', [
+                'character' => [
+                    'id' => $character->id,
+                    'name' => $character->name,
+                    'level' => $character->level,
+                    'position_x' => $character->position_x,
+                    'position_y' => $character->position_y
+                ]
+            ], $mapId));
+            
+            return response()->json([
+                'success' => true,
+                'message' => '角色进入地图事件已广播'
+            ]);
+        } catch (\Exception $e) {
+            \Log::error('处理角色进入地图事件失败: ' . $e->getMessage(), [
+                'trace' => $e->getTraceAsString()
+            ]);
+            
+            return response()->json([
+                'success' => false,
+                'message' => '处理角色进入地图事件失败: ' . $e->getMessage()
+            ], 500);
+        }
+    }
+    
+    /**
+     * 创建地图传送点
+     */
+    public function createTeleportPoint(Request $request)
+    {
+        try {
+            // 验证管理员权限
+            $user = Auth::user();
+            if (!$user->is_admin) {
+                return response()->json([
+                    'success' => false,
+                    'message' => '无权执行此操作'
+                ], 403);
+            }
+            
+            // 验证请求数据
+            $validated = $request->validate([
+                'map_id' => 'required|exists:maps,id',
+                'target_map_id' => 'required|exists:maps,id',
+                'position_x' => 'required|numeric',
+                'position_y' => 'required|numeric',
+                'target_position_x' => 'required|numeric',
+                'target_position_y' => 'required|numeric',
+                'name' => 'required|string|max:50',
+            ]);
+            
+            // 获取地图
+            $map = Map::find($validated['map_id']);
+            
+            // 处理现有传送点
+            $teleportPoints = [];
+            if ($map->teleport_points) {
+                if (is_string($map->teleport_points)) {
+                    $teleportPoints = json_decode($map->teleport_points, true) ?? [];
+                } else {
+                    $teleportPoints = $map->teleport_points;
+                }
+            }
+            
+            // 创建新传送点数据
+            $newTeleportPoint = [
+                'id' => count($teleportPoints) + 1,
+                'name' => $validated['name'],
+                'position_x' => (int)$validated['position_x'],
+                'position_y' => (int)$validated['position_y'],
+                'target_map_id' => (int)$validated['target_map_id'],
+                'target_position_x' => (int)$validated['target_position_x'],
+                'target_position_y' => (int)$validated['target_position_y'],
+            ];
+            
+            // 添加到传送点数组
+            $teleportPoints[] = $newTeleportPoint;
+            
+            // 更新地图传送点
+            $map->teleport_points = json_encode($teleportPoints);
+            $map->save();
+            
+            return response()->json([
+                'success' => true,
+                'message' => '传送点创建成功',
+                'teleport_point' => $newTeleportPoint,
+                'all_teleport_points' => $teleportPoints
+            ]);
+        } catch (\Exception $e) {
+            \Log::error('创建传送点失败: ' . $e->getMessage(), [
+                'trace' => $e->getTraceAsString()
+            ]);
+            
+            return response()->json([
+                'success' => false,
+                'message' => '创建传送点失败: ' . $e->getMessage()
+            ], 500);
+        }
     }
 } 

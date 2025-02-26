@@ -153,14 +153,21 @@ class ShopController extends Controller
             'item_id' => $shopItem->item_id,
             'item_name' => $shopItem->item->name,
             'quantity' => $request->quantity,
-            'total_price' => $totalPrice
-        ], $character->map_id));
+            'price' => $totalPrice
+        ], $character->current_map_id));
+
+        // 获取更新后的背包
+        $inventory = Inventory::where('character_id', $character->id)
+            ->with('item')
+            ->get();
 
         return response()->json([
             'success' => true,
-            'message' => '成功购买' . $request->quantity . '个' . $shopItem->item->name,
+            'message' => "成功购买 {$shopItem->item->name} x{$request->quantity}",
             'character' => $character,
-            'inventory' => Inventory::where('character_id', $character->id)->with('item')->get()
+            'inventory' => $inventory,
+            'current_gold' => $user->gold,
+            'item_name' => $shopItem->item->name
         ]);
     }
 

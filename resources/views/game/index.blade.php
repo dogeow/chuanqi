@@ -63,11 +63,18 @@
                 <span class="close">&times;</span>
             </div>
             <div id="monster-details">
-                <!-- 怪物详情会动态添加到这里 -->
+                <p>等级：<span id="monster-level">1</span></p>
+                <p>生命：<span class="monster-hp" id="monster-hp">100/100</span></p>
+                <div class="hp-bar-container">
+                    <div class="monster-hp-bar" id="monster-hp-bar" style="width: 100%;"></div>
+                </div>
+                <p>攻击：<span id="monster-attack">10</span></p>
+                <p>防御：<span id="monster-defense">5</span></p>
             </div>
             <div class="modal-actions">
                 <button id="attack-monster" class="btn">攻击</button>
                 <button id="use-skill" class="btn">使用技能</button>
+                <button id="auto-attack-btn" class="btn">自动攻击</button>
             </div>
         </div>
     </div>

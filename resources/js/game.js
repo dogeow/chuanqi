@@ -55,7 +55,8 @@ class Game {
             { icon: '🔍', title: '查看地图', action: 'showMapInfo' },
             { icon: '🗺️', title: '地图指南', action: 'showMapGuide' },
             { icon: '💰', title: '商店指南', action: 'showShopGuide' },
-            { icon: '⚔️', title: '战斗指南', action: 'showCombatGuide' }
+            { icon: '⚔️', title: '战斗指南', action: 'showCombatGuide' },
+            { icon: '⚙️', title: '地图管理', action: 'showMapAdmin' }
         ];
         
         controls.forEach(control => {
@@ -94,6 +95,9 @@ class Game {
                 break;
             case 'showCombatGuide':
                 this.showCombatGuide();
+                break;
+            case 'showMapAdmin':
+                this.showMapAdmin();
                 break;
         }
     }
@@ -165,6 +169,195 @@ class Game {
         this.addMessage(`您当前的防御力: ${this.character.defense}`, 'combat');
     }
     
+    // 显示地图管理界面
+    async showMapAdmin() {
+        this.addMessage('正在加载地图管理界面...', 'system');
+        
+        try {
+            // 获取所有地图数据
+            const response = await axios.get('/api/maps');
+            const maps = response.data.maps;
+            
+            // 创建管理界面
+            let adminPanel = document.querySelector('.map-admin-panel');
+            if (adminPanel) {
+                adminPanel.remove();
+            }
+            
+            adminPanel = document.createElement('div');
+            adminPanel.className = 'map-admin-panel';
+            adminPanel.innerHTML = `
+                <div class="admin-header">
+                    <h2>地图传送点管理</h2>
+                    <span class="close-admin">&times;</span>
+                </div>
+                <div class="admin-content">
+                    <div class="admin-section">
+                        <h3>创建双向传送点</h3>
+                        <form id="create-teleport-form">
+                            <div class="form-group">
+                                <label>源地图:</label>
+                                <select id="source-map" required>
+                                    ${maps.map(map => `<option value="${map.id}">${map.name}</option>`).join('')}
+                                </select>
+                            </div>
+                            <div class="form-group">
+                                <label>源坐标:</label>
+                                <input type="number" id="source-x" placeholder="X坐标" required>
+                                <input type="number" id="source-y" placeholder="Y坐标" required>
+                            </div>
+                            <div class="form-group">
+                                <label>目标地图:</label>
+                                <select id="target-map" required>
+                                    ${maps.map(map => `<option value="${map.id}">${map.name}</option>`).join('')}
+                                </select>
+                            </div>
+                            <div class="form-group">
+                                <label>目标坐标:</label>
+                                <input type="number" id="target-x" placeholder="X坐标" required>
+                                <input type="number" id="target-y" placeholder="Y坐标" required>
+                            </div>
+                            <button type="submit" class="admin-btn">创建传送点</button>
+                        </form>
+                    </div>
+                    
+                    <div class="admin-section">
+                        <h3>现有传送点</h3>
+                        <div class="teleport-list">
+                            <p>正在加载传送点数据...</p>
+                        </div>
+                    </div>
+                </div>
+            `;
+            
+            document.body.appendChild(adminPanel);
+            
+            // 添加关闭按钮事件
+            adminPanel.querySelector('.close-admin').addEventListener('click', () => {
+                adminPanel.remove();
+            });
+            
+            // 添加表单提交事件
+            const form = document.getElementById('create-teleport-form');
+            form.addEventListener('submit', async (e) => {
+                e.preventDefault();
+                
+                const sourceMapId = document.getElementById('source-map').value;
+                const sourceX = document.getElementById('source-x').value;
+                const sourceY = document.getElementById('source-y').value;
+                const targetMapId = document.getElementById('target-map').value;
+                const targetX = document.getElementById('target-x').value;
+                const targetY = document.getElementById('target-y').value;
+                
+                try {
+                    const response = await axios.post('/api/map/teleport-points', {
+                        action: 'create_bidirectional',
+                        map_id: sourceMapId,
+                        x: sourceX,
+                        y: sourceY,
+                        target_map_id: targetMapId,
+                        target_x: targetX,
+                        target_y: targetY
+                    });
+                    
+                    if (response.data.success) {
+                        this.addMessage(response.data.message, 'success');
+                        // 刷新管理界面
+                        this.showMapAdmin();
+                    } else {
+                        this.addMessage(`创建传送点失败: ${response.data.message}`, 'error');
+                    }
+                } catch (error) {
+                    console.error('创建传送点错误:', error);
+                    this.addMessage(`创建传送点错误: ${error.response?.data?.message || error.message}`, 'error');
+                }
+            });
+            
+            // 异步加载传送点列表
+            const teleportListContainer = adminPanel.querySelector('.teleport-list');
+            let teleportListHtml = '';
+            
+            for (const map of maps) {
+                let pointsHtml = '<li>没有传送点</li>';
+                
+                try {
+                    // 确保传送点是数组
+                    const teleportPoints = Array.isArray(map.teleport_points) ? map.teleport_points : [];
+                    
+                    if (teleportPoints.length > 0) {
+                        pointsHtml = teleportPoints.map((point, index) => {
+                            // 查找目标地图名称
+                            const targetMap = maps.find(m => m.id === point.target_map_id);
+                            const targetMapName = targetMap ? targetMap.name : '未知地图';
+                            
+                            return `
+                                <li>
+                                    传送点 #${index + 1}: 
+                                    (${point.x}, ${point.y}) → 
+                                    ${targetMapName} (${point.target_x}, ${point.target_y})
+                                    <button class="delete-teleport" 
+                                            data-map-id="${map.id}" 
+                                            data-x="${point.x}" 
+                                            data-y="${point.y}">
+                                        删除
+                                    </button>
+                                </li>
+                            `;
+                        }).join('');
+                    }
+                } catch (error) {
+                    console.error(`处理地图 ${map.name} 的传送点时出错:`, error);
+                    pointsHtml = '<li>加载传送点数据出错</li>';
+                }
+                
+                teleportListHtml += `
+                    <div class="map-teleports">
+                        <h4>${map.name}</h4>
+                        <ul>${pointsHtml}</ul>
+                    </div>
+                `;
+            }
+            
+            teleportListContainer.innerHTML = teleportListHtml;
+            
+            // 添加删除按钮事件
+            document.querySelectorAll('.delete-teleport').forEach(button => {
+                button.addEventListener('click', async () => {
+                    const mapId = button.dataset.mapId;
+                    const x = button.dataset.x;
+                    const y = button.dataset.y;
+                    
+                    if (confirm(`确定要删除这个传送点吗？`)) {
+                        try {
+                            const response = await axios.post('/api/map/teleport-points', {
+                                action: 'remove',
+                                map_id: mapId,
+                                x: x,
+                                y: y
+                            });
+                            
+                            if (response.data.success) {
+                                this.addMessage(response.data.message, 'success');
+                                // 刷新管理界面
+                                this.showMapAdmin();
+                            } else {
+                                this.addMessage(`删除传送点失败: ${response.data.message}`, 'error');
+                            }
+                        } catch (error) {
+                            console.error('删除传送点错误:', error);
+                            this.addMessage(`删除传送点错误: ${error.response?.data?.message || error.message}`, 'error');
+                        }
+                    }
+                });
+            });
+            
+            this.addMessage('地图管理界面已加载', 'success');
+        } catch (error) {
+            console.error('加载地图管理界面错误:', error);
+            this.addMessage(`加载地图管理界面错误: ${error.response?.data?.message || error.message}`, 'error');
+        }
+    }
+    
     // 初始化事件监听器
     initEventListeners() {
         // 地图点击事件
@@ -226,57 +419,102 @@ class Game {
                 this.showSkillSelectModal();
             });
         }
+        
+        // 自动攻击按钮事件
+        const autoAttackButton = document.getElementById('auto-attack-btn');
+        if (autoAttackButton) {
+            autoAttackButton.addEventListener('click', () => {
+                this.toggleAutoAttack();
+            });
+        }
     }
     
     // 初始化WebSocket连接
     initWebSocket() {
-        if (!this.currentMap || !this.currentMap.id) {
-            console.error('地图数据未加载，无法初始化WebSocket');
+        // 检查角色数据和当前地图数据
+        if (!this.character) {
+            console.warn('WebSocket初始化延迟：角色数据尚未加载');
             return;
         }
         
+        if (!this.character.id) {
+            console.warn('WebSocket初始化延迟：角色ID不存在');
+            return;
+        }
+        
+        const mapId = this.character.current_map_id || this.character.map_id;
+        if (!mapId) {
+            console.warn('WebSocket初始化延迟：地图ID不存在');
+            return;
+        }
+
+        console.log('初始化WebSocket连接，角色ID:', this.character.id, '地图ID:', mapId);
+        
+        // 清除现有连接
+        if (this.mapChannel) {
+            console.log('离开之前的地图频道:', this.mapChannel.name);
+            if (typeof this.mapChannel.unsubscribe === 'function') {
+                this.mapChannel.unsubscribe();
+            }
+            this.mapChannel = null;
+        }
+
         try {
-            Echo.join(`map.${this.currentMap.id}`)
-                .here((players) => {
-                    // 过滤出有效的玩家数据
-                    this.otherPlayers = players.filter(player => 
-                        player && player.id && player.name && 
-                        player.position_x !== undefined && 
-                        player.position_y !== undefined
-                    );
-                    console.log('当前地图上的其他玩家:', this.otherPlayers);
-                    this.updateOtherPlayers();
+            // 订阅到地图频道接收实时事件
+            this.mapChannel = window.Echo.private(`map.${mapId}`);
+            
+            if (!this.mapChannel) {
+                console.error('创建地图频道失败');
+                return;
+            }
+            
+            console.log('成功创建地图频道:', `map.${mapId}`);
+            
+            // 监听广播的游戏事件
+            this.mapChannel.listen('GameEvent', (event) => {
+                console.log('收到游戏事件:', event);
+                this.handleGameEvent(event);
+            });
+            
+            // 处理玩家加入事件
+            this.mapChannel.listen('.character.enter', (event) => {
+                console.log('玩家加入地图:', event);
+                this.handleCharacterEnter(event);
+            });
+            
+            // 处理玩家离开事件
+            this.mapChannel.listen('.character.exit', (event) => {
+                console.log('玩家离开地图:', event);
+                this.handleCharacterExit(event);
+            });
+            
+            // 发送当前玩家加入地图的事件
+            console.log('准备发送地图进入通知，角色数据:', {
+                id: this.character.id,
+                map_id: mapId,
+                name: this.character.name
+            });
+            
+            axios.post('/api/map/enter', { 
+                map_id: mapId,
+                character_id: this.character.id  // 显式传递角色ID
+            })
+                .then(response => {
+                    console.log('发送地图进入通知成功:', response.data);
                 })
-                .joining((player) => {
-                    // 验证玩家数据完整性
-                    if (player && player.id && player.name && 
-                        player.position_x !== undefined && 
-                        player.position_y !== undefined) {
-                        this.otherPlayers.push(player);
-                        this.updateOtherPlayers();
-                        this.addMessage(`${player.name} 进入了地图`);
-                    } else {
-                        console.warn('接收到不完整的joining玩家数据:', player);
+                .catch(error => {
+                    console.error('发送地图进入通知失败:', error);
+                    if (error.response) {
+                        console.error('错误状态码:', error.response.status);
+                        console.error('错误数据:', error.response.data);
+                        this.addMessage(`地图进入通知失败: ${error.response.data.message}`, 'error');
                     }
-                })
-                .leaving((player) => {
-                    // 即使数据不完整，也尝试按ID移除
-                    if (player && player.id) {
-                        this.otherPlayers = this.otherPlayers.filter(p => p.id !== player.id);
-                        this.updateOtherPlayers();
-                        if (player.name) {
-                            this.addMessage(`${player.name} 离开了地图`);
-                        } else {
-                            this.addMessage(`一位玩家离开了地图`);
-                        }
-                    }
-                })
-                .listen('game.event', (event) => {
-                    this.handleGameEvent(event);
                 });
+                
+            console.log('WebSocket初始化完成');
         } catch (error) {
-            console.error('WebSocket连接初始化失败:', error);
-            this.addMessage('实时连接失败，部分功能可能不可用');
+            console.error('WebSocket初始化失败:', error);
+            this.addMessage('WebSocket连接失败，部分功能可能不可用', 'error');
         }
     }
     
@@ -331,6 +569,14 @@ class Game {
             
             // 获取角色数据
             const characterResponse = await axios.get('/api/character');
+            
+            // 验证角色数据的完整性
+            if (!characterResponse.data.character || !characterResponse.data.character.id) {
+                console.error('获取到的角色数据无效:', characterResponse.data);
+                this.addMessage('角色数据无效，请重新登录', 'error');
+                throw new Error('角色数据无效');
+            }
+            
             this.character = characterResponse.data.character;
             // 将gold值添加到角色对象中
             this.character.gold = characterResponse.data.gold || 0;
@@ -339,21 +585,45 @@ class Game {
             // 更新角色信息显示
             this.updateCharacterInfo();
             
-            // 获取当前地图数据
-            await this.loadMapData();
+            // 确保地图数据加载完成后再继续
+            try {
+                console.log('开始加载地图数据');
+                await this.loadMapData();
+                console.log('地图数据加载成功，准备初始化WebSocket');
+                
+                // 确保角色和地图数据都已正确加载
+                if (!this.character.id || !this.character.current_map_id) {
+                    console.error('角色或地图数据不完整:', this.character);
+                    this.addMessage('角色或地图数据不完整，请刷新页面', 'error');
+                    return;
+                }
+                
+                // 初始化WebSocket连接（确保地图数据已加载）
+                this.initWebSocket();
+            } catch (mapError) {
+                console.error('地图数据加载失败，WebSocket初始化延迟:', mapError);
+                this.addMessage('地图加载失败，部分游戏功能可能不可用', 'warning');
+            }
             
             // 获取技能数据
-            const skillsResponse = await axios.get('/api/skills');
-            console.log('获取到技能数据:', skillsResponse.data);
-            this.updateSkillsList(skillsResponse.data.skills);
+            try {
+                const skillsResponse = await axios.get('/api/skills');
+                console.log('获取到技能数据:', skillsResponse.data);
+                this.updateSkillsList(skillsResponse.data.skills);
+            } catch (skillError) {
+                console.error('加载技能数据失败:', skillError);
+                this.addMessage('技能数据加载失败', 'warning');
+            }
             
             // 获取背包数据
-            const inventoryResponse = await axios.get('/api/inventory');
-            console.log('获取到背包数据:', inventoryResponse.data);
-            this.updateInventoryList(inventoryResponse.data.inventory);
-            
-            // 初始化WebSocket连接
-            this.initWebSocket();
+            try {
+                const inventoryResponse = await axios.get('/api/inventory');
+                console.log('获取到背包数据:', inventoryResponse.data);
+                this.updateInventoryList(inventoryResponse.data.inventory);
+            } catch (inventoryError) {
+                console.error('加载背包数据失败:', inventoryError);
+                this.addMessage('背包数据加载失败', 'warning');
+            }
             
             // 游戏初始化完成
             const loadingScreen = document.getElementById('loading-screen');
@@ -366,7 +636,17 @@ class Game {
             if (error.response) {
                 console.error('错误状态码:', error.response.status);
                 console.error('错误数据:', error.response.data);
+                
+                // 如果是未授权错误，则可能是token过期
+                if (error.response.status === 401) {
+                    console.error('认证失败，令牌可能已过期');
+                    localStorage.removeItem('game_token');
+                    this.addMessage('登录已过期，请重新登录', 'error');
+                    window.location.href = '/login';
+                    return;
+                }
             }
+            
             this.addMessage('加载游戏数据失败，请刷新页面重试', 'error');
             
             // 显示错误信息
@@ -384,60 +664,104 @@ class Game {
     }
     
     // 加载地图数据
-    async loadMapData() {
-        try {
-            if (!this.character || !this.character.current_map_id) {
-                console.error('角色数据不完整，无法加载地图');
-                return;
-            }
-            
-            // 显示加载状态
-            this.addMessage(`正在加载地图数据...`, 'system');
-            
-            // 获取地图数据
-            const mapResponse = await axios.get(`/api/map/${this.character.current_map_id}`);
-            console.log('获取到地图数据:', mapResponse.data);
-            
-            this.currentMap = mapResponse.data.map;
-            this.monsters = mapResponse.data.monsters;
-            this.otherPlayers = mapResponse.data.otherPlayers;
-            
-            // 检查角色等级是否满足地图要求
-            if (this.character.level < this.currentMap.level_required) {
-                this.addMessage(`警告: 当前地图需要${this.currentMap.level_required}级，您可能面临更大危险！`, 'warning');
-            }
-            
-            // 获取商店数据
-            try {
-                const shopsResponse = await axios.get(`/api/shops/map/${this.character.current_map_id}`);
-                console.log('获取到商店数据:', shopsResponse.data);
-                this.shops = shopsResponse.data.shops;
-            } catch (error) {
-                console.error('获取商店信息失败:', error);
-                this.addMessage('获取商店信息失败', 'error');
-            }
-            
-            // 更新地图显示
-            this.updateMap();
-            
-            // 添加地图信息消息
-            this.addMessage(`进入地图：${this.currentMap.name}`, 'info');
-            this.addMessage(`描述：${this.currentMap.description}`, 'info');
-            this.addMessage(`等级需求：${this.currentMap.level_required}级`, 'info');
-            
-            // 重新初始化WebSocket连接（如果地图改变）
-            this.initWebSocket();
-            
-            return true;
-        } catch (error) {
-            console.error('加载地图数据失败:', error);
-            if (error.response) {
-                console.error('错误状态码:', error.response.status);
-                console.error('错误数据:', error.response.data);
-            }
-            this.addMessage('加载地图数据失败', 'error');
-            return false;
+    loadMapData() {
+        if (!this.character) {
+            console.error('角色数据未加载，无法加载地图数据');
+            return Promise.reject(new Error('角色数据未加载'));
         }
+        
+        // 确定当前地图ID
+        const currentMapId = this.character.current_map_id || this.character.map_id;
+        if (!currentMapId) {
+            console.error('当前地图ID无效，无法加载地图数据');
+            return Promise.reject(new Error('当前地图ID无效'));
+        }
+        
+        // 显示加载中消息
+        this.addMessage('加载地图数据中...');
+        
+        // 保存旧地图ID用于比较
+        const oldMapId = currentMapId;
+        console.log('开始加载地图数据, 当前地图ID:', oldMapId);
+        
+        // 获取地图数据
+        return axios.get(`/api/map/${currentMapId}`)
+            .then(response => {
+                const data = response.data;
+                console.log('接收到地图数据:', data);
+                
+                if (data.map) {
+                    // 更新游戏状态
+                    this.currentMap = data.map;
+                    this.monsters = data.monsters || [];
+                    this.shops = data.shops || [];
+                    this.otherPlayers = data.other_players || [];
+                    
+                    // 更新角色数据（包括地图ID）
+                    if (data.character) {
+                        // 保存位置信息
+                        if (data.character.position_x !== undefined && data.character.position_y !== undefined) {
+                            this.character.position_x = data.character.position_x;
+                            this.character.position_y = data.character.position_y;
+                        }
+                        
+                        // 确保字段一致性
+                        if (data.character.map_id) {
+                            this.character.map_id = data.character.map_id;
+                        }
+                        if (data.character.current_map_id) {
+                            this.character.current_map_id = data.character.current_map_id;
+                        } else if (this.character.map_id && !this.character.current_map_id) {
+                            this.character.current_map_id = this.character.map_id;
+                        }
+                        
+                        // 更新角色位置显示
+                        this.updatePlayerPosition();
+                    }
+                    
+                    // 更新地图背景和障碍物
+                    this.updateMap();
+                    
+                    // 更新怪物、商店和传送点
+                    this.updateMonsters();
+                    this.updateShops();
+                    this.updateTeleportPoints();
+                    
+                    // 更新其他玩家
+                    this.updateOtherPlayers();
+                    
+                    // 检查地图ID是否改变，如果改变则重新初始化WebSocket连接
+                    const newMapId = this.character.current_map_id || this.character.map_id;
+                    if (newMapId !== oldMapId) {
+                        console.log(`地图已从 #${oldMapId} 变更为 #${newMapId}，重新初始化WebSocket连接`);
+                        this.initWebSocket();
+                        
+                        // 显示进入新地图的消息
+                        this.addMessage(`进入 ${this.currentMap.name}`);
+                    } else {
+                        console.log('地图ID未变更，不需要重新初始化WebSocket');
+                    }
+                    
+                    // 更新地图指示器
+                    const mapIndicator = document.getElementById('map-indicator');
+                    if (mapIndicator) {
+                        mapIndicator.textContent = this.currentMap.name;
+                    }
+                    
+                    // 完成加载
+                    console.log('地图数据加载完成');
+                    return data;
+                } else {
+                    console.error('获取地图数据失败:', data);
+                    this.addMessage('无法加载地图数据，请重试');
+                    return Promise.reject(new Error('地图数据无效'));
+                }
+            })
+            .catch(error => {
+                console.error('加载地图数据异常:', error);
+                this.addMessage('加载地图失败，请检查网络连接');
+                return Promise.reject(error);
+            });
     }
     
     // 更新角色信息显示
@@ -550,8 +874,13 @@ class Game {
             return;
         }
         
+        console.log('更新其他玩家显示，当前列表:', this.otherPlayers);
+        
         // 清除现有其他玩家
-        document.querySelectorAll('.other-player').forEach(player => player.remove());
+        document.querySelectorAll('.other-player').forEach(player => {
+            console.log('移除现有玩家元素:', player.dataset.playerId);
+            player.remove();
+        });
         
         // 添加其他玩家
         this.otherPlayers.forEach(player => {
@@ -559,15 +888,30 @@ class Game {
             if (player.id && player.name && player.position_x !== undefined && 
                 player.position_y !== undefined && player.id !== this.character.id) {
                 
+                console.log('创建其他玩家元素:', player);
+                
                 const playerElement = document.createElement('div');
                 playerElement.className = 'player other-player';
-                playerElement.dataset.playerId = player.id;
+                playerElement.dataset.playerId = player.id; // 使用dataset设置data-player-id属性
                 playerElement.style.left = `${player.position_x}px`;
                 playerElement.style.top = `${player.position_y}px`;
-                playerElement.innerHTML = player.name;
+                playerElement.innerHTML = `${player.name} <span class="player-level">Lv.${player.level || 1}</span>`;
+                
+                // 添加玩家信息提示
+                playerElement.title = `${player.name} (等级 ${player.level || 1})`;
+                
+                // 将玩家添加到地图
                 this.gameMap.appendChild(playerElement);
+                
+                console.log('已添加其他玩家元素:', {
+                    id: player.id,
+                    name: player.name,
+                    x: player.position_x, 
+                    y: player.position_y,
+                    element: playerElement.outerHTML
+                });
             } else {
-                console.warn('接收到不完整的玩家数据:', player);
+                console.warn('接收到不完整的玩家数据，跳过显示:', player);
             }
         });
     }
@@ -650,30 +994,42 @@ class Game {
     
     // 更新传送点显示
     updateTeleportPoints() {
-        if (!this.gameMap || !this.currentMap || !this.currentMap.teleport_points) {
-            console.warn('无法更新传送点: gameMap或currentMap为空，或传送点数据不存在');
-            // 添加调试信息
-            if (this.currentMap) {
-                console.log('当前地图数据:', {
-                    id: this.currentMap.id,
-                    name: this.currentMap.name,
-                    teleport_points: this.currentMap.teleport_points
-                });
-            }
+        if (!this.gameMap || !this.currentMap) {
+            console.warn('无法更新传送点: gameMap或currentMap为空');
             return;
         }
         
         // 清除现有传送点和地图标签
         document.querySelectorAll('.teleport-point, .map-label').forEach(element => element.remove());
         
+        // 确保传送点数据是数组
+        let teleportPoints = [];
+        
+        // 如果传送点是字符串，尝试解析它
+        if (typeof this.currentMap.teleport_points === 'string') {
+            try {
+                teleportPoints = JSON.parse(this.currentMap.teleport_points);
+                console.log('已解析传送点数据:', teleportPoints);
+            } catch (error) {
+                console.error('解析传送点数据失败:', error);
+                this.addMessage('解析传送点数据失败', 'error');
+            }
+        } else if (Array.isArray(this.currentMap.teleport_points)) {
+            teleportPoints = this.currentMap.teleport_points;
+        } else {
+            console.warn('传送点数据格式不正确:', this.currentMap.teleport_points);
+            this.addMessage('此地图上没有有效的传送点数据', 'warning');
+            return;
+        }
+        
         // 添加传送点
-        if (Array.isArray(this.currentMap.teleport_points)) {
-            console.log(`正在添加${this.currentMap.teleport_points.length}个传送点`);
+        if (teleportPoints.length > 0) {
+            console.log(`正在添加${teleportPoints.length}个传送点`);
             
-            this.currentMap.teleport_points.forEach(point => {
+            teleportPoints.forEach(point => {
                 const teleportElement = document.createElement('div');
                 teleportElement.className = 'teleport-point';
-                teleportElement.style.left = `${point.x}px`; // 修复：添加左侧定位
+                teleportElement.style.left = `${point.x}px`;
                 teleportElement.style.top = `${point.y}px`;
                 teleportElement.innerHTML = '传送';
                 teleportElement.dataset.targetMapId = point.target_map_id;
@@ -708,10 +1064,10 @@ class Game {
             });
             
             // 添加调试消息
-            this.addMessage(`此地图上有${this.currentMap.teleport_points.length}个传送点`, 'info');
+            this.addMessage(`此地图上有${teleportPoints.length}个传送点`, 'info');
         } else {
-            console.warn('传送点数据不是数组:', this.currentMap.teleport_points);
-            this.addMessage('此地图上没有传送点数据', 'warning');
+            console.warn('没有传送点数据');
+            this.addMessage('此地图上没有传送点', 'info');
         }
         
         // 添加当前地图名称指示器
@@ -902,33 +1258,43 @@ class Game {
         return teleportPoint;
     }
     
-    // 显示怪物模态框
+    // 显示怪物模态窗口
     async showMonsterModal(monsterId) {
-        const monster = this.monsters.find(m => m.id === parseInt(monsterId));
-        if (!monster) return;
-        
-        const monsterNameEl = document.getElementById('monster-name');
-        const monsterDetailsEl = document.getElementById('monster-details');
-        const monsterModal = document.getElementById('monster-modal');
-        
-        if (!monsterNameEl || !monsterDetailsEl || !monsterModal) {
-            console.error('怪物模态框元素未找到');
-            return;
+        try {
+            const monster = this.monsters.find(m => m.id === parseInt(monsterId));
+            if (!monster) {
+                console.error('未找到怪物:', monsterId);
+                return;
+            }
+            
+            console.log('显示怪物信息:', monster);
+            
+            const monsterModal = document.getElementById('monster-modal');
+            const monsterNameEl = document.getElementById('monster-name');
+            const monsterLevelEl = document.getElementById('monster-level');
+            const monsterHpEl = document.getElementById('monster-hp');
+            const monsterHpBarEl = document.getElementById('monster-hp-bar');
+            const attackBtnEl = document.getElementById('attack-btn');
+            const skillBtnEl = document.getElementById('skill-btn');
+            const autoAttackBtnEl = document.getElementById('auto-attack-btn');
+            
+            monsterModal.dataset.monsterId = monster.id;
+            monsterNameEl.textContent = monster.name;
+            monsterLevelEl.textContent = `等级 ${monster.level}`;
+            monsterHpEl.textContent = `${monster.current_hp}/${monster.hp}`;
+            monsterHpBarEl.style.width = `${monster.hp_percentage}%`;
+            
+            // 重置自动攻击状态
+            this.isAutoAttacking = false;
+            if (autoAttackBtnEl) {
+                autoAttackBtnEl.textContent = '自动攻击';
+                autoAttackBtnEl.classList.remove('active');
+            }
+            
+            monsterModal.style.display = 'block';
+        } catch (error) {
+            console.error('显示怪物信息失败:', error);
         }
-        
-        monsterNameEl.textContent = monster.name;
-        monsterDetailsEl.innerHTML = `
-            <p>等级：${monster.level}</p>
-            <p>生命：<span class="monster-hp">${monster.current_hp}/${monster.hp}</span></p>
-            <div class="hp-bar-container">
-                <div class="monster-hp-bar" style="width: ${monster.hp_percentage || (monster.current_hp / monster.hp * 100)}%;"></div>
-            </div>
-            <p>攻击：${monster.attack}</p>
-            <p>防御：${monster.defense}</p>
-        `;
-        
-        monsterModal.style.display = 'block';
-        monsterModal.dataset.monsterId = monsterId;
     }
     
     // 显示商店模态框
@@ -947,12 +1313,16 @@ class Game {
                 return;
             }
             
+            // 获取最新的角色金币数量
+            const characterResponse = await axios.get('/api/character');
+            this.character.gold = characterResponse.data.gold || 0;
+            
             // 显示商店名称和玩家当前金币
-            shopNameEl.innerHTML = `${shop.name} <span class="player-gold">您的金币: ${this.character.gold || 0}</span>`;
+            shopNameEl.innerHTML = `${shop.name} <span class="player-gold">您的金币: ${this.character.gold}</span>`;
             
             shopItemsEl.innerHTML = shopItems.map(item => {
                 // 检查玩家是否有足够的金币购买该物品
-                const canAfford = (this.character.gold || 0) >= item.price;
+                const canAfford = this.character.gold >= item.price;
                 const affordClass = canAfford ? 'can-afford' : 'cannot-afford';
                 const buyButton = canAfford ? 
                     `<button class="btn buy-btn" onclick="game.buyItem(${item.id})">购买</button>` : 
@@ -974,7 +1344,7 @@ class Game {
             shopModal.style.display = 'block';
             
             // 添加购买提示信息
-            this.addMessage(`您正在浏览${shop.name}，您有${this.character.gold || 0}金币可用于购买`);
+            this.addMessage(`您正在浏览${shop.name}，您有${this.character.gold}金币可用于购买`);
         } catch (error) {
             console.error('获取商店信息失败:', error);
             this.addMessage('获取商店信息失败');
@@ -1072,6 +1442,8 @@ class Game {
                     // 检查怪物是否已死亡
                     if (response.data.monster_killed) {
                         monster.is_dead = true;
+                        // 停止自动攻击
+                        this.isAutoAttacking = false;
                     }
                     
                     console.log('更新后怪物数据:', { ...monster });
@@ -1099,9 +1471,35 @@ class Game {
             }
             
             this.handleCombatResult(response.data);
+            
+            // 如果开启了自动攻击且怪物没有死亡，继续攻击
+            if (this.isAutoAttacking && !response.data.monster_killed && !response.data.character_died) {
+                setTimeout(() => this.attackMonster(), 1000); // 每秒攻击一次
+            }
         } catch (error) {
             console.error('攻击失败:', error);
-            this.addMessage('攻击失败');
+            this.addMessage('攻击失败', 'error');
+            // 如果攻击失败但仍在自动攻击模式，尝试继续
+            if (this.isAutoAttacking) {
+                setTimeout(() => this.attackMonster(), 2000); // 失败后2秒再试
+            }
+        }
+    }
+    
+    // 切换自动攻击状态
+    toggleAutoAttack() {
+        this.isAutoAttacking = !this.isAutoAttacking;
+        const autoAttackBtn = document.getElementById('auto-attack-btn');
+        
+        if (this.isAutoAttacking) {
+            autoAttackBtn.textContent = '停止自动';
+            autoAttackBtn.classList.add('active');
+            this.addMessage('已开启自动攻击', 'system');
+            this.attackMonster(); // 立即开始第一次攻击
+        } else {
+            autoAttackBtn.textContent = '自动攻击';
+            autoAttackBtn.classList.remove('active');
+            this.addMessage('已停止自动攻击', 'system');
         }
     }
     
@@ -1127,62 +1525,46 @@ class Game {
     // 购买物品
     async buyItem(shopItemId) {
         try {
-            console.log(`尝试购买商品，ID: ${shopItemId}`);
-            
-            // 获取商品信息
-            const shopItem = document.querySelector(`.item[data-shop-item-id="${shopItemId}"]`);
-            if (shopItem && shopItem.classList.contains('cannot-afford')) {
-                this.addMessage('您的金币不足，无法购买此物品', 'error');
-                return;
-            }
-            
             const response = await axios.post('/api/shop/buy', {
                 shop_item_id: shopItemId,
                 quantity: 1
             });
-            console.log('购买成功，响应:', response.data);
-            this.character = response.data.character;
-            this.updateCharacterInfo();
-            this.updateInventoryList(response.data.inventory);
             
-            // 更新商店中显示的金币数量
-            const shopNameEl = document.getElementById('shop-name');
-            if (shopNameEl) {
-                const goldSpan = shopNameEl.querySelector('.player-gold');
-                if (goldSpan) {
-                    goldSpan.textContent = `您的金币: ${this.character.gold || 0}`;
-                }
-            }
+            console.log('购买物品响应:', response.data);
             
-            // 更新商店物品的可购买状态
-            this.updateShopItemsAffordability();
-            
-            // 显示成功消息
-            this.addMessage(response.data.message, 'success');
-        } catch (error) {
-            console.error('购买失败:', error);
-            
-            // 首先检查我们在拦截器中添加的responseData
-            if (error.responseData && error.responseData.message) {
-                console.log('从responseData中提取错误消息:', error.responseData.message);
-                this.addMessage('购买失败: ' + error.responseData.message, 'error');
-                return;
-            }
-            
-            // 如果没有responseData，则检查标准的response
-            if (error.response && error.response.data) {
-                console.error('错误状态码:', error.response.status);
-                console.error('错误数据:', error.response.data);
+            if (response.data.success) {
+                // 更新角色金币
+                this.character.gold = response.data.current_gold;
                 
-                if (error.response.data.message) {
-                    console.log('从response.data中提取错误消息:', error.response.data.message);
-                    this.addMessage('购买失败: ' + error.response.data.message, 'error');
-                    return;
+                // 更新玩家金币显示
+                const playerGoldEl = document.querySelector('.player-gold');
+                if (playerGoldEl) {
+                    playerGoldEl.textContent = `您的金币: ${this.character.gold}`;
                 }
+                
+                // 更新物品列表
+                if (response.data.inventory) {
+                    this.updateInventoryList(response.data.inventory);
+                }
+                
+                // 更新商店物品的可购买状态
+                this.updateShopItemsAffordability();
+                
+                // 显示购买成功消息
+                this.addMessage(`成功购买 ${response.data.item_name}`, 'success');
+                this.addMessage(`剩余金币: ${this.character.gold}`, 'gold');
+            } else {
+                this.addMessage(response.data.message || '购买失败', 'error');
+            }
+        } catch (error) {
+            console.error('购买物品失败:', error);
+            let errorMessage = '购买失败';
+            
+            if (error.response && error.response.data) {
+                errorMessage = error.response.data.message || errorMessage;
             }
             
-            // 如果没有找到具体的错误消息，显示通用提示
-            this.addMessage('购买失败，请重试', 'error');
+            this.addMessage(errorMessage, 'error');
         }
     }
     
@@ -1330,12 +1712,35 @@ class Game {
             console.log('处理战斗结果:', result);
             
             // 更新角色信息
-            this.character = result.character;
-            this.updateCharacterInfo();
+            if (result.character) {
+                this.character = result.character;
+                this.updateCharacterInfo();
+            }
             
             // 构建消息
             let message = `对怪物造成${result.damage}点伤害`;
             let messageType = 'combat';
+            
+            // 处理怪物反击
+            if (result.monster_damage) {
+                message += `，怪物反击造成${result.monster_damage}点伤害`;
+                
+                // 如果角色死亡
+                if (result.character_died) {
+                    this.addMessage(message, 'error');
+                    this.addMessage(result.respawn_message, 'warning');
+                    
+                    // 关闭怪物模态框
+                    const monsterModal = document.getElementById('monster-modal');
+                    if (monsterModal) {
+                        monsterModal.style.display = 'none';
+                    }
+                    
+                    // 重新加载地图数据（因为角色被传送回新手村）
+                    this.loadMapData();
+                    return;
+                }
+            }
             
             if (result.monster_killed) {
                 message += `，击杀怪物获得${result.exp_gained}经验和${result.gold_gained}金币`;
@@ -1370,9 +1775,6 @@ class Game {
                 } else {
                     console.error('未找到怪物元素，无法从DOM中移除');
                 }
-                
-                // 从怪物列表中移除（改为保留但标记为死亡）
-                // this.monsters = this.monsters.filter(m => m.id !== parseInt(monsterId));
                 
                 // 关闭模态框
                 monsterModal.style.display = 'none';
@@ -1417,6 +1819,9 @@ class Game {
             case 'monster.respawned':
                 this.handleMonsterRespawned(event.data);
                 break;
+            case 'map.updated':
+                this.handleMapUpdated(event.data);
+                break;
             case 'item.used':
             case 'item.equipped':
             case 'item.unequipped':
@@ -1432,58 +1837,95 @@ class Game {
     
     // 处理角色移动事件
     handleCharacterMove(data) {
-        // 确保数据完整，且不是当前玩家
-        if (data && data.character_id && data.x !== undefined && data.y !== undefined && 
-            data.character_id !== this.character.id) {
+        // 确保数据完整且不是当前玩家自己
+        if (!data || !data.character || !data.character.id || data.character.id === this.character.id) {
+            return;
+        }
+        
+        console.log('收到角色移动事件:', data);
+        
+        // 使用data-player-id属性查找玩家元素
+        const playerElement = document.querySelector(`.other-player[data-player-id="${data.character.id}"]`);
+        
+        if (playerElement) {
+            // 更新玩家位置
+            playerElement.style.left = `${data.character.position_x}px`;
+            playerElement.style.top = `${data.character.position_y}px`;
             
-            const playerElement = document.querySelector(`.other-player[data-player-id="${data.character_id}"]`);
-            if (playerElement) {
-                playerElement.style.left = `${data.x}px`;
-                playerElement.style.top = `${data.y}px`;
-                
-                // 同时更新otherPlayers数组中的玩家位置
-                const playerIndex = this.otherPlayers.findIndex(p => p.id === data.character_id);
-                if (playerIndex !== -1) {
-                    this.otherPlayers[playerIndex].position_x = data.x;
-                    this.otherPlayers[playerIndex].position_y = data.y;
-                }
-            } else {
-                // 玩家元素不存在，可能是新玩家或数据不同步
-                console.warn('尝试移动不存在的玩家元素:', data);
-            }
+            console.log(`更新玩家 #${data.character.id} 位置至 (${data.character.position_x}, ${data.character.position_y})`);
+        } else {
+            console.warn(`尝试移动不存在的玩家 #${data.character.id}，重新加载地图数据`);
+            // 如果玩家元素不存在，重新加载地图数据以获取最新玩家列表
+            this.loadMapData();
         }
     }
     
-    // 处理角色进入事件
+    // 处理角色进入地图事件
     handleCharacterEnter(data) {
-        if (data.character_id !== this.character.id) {
-            // 检查角色数据是否完整
-            if (data.character_id && data.name && data.x !== undefined && data.y !== undefined) {
-                // 确保数据格式一致
-                const playerData = {
-                    id: data.character_id,
-                    name: data.name,
-                    position_x: data.x,
-                    position_y: data.y,
-                    level: data.level || 1
-                };
-                
-                this.otherPlayers.push(playerData);
-                this.updateOtherPlayers();
-                this.addMessage(`${data.name}进入了地图`);
-            } else {
-                console.warn('接收到不完整的角色进入数据:', data);
-            }
+        if (!data || !data.character) {
+            console.warn('接收到无效的角色进入事件:', data);
+            return;
         }
+
+        const character = data.character;
+        
+        // 确保不是当前玩家自己
+        if (character.id === this.character.id) {
+            console.log('忽略自己的角色进入事件');
+            return;
+        }
+        
+        console.log('角色进入地图:', character);
+        
+        // 检查是否已存在该玩家
+        const existingPlayerIndex = this.otherPlayers.findIndex(p => p.id === character.id);
+        
+        if (existingPlayerIndex !== -1) {
+            // 更新现有玩家信息
+            this.otherPlayers[existingPlayerIndex] = character;
+            console.log('更新现有玩家信息:', character);
+        } else {
+            // 添加新玩家到列表中
+            this.otherPlayers.push(character);
+            console.log('添加新玩家到列表:', character);
+        }
+        
+        // 更新玩家显示
+        this.updateOtherPlayers();
+        
+        // 显示消息
+        this.addMessage(`${character.name} 进入了地图`);
     }
     
-    // 处理角色离开事件
-    handleCharacterLeave(data) {
-        if (data.character_id !== this.character.id) {
-            this.otherPlayers = this.otherPlayers.filter(p => p.id !== data.character_id);
-            this.updateOtherPlayers();
-            this.addMessage(`${data.name}离开了地图`);
+    // 处理角色离开地图事件
+    handleCharacterExit(data) {
+        if (!data || !data.character_id) {
+            console.warn('接收到无效的角色离开事件:', data);
+            return;
         }
+        
+        const characterId = data.character_id;
+        
+        // 确保不是当前玩家自己
+        if (characterId === this.character.id) {
+            console.log('忽略自己的角色离开事件');
+            return;
+        }
+        
+        console.log('角色离开地图:', characterId);
+        
+        // 查找离开的玩家
+        const leavingPlayer = this.otherPlayers.find(p => p.id === characterId);
+        const playerName = leavingPlayer ? leavingPlayer.name : '一位玩家';
+        
+        // 从列表中移除玩家
+        this.otherPlayers = this.otherPlayers.filter(p => p.id !== characterId);
+        
+        // 更新玩家显示
+        this.updateOtherPlayers();
+        
+        // 显示消息
+        this.addMessage(`${playerName} 离开了地图`);
     }
     
     // 处理怪物受伤事件
@@ -1587,6 +2029,18 @@ class Game {
         this.updateMonsters();
         
         this.addMessage(`${data.monster_name}已重生`);
+    }
+    
+    // 处理地图更新事件
+    handleMapUpdated(data) {
+        this.addMessage(data.message, 'info');
+        
+        // 如果更新的是当前地图，则重新加载地图数据
+        if (this.currentMap && data.map_id === this.currentMap.id) {
+            this.loadMapData().then(() => {
+                this.addMessage('地图数据已更新', 'success');
+            });
+        }
     }
     
     // 添加游戏消息
