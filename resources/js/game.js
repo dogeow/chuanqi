@@ -24,14 +24,121 @@ class Game {
         
         // 检查必要的DOM元素是否存在
         if (this.gameMap && this.player) {
+            // 添加游戏控制面板
+            this.createGameControls();
+            
             // 初始化事件监听
             this.initEventListeners();
         } else {
             console.error('游戏DOM元素未找到，请确保HTML结构正确');
             if (this.messages) {
-                this.addMessage('游戏初始化失败，请刷新页面重试');
+                this.addMessage('游戏初始化失败，请刷新页面重试', 'error');
             }
         }
+    }
+    
+    // 创建游戏控制面板
+    createGameControls() {
+        // 检查是否已存在控制面板
+        let controlsPanel = document.querySelector('.game-controls');
+        if (controlsPanel) {
+            controlsPanel.remove();
+        }
+        
+        // 创建控制面板
+        controlsPanel = document.createElement('div');
+        controlsPanel.className = 'game-controls';
+        
+        // 添加控制按钮
+        const controls = [
+            { icon: '❓', title: '游戏帮助', action: 'showHelp' },
+            { icon: '🔍', title: '查看地图', action: 'showMapInfo' },
+            { icon: '💰', title: '商店指南', action: 'showShopGuide' },
+            { icon: '⚔️', title: '战斗指南', action: 'showCombatGuide' }
+        ];
+        
+        controls.forEach(control => {
+            const btn = document.createElement('div');
+            btn.className = 'control-btn';
+            btn.innerHTML = control.icon;
+            btn.title = control.title;
+            btn.dataset.action = control.action;
+            btn.addEventListener('click', () => this.handleControlAction(control.action));
+            controlsPanel.appendChild(btn);
+        });
+        
+        // 添加到游戏地图容器
+        const mapContainer = document.querySelector('.game-map-container');
+        if (mapContainer) {
+            mapContainer.appendChild(controlsPanel);
+        } else {
+            this.gameMap.appendChild(controlsPanel);
+        }
+    }
+    
+    // 处理控制面板动作
+    handleControlAction(action) {
+        switch(action) {
+            case 'showHelp':
+                this.showGameHelp();
+                break;
+            case 'showMapInfo':
+                this.showMapInfo();
+                break;
+            case 'showShopGuide':
+                this.showShopGuide();
+                break;
+            case 'showCombatGuide':
+                this.showCombatGuide();
+                break;
+        }
+    }
+    
+    // 显示游戏帮助
+    showGameHelp() {
+        this.addMessage('==== 游戏帮助 ====', 'system');
+        this.addMessage('- 点击地图移动角色', 'info');
+        this.addMessage('- 点击怪物进行攻击', 'info');
+        this.addMessage('- 点击商店进行购物', 'info');
+        this.addMessage('- 点击传送点前往其他地图', 'info');
+        this.addMessage('- 使用技能栏中的技能', 'info');
+    }
+    
+    // 显示地图信息
+    showMapInfo() {
+        if (this.currentMap) {
+            this.addMessage(`==== 地图信息 ====`, 'system');
+            this.addMessage(`地图: ${this.currentMap.name}`, 'info');
+            this.addMessage(`描述: ${this.currentMap.description || '无描述'}`, 'info');
+            this.addMessage(`当前位置: (${this.character.position_x}, ${this.character.position_y})`, 'info');
+            this.addMessage(`怪物数量: ${this.monsters.filter(m => !m.is_dead).length}`, 'info');
+            this.addMessage(`商店数量: ${this.shops.length}`, 'info');
+        } else {
+            this.addMessage('地图数据未加载', 'error');
+        }
+    }
+    
+    // 显示商店指南
+    showShopGuide() {
+        this.addMessage('==== 商店指南 ====', 'system');
+        this.addMessage('- 点击地图上的商店图标打开商店', 'info');
+        this.addMessage('- 每个商店出售不同的物品', 'info');
+        this.addMessage('- 金币不足时无法购买物品', 'info');
+        this.addMessage('- 使用物品可以恢复生命值或魔法值', 'info');
+        this.addMessage('- 装备物品可以提升属性', 'info');
+        this.addMessage(`您当前的金币: ${this.character.gold || 0}`, 'gold');
+    }
+    
+    // 显示战斗指南
+    showCombatGuide() {
+        this.addMessage('==== 战斗指南 ====', 'system');
+        this.addMessage('- 点击怪物开始战斗', 'info');
+        this.addMessage('- 普通攻击不消耗魔法值', 'info');
+        this.addMessage('- 使用技能可以造成更高伤害', 'info');
+        this.addMessage('- 击败怪物获得经验和金币', 'info');
+        this.addMessage('- 获得足够经验可以升级', 'info');
+        this.addMessage(`您当前的攻击力: ${this.character.attack}`, 'combat');
+        this.addMessage(`您当前的防御力: ${this.character.defense}`, 'combat');
     }
     
     // 初始化事件监听器
@@ -178,6 +285,26 @@ class Game {
             // 配置axios默认请求头
             axios.defaults.headers.common['Authorization'] = `Bearer ${token}`;
             
+            // 添加响应拦截器，用于处理错误
+            axios.interceptors.response.use(
+                response => response, // 直接返回成功的响应
+                error => {
+                    // 处理错误响应
+                    console.error('请求失败:', error);
+                    
+                    // 处理和显示详细的错误信息
+                    if (error.response && error.response.data) {
+                        console.error('错误响应数据:', error.response.data);
+                        
+                        // 确保错误对象包含完整的响应信息
+                        error.responseData = error.response.data;
+                    }
+                    
+                    // 继续抛出错误，让调用者处理
+                    return Promise.reject(error);
+                }
+            );
+            
             // 获取角色数据
             const characterResponse = await axios.get('/api/character');
             this.character = characterResponse.data.character;
@@ -209,20 +336,20 @@ class Game {
             if (loadingScreen) {
                 loadingScreen.style.display = 'none';
             }
-            this.addMessage('游戏加载完成');
+            this.addMessage('游戏加载完成', 'success');
         } catch (error) {
             console.error('加载游戏数据失败:', error);
             if (error.response) {
                 console.error('错误状态码:', error.response.status);
                 console.error('错误数据:', error.response.data);
             }
-            this.addMessage('加载游戏数据失败，请刷新页面重试');
+            this.addMessage('加载游戏数据失败，请刷新页面重试', 'error');
             
             // 显示错误信息
             const errorMessage = error.response && error.response.data.message 
                 ? error.response.data.message 
                 : error.message;
-            this.addMessage(`错误信息: ${errorMessage}`);
+            this.addMessage(`错误信息: ${errorMessage}`, 'error');
             
             // 添加登录按钮
             const loginPrompt = document.getElementById('login-prompt');
@@ -262,8 +389,8 @@ class Game {
             this.updateMap();
             
             // 添加地图信息消息
-            this.addMessage(`进入地图：${this.currentMap.name}`);
-            this.addMessage(`描述：${this.currentMap.description}`);
+            this.addMessage(`进入地图：${this.currentMap.name}`, 'info');
+            this.addMessage(`描述：${this.currentMap.description}`, 'info');
             
             // 重新初始化WebSocket连接（如果地图改变）
             this.initWebSocket();
@@ -275,7 +402,7 @@ class Game {
                 console.error('错误状态码:', error.response.status);
                 console.error('错误数据:', error.response.data);
             }
-            this.addMessage('加载地图数据失败');
+            this.addMessage('加载地图数据失败', 'error');
             return false;
         }
     }
@@ -375,6 +502,10 @@ class Game {
             monsterElement.style.left = `${monster.position_x}px`;
             monsterElement.style.top = `${monster.position_y}px`;
             monsterElement.innerHTML = monster.name;
+            
+            // 添加提示信息
+            monsterElement.title = `${monster.name} Lv.${monster.level || '?'} (点击攻击)`;
+            
             this.gameMap.appendChild(monsterElement);
         });
     }
@@ -426,6 +557,10 @@ class Game {
             shopElement.style.left = `${shop.position_x}px`;
             shopElement.style.top = `${shop.position_y}px`;
             shopElement.innerHTML = shop.name;
+            
+            // 添加提示信息
+            shopElement.title = `${shop.name} (点击购物)`;
+            
             this.gameMap.appendChild(shopElement);
         });
     }
@@ -500,6 +635,10 @@ class Game {
                 teleportElement.dataset.targetMapId = point.target_map_id;
                 teleportElement.dataset.targetX = point.target_x;
                 teleportElement.dataset.targetY = point.target_y;
+                
+                // 添加提示信息
+                teleportElement.title = `传送点 (点击传送到其他地图)`;
+                
                 this.gameMap.appendChild(teleportElement);
             });
         }
@@ -530,7 +669,7 @@ class Game {
         try {
             console.log(`尝试传送到地图: ${targetMapId}, 位置: (${targetX}, ${targetY})`);
             
-            this.addMessage(`正在传送到新地图...`);
+            this.addMessage(`正在传送到新地图...`, 'system');
             
             const response = await axios.post('/api/map/change', { 
                 map_id: targetMapId,
@@ -548,14 +687,14 @@ class Game {
             // 更新地图显示
             this.updateMap();
             
-            this.addMessage(`成功传送到${this.currentMap.name}`);
+            this.addMessage(`成功传送到${this.currentMap.name}`, 'success');
         } catch (error) {
             console.error('传送失败:', error);
             if (error.response) {
                 console.error('错误状态码:', error.response.status);
                 console.error('错误数据:', error.response.data);
             }
-            this.addMessage('传送失败');
+            this.addMessage('传送失败', 'error');
         }
     }
     
@@ -590,7 +729,7 @@ class Game {
                 console.error('错误状态码:', error.response.status);
                 console.error('错误数据:', error.response.data);
             }
-            this.addMessage('移动失败');
+            this.addMessage('移动失败', 'error');
         }
     }
     
@@ -639,19 +778,34 @@ class Game {
                 return;
             }
             
-            shopNameEl.textContent = shop.name;
-            shopItemsEl.innerHTML = shopItems.map(item => `
-                <div class="item" data-shop-item-id="${item.id}">
+            // 显示商店名称和玩家当前金币
+            shopNameEl.innerHTML = `${shop.name} <span class="player-gold">您的金币: ${this.character.gold || 0}</span>`;
+            
+            shopItemsEl.innerHTML = shopItems.map(item => {
+                // 检查玩家是否有足够的金币购买该物品
+                const canAfford = (this.character.gold || 0) >= item.price;
+                const affordClass = canAfford ? 'can-afford' : 'cannot-afford';
+                const buyButton = canAfford ? 
+                    `<button class="btn buy-btn" onclick="game.buyItem(${item.id})">购买</button>` : 
+                    `<button class="btn buy-btn disabled" title="金币不足">购买</button>`;
+                
+                return `
+                <div class="item ${affordClass}" data-shop-item-id="${item.id}">
                     <div class="item-icon">${item.item.image || '物'}</div>
                     <div class="item-info">
                         <div>${item.item.name}</div>
-                        <div>价格：${item.price}金币</div>
+                        <div class="price-info">价格：${item.price}金币 ${!canAfford ? '<span class="not-enough">(金币不足)</span>' : ''}</div>
+                        <div class="item-description">${item.item.description || ''}</div>
                     </div>
-                    <button class="btn" onclick="game.buyItem(${item.id})">购买</button>
+                    ${buyButton}
                 </div>
-            `).join('');
+                `;
+            }).join('');
             
             shopModal.style.display = 'block';
+            
+            // 添加购买提示信息
+            this.addMessage(`您正在浏览${shop.name}，您有${this.character.gold || 0}金币可用于购买`);
         } catch (error) {
             console.error('获取商店信息失败:', error);
             this.addMessage('获取商店信息失败');
@@ -804,23 +958,117 @@ class Game {
     // 购买物品
     async buyItem(shopItemId) {
         try {
+            console.log(`尝试购买商品，ID: ${shopItemId}`);
+            
+            // 获取商品信息
+            const shopItem = document.querySelector(`.item[data-shop-item-id="${shopItemId}"]`);
+            if (shopItem && shopItem.classList.contains('cannot-afford')) {
+                this.addMessage('您的金币不足，无法购买此物品', 'error');
+                return;
+            }
+            
             const response = await axios.post('/api/shop/buy', {
                 shop_item_id: shopItemId,
                 quantity: 1
             });
+            console.log('购买成功，响应:', response.data);
             this.character = response.data.character;
             this.updateCharacterInfo();
             this.updateInventoryList(response.data.inventory);
-            this.addMessage(response.data.message);
+            
+            // 更新商店中显示的金币数量
+            const shopNameEl = document.getElementById('shop-name');
+            if (shopNameEl) {
+                const goldSpan = shopNameEl.querySelector('.player-gold');
+                if (goldSpan) {
+                    goldSpan.textContent = `您的金币: ${this.character.gold || 0}`;
+                }
+            }
+            
+            // 更新商店物品的可购买状态
+            this.updateShopItemsAffordability();
+            
+            // 显示成功消息
+            this.addMessage(response.data.message, 'success');
         } catch (error) {
             console.error('购买失败:', error);
-            // 如果有具体的错误消息，则显示它
-            if (error.response && error.response.data && error.response.data.message) {
-                this.addMessage('购买失败: ' + error.response.data.message);
-            } else {
-                this.addMessage('购买失败，请重试');
+            
+            // 首先检查我们在拦截器中添加的responseData
+            if (error.responseData && error.responseData.message) {
+                console.log('从responseData中提取错误消息:', error.responseData.message);
+                this.addMessage('购买失败: ' + error.responseData.message, 'error');
+                return;
             }
+            
+            // 如果没有responseData，则检查标准的response
+            if (error.response && error.response.data) {
+                console.error('错误状态码:', error.response.status);
+                console.error('错误数据:', error.response.data);
+                
+                if (error.response.data.message) {
+                    console.log('从response.data中提取错误消息:', error.response.data.message);
+                    this.addMessage('购买失败: ' + error.response.data.message, 'error');
+                    return;
+                }
+            }
+            
+            // 如果没有找到具体的错误消息，显示通用提示
+            this.addMessage('购买失败，请重试', 'error');
         }
+    }
+    
+    // 更新商店物品的可购买状态
+    updateShopItemsAffordability() {
+        const shopItems = document.querySelectorAll('#shop-items .item');
+        shopItems.forEach(item => {
+            const priceText = item.querySelector('.price-info');
+            if (priceText) {
+                const priceMatch = priceText.textContent.match(/价格：(\d+)金币/);
+                if (priceMatch && priceMatch[1]) {
+                    const price = parseInt(priceMatch[1]);
+                    const canAfford = (this.character.gold || 0) >= price;
+                    
+                    // 更新样式类
+                    if (canAfford) {
+                        item.classList.remove('cannot-afford');
+                        item.classList.add('can-afford');
+                        
+                        // 更新价格显示
+                        const notEnoughSpan = priceText.querySelector('.not-enough');
+                        if (notEnoughSpan) {
+                            notEnoughSpan.remove();
+                        }
+                        
+                        // 更新按钮
+                        const buyBtn = item.querySelector('.buy-btn');
+                        if (buyBtn) {
+                            buyBtn.classList.remove('disabled');
+                            buyBtn.removeAttribute('title');
+                            
+                            // 确保点击事件可用
+                            const itemId = item.dataset.shopItemId;
+                            buyBtn.setAttribute('onclick', `game.buyItem(${itemId})`);
+                        }
+                    } else {
+                        item.classList.remove('can-afford');
+                        item.classList.add('cannot-afford');
+                        
+                        // 更新价格显示
+                        if (!priceText.querySelector('.not-enough')) {
+                            priceText.innerHTML = `价格：${price}金币 <span class="not-enough">(金币不足)</span>`;
+                        }
+                        
+                        // 更新按钮
+                        const buyBtn = item.querySelector('.buy-btn');
+                        if (buyBtn) {
+                            buyBtn.classList.add('disabled');
+                            buyBtn.setAttribute('title', '金币不足');
+                            buyBtn.removeAttribute('onclick');
+                        }
+                    }
+                }
+            }
+        });
     }
     
     // 使用物品
@@ -918,10 +1166,14 @@ class Game {
             
             // 构建消息
             let message = `对怪物造成${result.damage}点伤害`;
+            let messageType = 'combat';
+            
             if (result.monster_killed) {
                 message += `，击杀怪物获得${result.exp_gained}经验和${result.gold_gained}金币`;
+                
                 if (result.leveled_up) {
                     message += `，升级到${result.new_level}级！`;
+                    messageType = 'success';  // 升级使用success类型
                 }
                 
                 // 处理怪物死亡
@@ -960,9 +1212,15 @@ class Game {
                 this.updateMonsters();
             }
             
-            this.addMessage(message);
+            this.addMessage(message, messageType);
+            
+            // 如果获得金币，单独显示一条消息
+            if (result.monster_killed && result.gold_gained > 0) {
+                this.addMessage(`您获得了 ${result.gold_gained} 金币`, 'gold');
+            }
         } else {
             console.error('战斗失败:', result);
+            this.addMessage('战斗失败', 'error');
         }
     }
     
@@ -1163,7 +1421,7 @@ class Game {
     }
     
     // 添加游戏消息
-    addMessage(message) {
+    addMessage(message, type = 'info') {
         if (!this.messages) {
             console.warn('消息容器未找到，无法显示消息:', message);
             return;
@@ -1171,8 +1429,50 @@ class Game {
         
         const messageElement = document.createElement('p');
         messageElement.textContent = message;
+        messageElement.classList.add('game-message', `message-${type}`);
+        
+        // 为不同类型的消息添加前缀图标
+        let prefix = '';
+        switch(type) {
+            case 'error':
+                prefix = '❌ ';
+                break;
+            case 'success':
+                prefix = '✅ ';
+                break;
+            case 'warning':
+                prefix = '⚠️ ';
+                break;
+            case 'gold':
+                prefix = '💰 ';
+                break;
+            case 'combat':
+                prefix = '⚔️ ';
+                break;
+            case 'system':
+                prefix = '🔧 ';
+                break;
+            case 'info':
+            default:
+                prefix = 'ℹ️ ';
+        }
+        
+        messageElement.textContent = prefix + message;
+        
+        // 使消息短暂突出显示
+        messageElement.classList.add('highlight');
+        setTimeout(() => {
+            messageElement.classList.remove('highlight');
+        }, 2000);
+        
         this.messages.appendChild(messageElement);
         this.messages.scrollTop = this.messages.scrollHeight;
+        
+        // 如果消息太多，移除旧消息
+        const maxMessages = 50;
+        while (this.messages.children.length > maxMessages) {
+            this.messages.removeChild(this.messages.children[0]);
+        }
     }
 }
 
