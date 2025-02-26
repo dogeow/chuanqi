@@ -491,7 +491,11 @@ class Game {
                 
                 this.mapChannel.leaving((user) => {
                     console.log('玩家离开地图:', user);
-                    this.handleCharacterExit({ character_id: user.id });
+                    // 确保有用户数据
+                    if (user && user.id) {
+                        this.handleCharacterExit({ character_id: user.id, character: user });
+                        this.addMessage(`${user.name || '玩家'} 离开了地图`);
+                    }
                 });
                 
                 // 发送当前玩家加入地图的事件
@@ -1859,6 +1863,9 @@ class Game {
             if (this.gameMap) {
                 this.gameMap.appendChild(playerElement);
                 console.log('玩家元素已添加到地图');
+                
+                // 添加玩家进入位置的提示
+                this.addMessage(`${data.character.name} 出现在位置 (${data.character.position_x}, ${data.character.position_y})`);
             } else {
                 console.error('找不到地图容器');
                 return;
@@ -1869,45 +1876,50 @@ class Game {
                 this.otherPlayers.push(data.character);
                 console.log('玩家已添加到列表');
             }
+        } else {
+            // 获取当前位置
+            const currentX = parseFloat(playerElement.style.left);
+            const currentY = parseFloat(playerElement.style.top);
+            const targetX = data.character.position_x;
+            const targetY = data.character.position_y;
+            
+            // 计算移动距离
+            const distance = Math.sqrt(Math.pow(targetX - currentX, 2) + Math.pow(targetY - currentY, 2));
+            
+            // 根据移动距离调整动画时间
+            const baseAnimationTime = 300; // 基础动画时间（毫秒）
+            const animationTime = Math.min(baseAnimationTime, Math.max(distance / 2, 100)); // 根据距离调整，但不超过基础时间
+            
+            console.log(`玩家 ${data.character.name} 移动: (${currentX}, ${currentY}) -> (${targetX}, ${targetY}), 距离: ${distance}, 动画时间: ${animationTime}ms`);
+            
+            // 添加移动提示消息
+            this.addMessage(`${data.character.name} 移动到位置 (${targetX}, ${targetY})`);
+            
+            // 添加移动动画类
+            playerElement.classList.add('moving');
+            
+            // 更新玩家位置（使用 CSS transform 实现平滑移动）
+            playerElement.style.transition = `transform ${animationTime}ms ease-out`;
+            playerElement.style.transform = `translate(${targetX - currentX}px, ${targetY - currentY}px)`;
+            
+            // 移动完成后更新实际位置
+            setTimeout(() => {
+                playerElement.classList.remove('moving');
+                playerElement.style.transition = 'none';
+                playerElement.style.transform = 'none';
+                playerElement.style.left = `${targetX}px`;
+                playerElement.style.top = `${targetY}px`;
+                
+                // 更新玩家列表中的位置
+                const playerIndex = this.otherPlayers.findIndex(p => p.id === data.character.id);
+                if (playerIndex !== -1) {
+                    this.otherPlayers[playerIndex].position_x = targetX;
+                    this.otherPlayers[playerIndex].position_y = targetY;
+                }
+                
+                console.log(`玩家 ${data.character.name} 移动完成`);
+            }, animationTime);
         }
-        
-        // 计算移动距离
-        const currentX = parseFloat(playerElement.style.left);
-        const currentY = parseFloat(playerElement.style.top);
-        const targetX = data.character.position_x;
-        const targetY = data.character.position_y;
-        const distance = Math.sqrt(Math.pow(targetX - currentX, 2) + Math.pow(targetY - currentY, 2));
-        
-        // 根据移动距离调整动画时间
-        const baseAnimationTime = 300; // 基础动画时间（毫秒）
-        const animationTime = Math.min(baseAnimationTime, Math.max(distance / 2, 100)); // 根据距离调整，但不超过基础时间
-        
-        console.log(`玩家 ${data.character.name} 移动: (${currentX}, ${currentY}) -> (${targetX}, ${targetY}), 距离: ${distance}, 动画时间: ${animationTime}ms`);
-        
-        // 添加移动动画类
-        playerElement.classList.add('moving');
-        
-        // 更新玩家位置（使用 CSS transform 实现平滑移动）
-        playerElement.style.transition = `transform ${animationTime}ms ease-out`;
-        playerElement.style.transform = `translate(${targetX - currentX}px, ${targetY - currentY}px)`;
-        
-        // 移动完成后更新实际位置
-        setTimeout(() => {
-            playerElement.classList.remove('moving');
-            playerElement.style.transition = 'none';
-            playerElement.style.transform = 'none';
-            playerElement.style.left = `${targetX}px`;
-            playerElement.style.top = `${targetY}px`;
-            
-            // 更新玩家列表中的位置
-            const playerIndex = this.otherPlayers.findIndex(p => p.id === data.character.id);
-            if (playerIndex !== -1) {
-                this.otherPlayers[playerIndex].position_x = targetX;
-                this.otherPlayers[playerIndex].position_y = targetY;
-            }
-            
-            console.log(`玩家 ${data.character.name} 移动完成`);
-        }, animationTime);
     }
     
     // 处理角色进入地图事件
