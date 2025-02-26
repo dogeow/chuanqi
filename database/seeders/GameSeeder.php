@@ -22,7 +22,7 @@ class GameSeeder extends Seeder
             'level_required' => 1,
             'type' => 'normal',
             'width' => 1000,
-            'height' => 800,
+            'height' => 600,
             'background_image' => 'maps/starter.jpg',
             'spawn_points' => json_encode([
                 ['x' => 100, 'y' => 100],
@@ -30,9 +30,9 @@ class GameSeeder extends Seeder
                 ['x' => 300, 'y' => 300],
             ]),
             'teleport_points' => json_encode([
-                ['x' => 950, 'y' => 100, 'target_map_id' => 2, 'target_x' => 50, 'target_y' => 400],
-                ['x' => 950, 'y' => 200, 'target_map_id' => 3, 'target_x' => 50, 'target_y' => 200],
-                ['x' => 950, 'y' => 300, 'target_map_id' => 4, 'target_x' => 50, 'target_y' => 400],
+                ['x' => 750, 'y' => 100, 'target_map_id' => 2, 'target_x' => 50, 'target_y' => 400],
+                ['x' => 750, 'y' => 200, 'target_map_id' => 3, 'target_x' => 50, 'target_y' => 200],
+                ['x' => 750, 'y' => 300, 'target_map_id' => 4, 'target_x' => 50, 'target_y' => 400],
             ]),
         ]);
 
@@ -51,8 +51,8 @@ class GameSeeder extends Seeder
                 ['x' => 450, 'y' => 350],
             ]),
             'teleport_points' => json_encode([
-                ['x' => 50, 'y' => 400, 'target_map_id' => 1, 'target_x' => 950, 'target_y' => 400],
-                ['x' => 1150, 'y' => 400, 'target_map_id' => 3, 'target_x' => 50, 'target_y' => 400],
+                ['x' => 50, 'y' => 400, 'target_map_id' => 1, 'target_x' => 750, 'target_y' => 400],
+                ['x' => 750, 'y' => 400, 'target_map_id' => 3, 'target_x' => 50, 'target_y' => 400],
             ]),
         ]);
 
@@ -71,9 +71,9 @@ class GameSeeder extends Seeder
                 ['x' => 400, 'y' => 400],
             ]),
             'teleport_points' => json_encode([
-                ['x' => 50, 'y' => 200, 'target_map_id' => 1, 'target_x' => 950, 'target_y' => 200],
-                ['x' => 50, 'y' => 400, 'target_map_id' => 2, 'target_x' => 1150, 'target_y' => 400],
-                ['x' => 950, 'y' => 400, 'target_map_id' => 4, 'target_x' => 950, 'target_y' => 200],
+                ['x' => 50, 'y' => 200, 'target_map_id' => 1, 'target_x' => 750, 'target_y' => 200],
+                ['x' => 50, 'y' => 400, 'target_map_id' => 2, 'target_x' => 750, 'target_y' => 400],
+                ['x' => 750, 'y' => 400, 'target_map_id' => 4, 'target_x' => 750, 'target_y' => 200],
             ]),
         ]);
 
@@ -92,8 +92,8 @@ class GameSeeder extends Seeder
                 ['x' => 600, 'y' => 400],
             ]),
             'teleport_points' => json_encode([
-                ['x' => 50, 'y' => 400, 'target_map_id' => 1, 'target_x' => 950, 'target_y' => 500],
-                ['x' => 950, 'y' => 200, 'target_map_id' => 3, 'target_x' => 950, 'target_y' => 400],
+                ['x' => 50, 'y' => 400, 'target_map_id' => 1, 'target_x' => 750, 'target_y' => 500],
+                ['x' => 750, 'y' => 200, 'target_map_id' => 3, 'target_x' => 750, 'target_y' => 400],
             ]),
         ]);
 

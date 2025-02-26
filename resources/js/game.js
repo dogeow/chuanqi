@@ -256,6 +256,26 @@ class Game {
                 }
             });
         }
+        
+        // 怪物模态窗口按钮事件
+        document.getElementById('attack-monster')?.addEventListener('click', () => {
+            this.attackMonster();
+        });
+        
+        document.getElementById('use-skill')?.addEventListener('click', () => {
+            this.showSkillSelectModal();
+        });
+        
+        document.getElementById('auto-attack-btn')?.addEventListener('click', () => {
+            this.toggleAutoAttack();
+        });
+        
+        // 关闭模态窗口按钮事件
+        document.querySelectorAll('.modal .close').forEach(closeBtn => {
+            closeBtn.addEventListener('click', () => {
+                closeBtn.closest('.modal').style.display = 'none';
+            });
+        });
     }
     
     // 初始化WebSocket连接

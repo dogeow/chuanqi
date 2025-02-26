@@ -37,7 +37,7 @@ body {
 .game-map {
     position: relative;
     width: 1000px;
-    height: 900px;
+    height: 600px;
     min-height: 85vh;
 }
 
@@ -180,7 +180,7 @@ body {
 /* 地图名称指示器 */
 .map-indicator {
     position: absolute;
-    top: 10px;
+    top: 30px;
     left: 10px;
     background: rgba(0, 0, 0, 0.6);
     color: white;
