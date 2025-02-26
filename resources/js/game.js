@@ -1232,7 +1232,7 @@ class Game {
             actions.push(`<button class="btn" onclick="game.useItem(${itemId})">使用</button>`);
         }
         if (inventoryItem.item.type === 'equipment') {
-            if (inventoryItem.equipped) {
+            if (inventoryItem.is_equipped) {
                 actions.push(`<button class="btn" onclick="game.unequipItem(${itemId})">卸下</button>`);
             } else {
                 actions.push(`<button class="btn" onclick="game.equipItem(${itemId})">装备</button>`);

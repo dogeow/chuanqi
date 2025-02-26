@@ -172,28 +172,28 @@ class InventoryController extends Controller
         }
 
         // 检查是否已经装备了同类型的物品
-        $equippedItem = Inventory::where('character_id', $character->id)
-            ->where('equipped', true)
+        $is_equippedItem = Inventory::where('character_id', $character->id)
+            ->where('is_equipped', true)
             ->whereHas('item', function ($query) use ($item) {
                 $query->where('equipment_type', $item->equipment_type);
             })
             ->first();
 
-        if ($equippedItem) {
+        if ($is_equippedItem) {
             // 卸下已装备的物品
-            $equippedItem->equipped = false;
-            $equippedItem->save();
+            $is_equippedItem->is_equipped = false;
+            $is_equippedItem->save();
         }
 
         // 装备新物品
-        $inventoryItem->equipped = true;
+        $inventoryItem->is_equipped = true;
         $inventoryItem->save();
 
         // 更新角色属性
         $this->updateCharacterStats($character);
 
         // 广播装备物品事件
-        event(new GameEvent('item.equipped', [
+        event(new GameEvent('item.is_equipped', [
             'character_id' => $character->id,
             'character_name' => $character->name,
             'item_id' => $item->id,
@@ -230,7 +230,7 @@ class InventoryController extends Controller
         // 检查物品是否属于该角色
         $inventoryItem = Inventory::where('id', $request->character_item_id)
             ->where('character_id', $character->id)
-            ->where('equipped', true)
+            ->where('is_equipped', true)
             ->with('item')
             ->first();
 
@@ -242,14 +242,14 @@ class InventoryController extends Controller
         }
 
         // 卸下物品
-        $inventoryItem->equipped = false;
+        $inventoryItem->is_equipped = false;
         $inventoryItem->save();
 
         // 更新角色属性
         $this->updateCharacterStats($character);
 
         // 广播卸下物品事件
-        event(new GameEvent('item.unequipped', [
+        event(new GameEvent('item.unis_equipped', [
             'character_id' => $character->id,
             'character_name' => $character->name,
             'item_id' => $inventoryItem->item->id,
@@ -298,7 +298,7 @@ class InventoryController extends Controller
         }
 
         // 检查物品是否已装备
-        if ($inventoryItem->equipped) {
+        if ($inventoryItem->is_equipped) {
             return response()->json([
                 'success' => false,
                 'message' => '已装备的物品不能丢弃，请先卸下'
@@ -350,14 +350,14 @@ class InventoryController extends Controller
         $character->max_mp = $character->base_max_mp;
 
         // 获取所有已装备的物品
-        $equippedItems = Inventory::where('character_id', $character->id)
-            ->where('equipped', true)
+        $is_equippedItems = Inventory::where('character_id', $character->id)
+            ->where('is_equipped', true)
             ->with('item')
             ->get();
 
         // 应用装备属性加成
-        foreach ($equippedItems as $equippedItem) {
-            $effects = json_decode($equippedItem->item->effects, true);
+        foreach ($is_equippedItems as $is_equippedItem) {
+            $effects = json_decode($is_equippedItem->item->effects, true);
             
             if (isset($effects['attack_min'])) {
                 $character->attack_min += $effects['attack_min'];

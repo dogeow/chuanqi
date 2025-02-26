@@ -9,6 +9,7 @@ use App\Models\Monster;
 use App\Models\Shop;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
+use App\Services\ItemDropService;
 
 class GameController extends Controller
 {
@@ -403,6 +404,31 @@ class GameController extends Controller
             if ($leveledUp) {
                 $result['leveled_up'] = true;
                 $result['new_level'] = $character->level;
+            }
+            
+            // 处理物品掉落
+            $itemDropService = new ItemDropService();
+            $droppedItems = $itemDropService->processMonsterDrop($monster, $character);
+            
+            if (!empty($droppedItems)) {
+                $result['dropped_items'] = $droppedItems;
+                
+                // 构建掉落物品的消息
+                $dropMessage = '获得了物品：';
+                foreach ($droppedItems as $item) {
+                    $dropMessage .= $item['item_name'] . ' x' . $item['quantity'] . '、';
+                }
+                $dropMessage = rtrim($dropMessage, '、');
+                $result['drop_message'] = $dropMessage;
+                
+                // 广播物品掉落事件
+                event(new GameEvent('item.dropped', [
+                    'character_id' => $character->id,
+                    'character_name' => $character->name,
+                    'monster_id' => $monster->id,
+                    'monster_name' => $monster->name,
+                    'items' => $droppedItems
+                ], $character->current_map_id));
             }
             
             // 广播怪物死亡事件
