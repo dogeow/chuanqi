@@ -1796,7 +1796,6 @@ class Game {
             
             // 开启自动攻击
             this.isAutoAttacking = true;
-            this.addMessage('开始自动攻击怪物', 'system');
             
             // 发送测试请求记录数据
             await axios.post('/api/test/log', { 
