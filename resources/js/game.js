@@ -897,6 +897,11 @@ class Game {
                 if (shopItems.length === 0) {
                     shopItemsContainer.innerHTML = '<div class="no-items">该商店暂无商品</div>';
                 } else {
+                    // 创建网格容器
+                    const gridContainer = document.createElement('div');
+                    gridContainer.className = 'shop-items-grid';
+                    shopItemsContainer.appendChild(gridContainer);
+                    
                     shopItems.forEach(item => {
                         const itemElement = document.createElement('div');
                         itemElement.className = 'shop-item';
@@ -904,22 +909,38 @@ class Game {
                         itemElement.dataset.shopItemId = item.id;
                         itemElement.dataset.price = item.price;
                         
-                        // 判断是否有足够的金币
-                        const canAfford = (this.character.gold || 0) >= item.price;
-                        if (canAfford) {
+                        // 判断是否有足够的金币购买1个物品
+                        const canAfford1 = (this.character.gold || 0) >= item.price;
+                        // 判断是否有足够的金币购买5个物品
+                        const canAfford5 = (this.character.gold || 0) >= (item.price * 5);
+                        // 判断是否有足够的金币购买10个物品
+                        const canAfford10 = (this.character.gold || 0) >= (item.price * 10);
+                        
+                        if (canAfford1) {
                             itemElement.classList.add('can-afford');
                         } else {
                             itemElement.classList.add('cannot-afford');
                         }
                         
-                        // 物品名称和描述
+                        // 物品名称
                         const itemName = document.createElement('div');
                         itemName.className = 'shop-item-name';
                         itemName.textContent = item.item.name;
                         
+                        // 物品描述
                         const itemDesc = document.createElement('div');
                         itemDesc.className = 'shop-item-desc';
                         itemDesc.textContent = item.item.description || '无描述';
+                        
+                        // 物品类型
+                        const itemType = document.createElement('div');
+                        itemType.className = 'shop-item-type';
+                        itemType.textContent = `类型: ${this.getItemTypeName(item.item.type)}`;
+                        
+                        // 物品稀有度
+                        const itemRarity = document.createElement('div');
+                        itemRarity.className = 'shop-item-rarity';
+                        itemRarity.textContent = `稀有度: ${this.getItemRarityName(item.item.rarity) || '未知'}`;
                         
                         // 物品属性
                         const itemAttrs = document.createElement('div');
@@ -929,96 +950,241 @@ class Game {
                         // 物品价格
                         const itemPrice = document.createElement('div');
                         itemPrice.className = 'shop-item-price';
-                        
-                        if (canAfford) {
-                            itemPrice.textContent = `价格：${item.price}金币`;
-                        } else {
-                            itemPrice.innerHTML = `价格：${item.price}金币 <span class="not-enough">(金币不足)</span>`;
-                        }
+                        itemPrice.textContent = `价格: ${item.price}金币`;
                         
                         // 数量选择
                         const quantitySelector = document.createElement('div');
                         quantitySelector.className = 'quantity-selector';
                         
-                        const quantityLabel = document.createElement('span');
-                        quantityLabel.textContent = '数量：';
-                        quantitySelector.appendChild(quantityLabel);
+                        const quantityLabel = document.createElement('div');
+                        quantityLabel.className = 'quantity-label';
+                        quantityLabel.textContent = '数量:';
                         
-                        [1, 5, 10].forEach(qty => {
+                        const quantityButtons = document.createElement('div');
+                        quantityButtons.className = 'quantity-buttons';
+                        
+                        // 创建数量按钮 (1, 5, 10)
+                        const quantities = [1, 5, 10];
+                        let selectedQuantity = 1;
+                        
+                        quantities.forEach(qty => {
                             const qtyBtn = document.createElement('button');
                             qtyBtn.className = 'quantity-btn' + (qty === 1 ? ' selected' : '');
                             qtyBtn.textContent = qty;
                             qtyBtn.dataset.quantity = qty;
                             
+                            // 根据金币数量设置按钮状态
+                            if ((qty === 1 && !canAfford1) || 
+                                (qty === 5 && !canAfford5) || 
+                                (qty === 10 && !canAfford10)) {
+                                qtyBtn.classList.add('disabled');
+                            }
+                            
                             qtyBtn.addEventListener('click', () => {
+                                // 如果按钮被禁用，不执行任何操作
+                                if (qtyBtn.classList.contains('disabled')) {
+                                    return;
+                                }
+                                
                                 // 移除其他按钮的选中状态
-                                quantitySelector.querySelectorAll('.quantity-btn').forEach(btn => {
+                                quantityButtons.querySelectorAll('.quantity-btn').forEach(btn => {
                                     btn.classList.remove('selected');
                                 });
                                 
                                 // 设置当前按钮为选中状态
                                 qtyBtn.classList.add('selected');
-                                
-                                // 更新价格显示
-                                const totalPrice = item.price * qty;
-                                const canAffordTotal = (this.character.gold || 0) >= totalPrice;
-                                
-                                if (canAffordTotal) {
-                                    itemPrice.innerHTML = `价格：${item.price}金币 × ${qty} = ${totalPrice}金币`;
-                                } else {
-                                    itemPrice.innerHTML = `价格：${item.price}金币 × ${qty} = ${totalPrice}金币 <span class="not-enough">(金币不足)</span>`;
-                                }
+                                selectedQuantity = qty;
                                 
                                 // 更新购买按钮状态
-                                if (canAffordTotal) {
-                                    buyBtn.classList.remove('disabled');
-                                    buyBtn.removeAttribute('title');
-                                } else {
-                                    buyBtn.classList.add('disabled');
-                                    buyBtn.title = '金币不足';
-                                }
+                                updateBuyButton();
                             });
                             
-                            quantitySelector.appendChild(qtyBtn);
+                            quantityButtons.appendChild(qtyBtn);
                         });
+                        
+                        quantitySelector.appendChild(quantityLabel);
+                        quantitySelector.appendChild(quantityButtons);
                         
                         // 购买按钮
                         const buyBtn = document.createElement('button');
-                        buyBtn.className = 'buy-btn' + (canAfford ? '' : ' disabled');
+                        buyBtn.className = 'buy-btn';
                         buyBtn.textContent = '购买';
                         
-                        if (!canAfford) {
-                            buyBtn.title = '金币不足';
-                        }
+                        // 更新购买按钮状态的函数
+                        const updateBuyButton = () => {
+                            const totalPrice = item.price * selectedQuantity;
+                            const canAfford = (this.character.gold || 0) >= totalPrice;
+                            
+                            if (canAfford) {
+                                buyBtn.classList.remove('disabled');
+                                buyBtn.removeAttribute('title');
+                            } else {
+                                buyBtn.classList.add('disabled');
+                                buyBtn.title = '金币不足';
+                            }
+                        };
+                        
+                        // 初始化购买按钮状态
+                        updateBuyButton();
                         
                         buyBtn.addEventListener('click', () => {
                             if (buyBtn.classList.contains('disabled')) {
                                 return;
                             }
                             
-                            // 获取选中的数量
-                            const selectedQuantityBtn = quantitySelector.querySelector('.quantity-btn.selected');
-                            const quantity = selectedQuantityBtn ? parseInt(selectedQuantityBtn.dataset.quantity) : 1;
-                            
                             // 调用购买方法
-                            this.buyItem(item.id, quantity);
+                            this.buyItem(item.id, selectedQuantity);
                         });
                         
                         // 将所有元素添加到物品元素中
                         itemElement.appendChild(itemName);
                         itemElement.appendChild(itemDesc);
+                        itemElement.appendChild(itemType);
+                        itemElement.appendChild(itemRarity);
                         itemElement.appendChild(itemAttrs);
                         itemElement.appendChild(itemPrice);
                         itemElement.appendChild(quantitySelector);
                         itemElement.appendChild(buyBtn);
                         
-                        // 将物品元素添加到商店物品容器中
-                        shopItemsContainer.appendChild(itemElement);
+                        // 将物品元素添加到网格容器中
+                        gridContainer.appendChild(itemElement);
                     });
                 }
                 
                 // 显示商店模态框
                 shopModal.style.display = 'block';
+                
+                // 添加CSS样式
+                const style = document.createElement('style');
+                style.id = 'shop-modal-style';
+                
+                // 如果已存在样式，则移除
+                const existingStyle = document.getElementById('shop-modal-style');
+                if (existingStyle) {
+                    existingStyle.remove();
+                }
+                
+                style.textContent = `
+                    #shop-modal {
+                        max-height: 100vh;
+                        overflow-y: auto;
+                        width: 100%;
+                    }
+                    #shop-items {
+                        padding: 10px;
+                    }
+                    .shop-items-grid {
+                        display: flex;
+                        justify-content: center;
+                        grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+                        gap: 15px;
+                    }
+                    .shop-item {
+                        display: flex;
+                        flex-direction: column;
+                        background-color: #333;
+                        border: 2px solid #4CAF50;
+                        padding: 10px;
+                        border-radius: 4px;
+                        height: 100%;
+                    }
+                    .shop-item-name {
+                        font-size: 18px;
+                        font-weight: bold;
+                        color: #FFD700;
+                        margin-bottom: 5px;
+                    }
+                    .shop-item-desc {
+                        color: #CCC;
+                        margin-bottom: 5px;
+                        flex-grow: 1;
+                    }
+                    .shop-item-type, .shop-item-rarity {
+                        color: #AAA;
+                        font-size: 14px;
+                    }
+                    .shop-item-attrs {
+                        color: #8BC34A;
+                        margin: 5px 0;
+                    }
+                    .shop-item-price {
+                        color: #FFD700;
+                        font-weight: bold;
+                        margin: 5px 0;
+                    }
+                    .quantity-selector {
+                        display: flex;
+                        flex-direction: column;
+                        align-items: center;
+                        margin: 5px 0;
+                    }
+                    .quantity-label {
+                        margin-bottom: 5px;
+                    }
+                    .quantity-buttons {
+                        display: flex;
+                        gap: 5px;
+                        justify-content: center;
+                        width: 100%;
+                    }
+                    .quantity-btn {
+                        width: 40px;
+                        height: 40px;
+                        border-radius: 4px;
+                        border: none;
+                        background-color: #444;
+                        color: white;
+                        cursor: pointer;
+                    }
+                    .quantity-btn.selected {
+                        background-color: #2196F3;
+                    }
+                    .quantity-btn.disabled {
+                        background-color: #555;
+                        color: #777;
+                        cursor: not-allowed;
+                    }
+                    .buy-btn {
+                        width: 100%;
+                        padding: 10px;
+                        border-radius: 4px;
+                        border: none;
+                        background-color: #4CAF50;
+                        color: white;
+                        font-weight: bold;
+                        cursor: pointer;
+                        margin-top: 5px;
+                    }
+                    .buy-btn.disabled {
+                        background-color: #555;
+                        color: #777;
+                        cursor: not-allowed;
+                    }
+                    .cannot-afford {
+                        border-color: #F44336;
+                    }
+                    .shop-gold {
+                        color: #FFD700;
+                        float: right;
+                    }
+                    .not-enough {
+                        color: #F44336;
+                    }
+                    
+                    /* 响应式布局 */
+                    @media (max-width: 768px) {
+                        .shop-items-grid {
+                            grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
+                        }
+                    }
+                    @media (max-width: 480px) {
+                        .shop-items-grid {
+                            grid-template-columns: 1fr;
+                        }
+                    }
+                `;
+                
+                document.head.appendChild(style);
             } else {
                 this.addMessage('无法加载商店数据', 'error');
             }
