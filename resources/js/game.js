@@ -1063,7 +1063,7 @@ class Game {
                         <div class="item-tooltip-actions">
                             ${inventoryItem.item.is_consumable ? 
                                 `<button class="item-action-btn use-btn" data-action="use" data-item-id="${inventoryItem.id}">使用</button>` : ''}
-                            ${inventoryItem.item.type === 'equipment' ? 
+                            ${this.isEquippableItem(inventoryItem.item) ? 
                                 (inventoryItem.is_equipped ? 
                                     `<button class="item-action-btn unequip-btn" data-action="unequip" data-item-id="${inventoryItem.id}">卸下</button>` : 
                                     `<button class="item-action-btn equip-btn" data-action="equip" data-item-id="${inventoryItem.id}">装备</button>`) 
@@ -1964,6 +1964,19 @@ class Game {
         }
     }
 
+    // 判断物品是否可装备
+    isEquippableItem(item) {
+        if (!item || !item.type) return false;
+        
+        // 可装备的物品类型列表
+        const equippableTypes = [
+            'equipment', 'weapon', 'armor', 'accessory', 'bracelet',
+            'helmet', 'gloves', 'boots', 'ring', 'necklace', 'belt'
+        ];
+        
+        return equippableTypes.includes(item.type);
+    }
+    
     // 获取物品属性HTML
     getItemAttributesHTML(item) {
         if (!item) return '';
