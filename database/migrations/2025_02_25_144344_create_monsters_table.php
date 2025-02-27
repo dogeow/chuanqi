@@ -27,6 +27,7 @@ return new class extends Migration
             $table->integer('position_x')->default(0); // 怪物X坐标
             $table->integer('position_y')->default(0); // 怪物Y坐标
             $table->string('image')->nullable(); // 怪物图片
+            $table->string('emoji')->nullable(); // 怪物emoji
             $table->timestamps();
             
             // 不使用外键约束，但保留索引以提高查询性能

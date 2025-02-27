@@ -746,11 +746,17 @@ class Game {
             hpText.className = 'monster-hp-text';
             hpText.textContent = `${monster.current_hp}/${monster.hp}`;
             
+            // 创建怪物图标（emoji）
+            const emojiElement = document.createElement('div');
+            emojiElement.className = 'monster-emoji';
+            emojiElement.textContent = monster.emoji || '👾'; // 如果没有emoji字段，使用默认emoji
+            
             // 组装元素
             hpBarContainer.appendChild(hpBar);
             monsterElement.appendChild(nameElement);
             monsterElement.appendChild(hpBarContainer);
             monsterElement.appendChild(hpText);
+            monsterElement.appendChild(emojiElement);
             
             // 添加提示信息
             monsterElement.title = `${monster.name} Lv.${monster.level || '?'} (点击攻击)`;

@@ -180,7 +180,6 @@ body {
     position: absolute;
     width: 60px;
     height: 60px;
-    background-color: #ff6b6b;
     border-radius: 4px;
     transform: translate(-50%, -50%);
     z-index: 5;

@@ -15,6 +15,143 @@ class GameSeeder extends Seeder
 {
     public function run(): void
     {
+        // 创建新手村地图
+        $starterMap = Map::create([
+            'name' => '新手村',
+            'description' => '初始的村庄，这里有友善的NPC和适合新手的怪物。',
+            'level_required' => 1,
+            'type' => 'normal',
+            'width' => 1000,
+            'height' => 600,
+            'background_image' => 'maps/starter.jpg',
+            'spawn_points' => json_encode([
+                ['x' => 100, 'y' => 100],
+                ['x' => 200, 'y' => 200],
+                ['x' => 300, 'y' => 300],
+            ]),
+            'teleport_points' => json_encode([
+                ['x' => 950, 'y' => 100, 'target_map_id' => 2, 'target_x' => 50, 'target_y' => 400, 'name' => '幽暗森林'],
+                ['x' => 950, 'y' => 200, 'target_map_id' => 3, 'target_x' => 50, 'target_y' => 200, 'name' => '古老矿洞'],
+                ['x' => 950, 'y' => 300, 'target_map_id' => 4, 'target_x' => 50, 'target_y' => 400, 'name' => '炽热沙漠'],
+            ]),
+        ]);
+
+        // 创建森林地图
+        $forestMap = Map::create([
+            'name' => '幽暗森林',
+            'description' => '茂密的森林，阳光难以穿透树冠，隐藏着各种危险生物。',
+            'level_required' => 5,
+            'type' => 'normal',
+            'width' => 1000,
+            'height' => 600,
+            'background_image' => 'maps/forest.jpg',
+            'spawn_points' => json_encode([
+                ['x' => 150, 'y' => 150],
+                ['x' => 300, 'y' => 250],
+                ['x' => 450, 'y' => 350],
+            ]),
+            'teleport_points' => json_encode([
+                ['x' => 50, 'y' => 400, 'target_map_id' => 1, 'target_x' => 750, 'target_y' => 400, 'name' => '新手村'],
+                ['x' => 950, 'y' => 400, 'target_map_id' => 3, 'target_x' => 50, 'target_y' => 400, 'name' => '古老矿洞'],
+            ]),
+        ]);
+
+        // 创建矿洞地图
+        $caveMap = Map::create([
+            'name' => '古老矿洞',
+            'description' => '昏暗的地下洞窟，曾经是矮人的矿场，现在被各种生物占据。',
+            'level_required' => 10,
+            'type' => 'dungeon',
+            'width' => 1000,
+            'height' => 600,
+            'background_image' => 'maps/cave.jpg',
+            'spawn_points' => json_encode([
+                ['x' => 100, 'y' => 200],
+                ['x' => 250, 'y' => 300],
+                ['x' => 400, 'y' => 400],
+            ]),
+            'teleport_points' => json_encode([
+                ['x' => 50, 'y' => 200, 'target_map_id' => 1, 'target_x' => 750, 'target_y' => 200, 'name' => '新手村'],
+                ['x' => 50, 'y' => 400, 'target_map_id' => 2, 'target_x' => 750, 'target_y' => 400, 'name' => '幽暗森林'],
+                ['x' => 950, 'y' => 400, 'target_map_id' => 4, 'target_x' => 750, 'target_y' => 200, 'name' => '炽热沙漠'],
+            ]),
+        ]);
+
+        // 创建沙漠地图
+        $desertMap = Map::create([
+            'name' => '炽热沙漠',
+            'description' => '一片荒芜的沙漠，白天烈日炎炎，夜晚寒冷刺骨，隐藏着远古的遗迹。',
+            'level_required' => 15,
+            'type' => 'normal',
+            'width' => 1000,
+            'height' => 600,
+            'background_image' => 'maps/desert.jpg',
+            'spawn_points' => json_encode([
+                ['x' => 200, 'y' => 200],
+                ['x' => 400, 'y' => 300],
+                ['x' => 600, 'y' => 400],
+            ]),
+            'teleport_points' => json_encode([
+                ['x' => 50, 'y' => 400, 'target_map_id' => 1, 'target_x' => 750, 'target_y' => 500, 'name' => '新手村'],
+                ['x' => 950, 'y' => 200, 'target_map_id' => 3, 'target_x' => 750, 'target_y' => 400, 'name' => '古老矿洞'],
+            ]),
+        ]);
+
+        // 在新手村创建低级怪物
+        $rabbit = Monster::create([
+            'name' => '野兔',
+            'description' => '一只可爱的野兔，看起来人畜无害，适合新手练习。',
+            'level' => 1,
+            'hp' => 30,
+            'current_hp' => 30,
+            'attack' => 3,
+            'defense' => 1,
+            'exp_reward' => 5,
+            'gold_reward' => 3,
+            'respawn_time' => 20,
+            'map_id' => $starterMap->id,
+            'position_x' => 300,
+            'position_y' => 250,
+            'image' => 'monsters/rabbit.png',
+            'emoji' => '🐰',
+        ]);
+        
+        $scarecrow = Monster::create([
+            'name' => '稻草人',
+            'description' => '农田里的稻草人，不知为何获得了生命，行动缓慢但有一定攻击力。',
+            'level' => 1,
+            'hp' => 40,
+            'current_hp' => 40,
+            'attack' => 4,
+            'defense' => 2,
+            'exp_reward' => 8,
+            'gold_reward' => 4,
+            'respawn_time' => 25,
+            'map_id' => $starterMap->id,
+            'position_x' => 450,
+            'position_y' => 350,
+            'image' => 'monsters/scarecrow.png',
+            'emoji' => '🧟',
+        ]);
+        
+        $toad = Monster::create([
+            'name' => '癞蛤蟆',
+            'description' => '生活在新手村附近的大癞蛤蟆，偶尔会吐出黏液攻击路过的冒险者。',
+            'level' => 2,
+            'hp' => 60,
+            'current_hp' => 60,
+            'attack' => 6,
+            'defense' => 3,
+            'exp_reward' => 12,
+            'gold_reward' => 6,
+            'respawn_time' => 35,
+            'map_id' => $starterMap->id,
+            'position_x' => 600,
+            'position_y' => 400,
+            'image' => 'monsters/toad.png',
+            'emoji' => '🐸',
+        ]);
+
         // 创建怪物
         $slime = Monster::create([
             'name' => '史莱姆',
@@ -27,10 +164,11 @@ class GameSeeder extends Seeder
             'exp_reward' => 10,
             'gold_reward' => 5,
             'respawn_time' => 30,
-            'map_id' => $starterMap->id,
+            'map_id' => $forestMap->id,
             'position_x' => 400,
             'position_y' => 300,
             'image' => 'monsters/slime.png',
+            'emoji' => '🟢',
         ]);
         
         $goblin = Monster::create([
@@ -44,10 +182,11 @@ class GameSeeder extends Seeder
             'exp_reward' => 15,
             'gold_reward' => 8,
             'respawn_time' => 45,
-            'map_id' => $starterMap->id,
+            'map_id' => $forestMap->id,
             'position_x' => 600,
             'position_y' => 400,
             'image' => 'monsters/goblin.png',
+            'emoji' => '👺',
         ]);
         
         $wolf = Monster::create([
@@ -61,10 +200,11 @@ class GameSeeder extends Seeder
             'exp_reward' => 20,
             'gold_reward' => 12,
             'respawn_time' => 60,
-            'map_id' => $starterMap->id,
+            'map_id' => $forestMap->id,
             'position_x' => 800,
             'position_y' => 500,
             'image' => 'monsters/wolf.png',
+            'emoji' => '🐺',
         ]);
         
         // 森林地图的怪物
@@ -83,6 +223,7 @@ class GameSeeder extends Seeder
             'position_x' => 350,
             'position_y' => 280,
             'image' => 'monsters/spider.png',
+            'emoji' => '🕷️',
         ]);
         
         $bear = Monster::create([
@@ -100,6 +241,7 @@ class GameSeeder extends Seeder
             'position_x' => 800,
             'position_y' => 500,
             'image' => 'monsters/bear.png',
+            'emoji' => '🐻',
         ]);
         
         // 矿洞地图的怪物
@@ -118,6 +260,7 @@ class GameSeeder extends Seeder
             'position_x' => 300,
             'position_y' => 200,
             'image' => 'monsters/bat.png',
+            'emoji' => '🦇',
         ]);
         
         $golem = Monster::create([
@@ -135,6 +278,7 @@ class GameSeeder extends Seeder
             'position_x' => 600,
             'position_y' => 400,
             'image' => 'monsters/golem.png',
+            'emoji' => '🗿',
         ]);
         
         // 沙漠地图的怪物
@@ -153,6 +297,7 @@ class GameSeeder extends Seeder
             'position_x' => 400,
             'position_y' => 300,
             'image' => 'monsters/scorpion.png',
+            'emoji' => '🦂',
         ]);
         
         $mummy = Monster::create([
