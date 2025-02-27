@@ -28,6 +28,7 @@ Route::middleware('auth:sanctum')->group(function () {
     // 角色相关
     Route::get('/character', [GameController::class, 'getCharacter']);
     Route::post('/character/move', [GameController::class, 'moveCharacter']);
+    Route::post('/character/teleport', [GameController::class, 'teleportCharacter']);
     
     // 地图相关
     Route::get('/map/{id}', [GameController::class, 'getMap']);

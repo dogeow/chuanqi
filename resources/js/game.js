@@ -819,6 +819,38 @@ class Game {
         });
     }
     
+    // 更新传送点
+    updateTeleportPoints() {
+        if (!this.gameMap || !this.currentMap || !this.currentMap.teleport_points) {
+            console.error('地图容器或传送点数据未找到，无法更新传送点');
+            return;
+        }
+        
+        console.log(`更新传送点显示，当前传送点列表: ${this.currentMap.teleport_points.length}个传送点`);
+        
+        // 清除现有传送点
+        document.querySelectorAll('.teleport-point').forEach(point => point.remove());
+        
+        // 添加传送点
+        const teleportPoints = this.currentMap.teleport_points || [];
+        teleportPoints.forEach(point => {
+            const teleportElement = document.createElement('div');
+            teleportElement.className = 'teleport-point';
+            teleportElement.style.left = `${point.position_x || point.x}px`;
+            teleportElement.style.top = `${point.position_y || point.y}px`;
+            
+            // 添加提示信息
+            teleportElement.title = `传送点 (点击传送到 ${point.target_map_name || '目标地图'})`;
+            
+            // 添加点击事件
+            teleportElement.addEventListener('click', () => {
+                this.teleportToMap(point.target_map_id, point.target_x || point.target_position_x, point.target_y || point.target_position_y);
+            });
+            
+            this.gameMap.appendChild(teleportElement);
+        });
+    }
+    
     // 更新技能列表
     updateSkillsList(skills) {
         if (!this.skillsList) {
@@ -909,6 +941,15 @@ class Game {
             skillObj.cooldown_remaining = skillObj.skill.cooldown || 0;
             skillObj.last_used = new Date();
             this.renderSkillsList();
+            
+            // 添加技能使用信息到响应数据中
+            if (!response.data.skill_used) {
+                response.data.skill_used = {
+                    id: skillObj.id,
+                    name: skillObj.skill.name,
+                    level: skillObj.level
+                };
+            }
             
             this.handleCombatResult(response.data);
         } catch (error) {
@@ -1246,8 +1287,15 @@ class Game {
             }
             
             // 构建消息
-            let message = `对怪物造成${result.damage}点伤害`;
+            let message = '';
             let messageType = 'combat';
+            
+            // 如果使用了技能，显示技能信息
+            if (result.skill_used) {
+                message = `使用技能【${result.skill_used.name}】对怪物造成${result.damage}点伤害`;
+            } else {
+                message = `对怪物造成${result.damage}点伤害`;
+            }
             
             // 处理怪物反击
             if (result.monster_damage) {
@@ -1572,7 +1620,12 @@ class Game {
             }
             
             if (data.attacker_id !== this.character.id) {
-                this.addMessage(`${data.attacker_name}对${data.monster_name}造成${data.damage}点伤害`);
+                // 如果使用了技能，显示技能信息
+                if (data.skill_used) {
+                    this.addMessage(`${data.attacker_name}使用技能【${data.skill_used.name}】对${data.monster_name}造成${data.damage}点伤害`);
+                } else {
+                    this.addMessage(`${data.attacker_name}对${data.monster_name}造成${data.damage}点伤害`);
+                }
             }
         }
     }
@@ -1781,6 +1834,16 @@ class Game {
                 }
             }
             
+            // 如果后端使用了技能，更新相应技能的冷却时间
+            if (response.data.skill_used) {
+                const skillObj = this.skills.find(s => s.id === parseInt(response.data.skill_used.id));
+                if (skillObj) {
+                    skillObj.cooldown_remaining = skillObj.skill.cooldown || 0;
+                    skillObj.last_used = new Date();
+                    this.renderSkillsList();
+                }
+            }
+            
             this.handleCombatResult(response.data);
             
         } catch (error) {
@@ -1890,6 +1953,121 @@ class Game {
         tooltip.style.left = `${left}px`;
         tooltip.style.top = `${top}px`;
     }
+
+    // 移动角色到指定位置
+    async moveCharacter(x, y) {
+        try {
+            const response = await axios.post('/api/character/move', {
+                position_x: x,
+                position_y: y
+            });
+            
+            if (response.data.success) {
+                // 更新角色位置
+                this.character.position_x = response.data.character.position_x;
+                this.character.position_y = response.data.character.position_y;
+                
+                // 更新角色位置显示
+                this.updatePlayerPosition();
+                
+                console.log(`角色移动到: (${this.character.position_x}, ${this.character.position_y})`);
+            } else {
+                console.error('移动失败:', response.data.message);
+                this.addMessage(response.data.message || '移动失败', 'error');
+            }
+        } catch (error) {
+            console.error('移动请求失败:', error);
+            this.addMessage('移动失败，请重试', 'error');
+        }
+    }
+    
+    // 传送到指定地图的指定位置
+    async teleportToMap(mapId, x, y) {
+        try {
+            // 添加传送动画效果
+            const playerElement = document.querySelector('.player:not(.other-player)');
+            if (playerElement) {
+                playerElement.classList.add('teleporting');
+                
+                // 延迟发送传送请求，等待动画播放
+                setTimeout(async () => {
+                    try {
+                        const response = await axios.post('/api/character/teleport', {
+                            map_id: mapId,
+                            position_x: x,
+                            position_y: y
+                        });
+                        
+                        if (response.data.success) {
+                            // 更新角色位置和地图
+                            this.character.current_map_id = mapId;
+                            this.character.position_x = response.data.character.position_x || x;
+                            this.character.position_y = response.data.character.position_y || y;
+                            
+                            // 添加传送完成动画
+                            playerElement.classList.remove('teleporting');
+                            playerElement.classList.add('teleport-complete');
+                            
+                            // 延迟加载新地图，等待动画完成
+                            setTimeout(() => {
+                                playerElement.classList.remove('teleport-complete');
+                                
+                                // 加载新地图数据
+                                this.loadMapData().then(() => {
+                                    // 重新初始化WebSocket连接（因为地图已更改）
+                                    this.initWebSocket();
+                                    
+                                    this.addMessage(`成功传送到 ${response.data.map_name || '新地图'}`, 'success');
+                                });
+                            }, 800); // 传送完成动画时间
+                        } else {
+                            // 移除动画类
+                            playerElement.classList.remove('teleporting');
+                            
+                            console.error('传送失败:', response.data.message);
+                            this.addMessage(response.data.message || '传送失败', 'error');
+                        }
+                    } catch (requestError) {
+                        // 移除动画类
+                        playerElement.classList.remove('teleporting');
+                        
+                        console.error('传送请求失败:', requestError);
+                        this.addMessage('传送失败，请重试', 'error');
+                    }
+                }, 1000); // 传送动画时间
+            } else {
+                // 如果找不到玩家元素，直接发送请求
+                const response = await axios.post('/api/character/teleport', {
+                    map_id: mapId,
+                    position_x: x,
+                    position_y: y
+                });
+                
+                if (response.data.success) {
+                    // 更新角色位置和地图
+                    this.character.current_map_id = mapId;
+                    this.character.position_x = response.data.character.position_x || x;
+                    this.character.position_y = response.data.character.position_y || y;
+                    
+                    // 加载新地图数据
+                    this.loadMapData().then(() => {
+                        // 重新初始化WebSocket连接（因为地图已更改）
+                        this.initWebSocket();
+                        
+                        this.addMessage(`成功传送到 ${response.data.map_name || '新地图'}`, 'success');
+                    });
+                } else {
+                    console.error('传送失败:', response.data.message);
+                    this.addMessage(response.data.message || '传送失败', 'error');
+                }
+            }
+        } catch (error) {
+            console.error('传送请求失败:', error);
+            this.addMessage('传送失败，请重试', 'error');
+        }
+    }
+    
+    // 攻击怪物
 }
 
 // 等待DOM加载完成后再创建游戏实例
