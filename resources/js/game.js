@@ -105,22 +105,16 @@ class Game {
     
     // 处理控制面板动作
     handleControlAction(action) {
-        switch(action) {
-            case 'showHelp':
-                this.showGameHelp();
-                break;
-            case 'showMapInfo':
-                this.showMapInfo();
-                break;
-            case 'showMapGuide':
-                this.showMapGuide();
-                break;
-            case 'showShopGuide':
-                this.showShopGuide();
-                break;
-            case 'showCombatGuide':
-                this.showCombatGuide();
-                break;
+        const actions = {
+            'showHelp': this.showGameHelp,
+            'showMapInfo': this.showMapInfo,
+            'showMapGuide': this.showMapGuide,
+            'showShopGuide': this.showShopGuide,
+            'showCombatGuide': this.showCombatGuide
+        };
+        
+        if (actions[action]) {
+            actions[action].call(this);
         }
     }
     
@@ -176,7 +170,7 @@ class Game {
         this.addMessage('- 金币不足时无法购买物品', 'info');
         this.addMessage('- 使用物品可以恢复生命值或魔法值', 'info');
         this.addMessage('- 装备物品可以提升属性', 'info');
-        this.addMessage(`您当前的金币: ${this.character.gold || 0}`, 'gold');
+        this.addMessage(`您当前的金币: ${this.character?.gold || 0}`, 'gold');
     }
     
     // 显示战斗指南
@@ -187,8 +181,8 @@ class Game {
         this.addMessage('- 使用技能可以造成更高伤害', 'info');
         this.addMessage('- 击败怪物获得经验和金币', 'info');
         this.addMessage('- 获得足够经验可以升级', 'info');
-        this.addMessage(`您当前的攻击力: ${this.character.attack}`, 'combat');
-        this.addMessage(`您当前的防御力: ${this.character.defense}`, 'combat');
+        this.addMessage(`您当前的攻击力: ${this.character?.attack}`, 'combat');
+        this.addMessage(`您当前的防御力: ${this.character?.defense}`, 'combat');
     }
     
     // 初始化事件监听器
@@ -237,12 +231,7 @@ class Game {
                     }
                 }
             });
-            
-            // 注意：传送点点击事件已在 updateTeleportPoints 方法中为每个传送点单独添加
-            // 移除此处的事件监听器，避免重复触发
         }
-        
-        // 技能点击事件已移除，技能只作展示用途
         
         // 物品点击事件
         if (this.inventoryList) {
@@ -258,13 +247,15 @@ class Game {
         }
         
         // 怪物模态窗口按钮事件
-        document.getElementById('attack-monster')?.addEventListener('click', () => {
-            this.attackMonster();
-        });
+        const attackMonsterBtn = document.getElementById('attack-monster');
+        if (attackMonsterBtn) {
+            attackMonsterBtn.addEventListener('click', () => this.attackMonster());
+        }
         
-        document.getElementById('auto-attack-btn')?.addEventListener('click', () => {
-            this.toggleAutoAttack();
-        });
+        const autoAttackBtn = document.getElementById('auto-attack-btn');
+        if (autoAttackBtn) {
+            autoAttackBtn.addEventListener('click', () => this.toggleAutoAttack());
+        }
         
         // 关闭模态窗口按钮事件
         document.querySelectorAll('.modal .close').forEach(closeBtn => {
@@ -568,12 +559,6 @@ class Game {
                     
                     // 更新地图显示（这会调用 updateMonsters、updateShops、updateTeleportPoints 和 updateOtherPlayers）
                     this.updateMap();
-                    
-                    // 移除重复调用
-                    // this.updateMonsters();
-                    // this.updateShops();
-                    // this.updateTeleportPoints();
-                    // this.updateOtherPlayers();
                     
                     // 检查地图ID是否改变
                     const newMapId = this.character.current_map_id || this.character.map_id;
