@@ -235,15 +235,6 @@ class Game {
             // 移除此处的事件监听器，避免重复触发
         }
         
-        // 技能点击事件 - 直接切换自动释放状态
-        this.skillsList.addEventListener('click', (e) => {
-            const skillElement = e.target.closest('.skill');
-            if (skillElement) {
-                const skillId = skillElement.dataset.skillId;
-                this.toggleAutoSkill(skillId);
-            }
-        });
-        
         // 物品点击事件
         if (this.inventoryList) {
             this.inventoryList.addEventListener('click', (event) => {
@@ -1647,24 +1638,6 @@ class Game {
         
         itemActionsEl.innerHTML = actions.join('');
         itemModal.style.display = 'block';
-    }
-    
-    // 切换技能自动释放状态
-    toggleAutoSkill(skillId) {
-        const skillObj = this.skills.find(s => s.id === parseInt(skillId));
-        if (!skillObj) {
-            console.error('未找到技能:', skillId);
-            return;
-        }
-        
-        // 不再切换自动释放状态，始终设为false
-        skillObj.is_auto_attacking = false;
-        
-        // 显示消息
-        this.addMessage(`技能 ${skillObj.skill.name} 无法设置自动释放`, 'warning');
-        
-        // 更新技能列表显示
-        this.renderSkillsList();
     }
     
     // 攻击怪物
