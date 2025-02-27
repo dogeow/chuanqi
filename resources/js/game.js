@@ -1200,7 +1200,39 @@ class Game {
             this.character = response.data.character;
             this.updateCharacterInfo();
             this.updateInventoryList(response.data.inventory);
-            this.addMessage(response.data.message);
+            
+            // 处理消息，添加颜色
+            let message = response.data.message;
+            
+            // 检查是否包含恢复生命值的信息
+            if (message.includes('恢复了') && message.includes('点生命值')) {
+                // 提取恢复的生命值数量
+                const hpMatch = message.match(/恢复了(\d+)点生命值/);
+                if (hpMatch && hpMatch[1]) {
+                    const hpAmount = hpMatch[1];
+                    // 替换为带颜色的文本
+                    message = message.replace(
+                        `恢复了${hpAmount}点生命值`, 
+                        `恢复了 <span style="color: #2ecc71">+${hpAmount} HP</span>`
+                    );
+                }
+            }
+            
+            // 检查是否包含恢复魔法值的信息
+            if (message.includes('恢复了') && message.includes('点魔法值')) {
+                // 提取恢复的魔法值数量
+                const mpMatch = message.match(/恢复了(\d+)点魔法值/);
+                if (mpMatch && mpMatch[1]) {
+                    const mpAmount = mpMatch[1];
+                    // 替换为带颜色的文本
+                    message = message.replace(
+                        `恢复了${mpAmount}点魔法值`, 
+                        `恢复了 <span style="color: #3498db">+${mpAmount} MP</span>`
+                    );
+                }
+            }
+            
+            this.addMessage(message);
             
             const itemModal = document.getElementById('item-modal');
             if (itemModal) {
@@ -1290,16 +1322,19 @@ class Game {
             let message = '';
             let messageType = 'combat';
             
+            // 获取怪物名称
+            const monsterName = result.monster ? result.monster.name : '怪物';
+            
             // 如果使用了技能，显示技能信息
             if (result.skill_used) {
-                message = `使用技能【${result.skill_used.name}】对怪物造成${result.damage}点伤害`;
+                message = `${monsterName} <span style="color: red">-${result.damage} HP</span>（技能【${result.skill_used.name}】）`;
             } else {
-                message = `对怪物造成${result.damage}点伤害`;
+                message = `${monsterName} <span style="color: red">-${result.damage} HP</span>`;
             }
             
             // 处理怪物反击
             if (result.monster_damage) {
-                message += `，怪物反击造成${result.monster_damage}点伤害`;
+                message += `，我 <span style="color: red">-${result.monster_damage} HP</span>`;
                 
                 // 如果角色死亡
                 if (result.character_died) {
@@ -1319,11 +1354,22 @@ class Game {
             }
             
             if (result.monster_killed) {
-                message += `，击杀怪物获得${result.exp_gained}经验和${result.gold_gained}金币`;
+                message += `，<span style="color: gold">+${result.gold_gained} 金币</span>，<span style="color: purple">+${result.exp_gained} 经验</span>`;
                 
                 if (result.leveled_up) {
-                    message += `，升级到${result.new_level}级！`;
+                    message += `，<span style="color: orange; font-weight: bold">升级到 ${result.new_level} 级！</span>`;
                     messageType = 'success';  // 升级使用success类型
+                }
+                
+                // 如果有物品掉落
+                if (result.dropped_items && result.dropped_items.length > 0) {
+                    message += `，获得物品：`;
+                    result.dropped_items.forEach((item, index) => {
+                        message += `<span style="color: ${this.getItemRarityColor(item.rarity)}">${item.item_name} x${item.quantity}</span>`;
+                        if (index < result.dropped_items.length - 1) {
+                            message += '、';
+                        }
+                    });
                 }
                 
                 // 处理怪物死亡
@@ -1726,7 +1772,6 @@ class Game {
         }
         
         const messageElement = document.createElement('p');
-        messageElement.textContent = message;
         messageElement.classList.add('game-message', `message-${type}`);
         
         // 为不同类型的消息添加前缀图标
@@ -1755,7 +1800,8 @@ class Game {
                 prefix = 'ℹ️ ';
         }
         
-        messageElement.textContent = prefix + message;
+        // 使用innerHTML设置消息内容，以支持HTML标签
+        messageElement.innerHTML = prefix + message;
         
         // 使消息短暂突出显示
         messageElement.classList.add('highlight');
@@ -1918,17 +1964,28 @@ class Game {
     // 获取物品稀有度名称
     getItemRarityName(rarity) {
         const rarityNames = {
-            '1': '普通',
-            '2': '优秀',
-            '3': '精良',
-            '4': '稀有',
-            '5': '史诗',
-            '6': '传说'
+            1: '普通',
+            2: '优秀',
+            3: '精良',
+            4: '史诗',
+            5: '传说'
         };
-        return rarityNames[rarity] || rarity;
+        return rarityNames[rarity] || '未知';
     }
     
-    // 定位弹出窗口
+    // 获取物品稀有度对应的颜色
+    getItemRarityColor(rarity) {
+        const rarityColors = {
+            1: '#ffffff', // 普通 - 白色
+            2: '#1eff00', // 优秀 - 绿色
+            3: '#0070dd', // 精良 - 蓝色
+            4: '#a335ee', // 史诗 - 紫色
+            5: '#ff8000'  // 传说 - 橙色
+        };
+        return rarityColors[rarity] || '#ffffff';
+    }
+    
+    // 定位工具提示
     positionTooltip(tooltip, event) {
         const padding = 10;
         const tooltipWidth = tooltip.offsetWidth;
