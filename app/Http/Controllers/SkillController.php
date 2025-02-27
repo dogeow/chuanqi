@@ -196,6 +196,10 @@ class SkillController extends Controller
                 $character->level += 1;
                 $character->exp -= $character->exp_to_level;
                 $character->exp_to_level = $character->level * 100; // 简单的升级公式
+                // 确保经验值不会变为负数
+                if ($character->exp < 0) {
+                    $character->exp = 0;
+                }
                 $character->max_hp += 10;
                 $character->current_hp = $character->max_hp;
                 $character->max_mp += 5;

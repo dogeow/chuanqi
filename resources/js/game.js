@@ -615,10 +615,13 @@ class Game {
         // 计算升级所需经验
         const expToLevel = this.character.exp_to_level || (this.character.level * 100);
         
+        // 确保经验值不为负数
+        const currentExp = this.character.exp < 0 ? 0 : this.character.exp;
+        
         this.characterInfo.innerHTML = `
             <p>名称：${this.character.name}</p>
             <p>等级：${this.character.level}</p>
-            <p>经验：${this.character.exp}/${expToLevel}</p>
+            <p>经验：${currentExp}/${expToLevel}</p>
             <p>生命：${this.character.current_hp}/${this.character.max_hp}</p>
             <p>魔法：${this.character.current_mp}/${this.character.max_mp}</p>
             <p>攻击：${this.character.attack}</p>
