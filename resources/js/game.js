@@ -868,7 +868,167 @@ class Game {
         });
     }
     
-    // 更新传送点
+    // 显示商店模态框
+    async showShopModal(shopId) {
+        try {
+            const response = await axios.get(`/api/shop/${shopId}`);
+            
+            if (response.data.success) {
+                const shop = response.data.shop;
+                const shopItems = response.data.shop_items;
+                
+                // 获取商店模态框元素
+                const shopModal = document.getElementById('shop-modal');
+                const shopName = document.getElementById('shop-name');
+                const shopItemsContainer = document.getElementById('shop-items');
+                
+                if (!shopModal || !shopName || !shopItemsContainer) {
+                    console.error('商店模态框元素未找到');
+                    return;
+                }
+                
+                // 设置商店名称和玩家金币
+                shopName.innerHTML = `${shop.name} <span class="shop-gold">您的金币: ${this.character.gold}</span>`;
+                
+                // 清空商店物品列表
+                shopItemsContainer.innerHTML = '';
+                
+                // 添加商店物品
+                if (shopItems.length === 0) {
+                    shopItemsContainer.innerHTML = '<div class="no-items">该商店暂无商品</div>';
+                } else {
+                    shopItems.forEach(item => {
+                        const itemElement = document.createElement('div');
+                        itemElement.className = 'shop-item';
+                        itemElement.dataset.itemId = item.item_id;
+                        itemElement.dataset.shopItemId = item.id;
+                        itemElement.dataset.price = item.price;
+                        
+                        // 判断是否有足够的金币
+                        const canAfford = (this.character.gold || 0) >= item.price;
+                        if (canAfford) {
+                            itemElement.classList.add('can-afford');
+                        } else {
+                            itemElement.classList.add('cannot-afford');
+                        }
+                        
+                        // 物品名称和描述
+                        const itemName = document.createElement('div');
+                        itemName.className = 'shop-item-name';
+                        itemName.textContent = item.item.name;
+                        
+                        const itemDesc = document.createElement('div');
+                        itemDesc.className = 'shop-item-desc';
+                        itemDesc.textContent = item.item.description || '无描述';
+                        
+                        // 物品属性
+                        const itemAttrs = document.createElement('div');
+                        itemAttrs.className = 'shop-item-attrs';
+                        itemAttrs.innerHTML = this.getItemAttributesHTML(item.item);
+                        
+                        // 物品价格
+                        const itemPrice = document.createElement('div');
+                        itemPrice.className = 'shop-item-price';
+                        
+                        if (canAfford) {
+                            itemPrice.textContent = `价格：${item.price}金币`;
+                        } else {
+                            itemPrice.innerHTML = `价格：${item.price}金币 <span class="not-enough">(金币不足)</span>`;
+                        }
+                        
+                        // 数量选择
+                        const quantitySelector = document.createElement('div');
+                        quantitySelector.className = 'quantity-selector';
+                        
+                        const quantityLabel = document.createElement('span');
+                        quantityLabel.textContent = '数量：';
+                        quantitySelector.appendChild(quantityLabel);
+                        
+                        [1, 5, 10].forEach(qty => {
+                            const qtyBtn = document.createElement('button');
+                            qtyBtn.className = 'quantity-btn' + (qty === 1 ? ' selected' : '');
+                            qtyBtn.textContent = qty;
+                            qtyBtn.dataset.quantity = qty;
+                            
+                            qtyBtn.addEventListener('click', () => {
+                                // 移除其他按钮的选中状态
+                                quantitySelector.querySelectorAll('.quantity-btn').forEach(btn => {
+                                    btn.classList.remove('selected');
+                                });
+                                
+                                // 设置当前按钮为选中状态
+                                qtyBtn.classList.add('selected');
+                                
+                                // 更新价格显示
+                                const totalPrice = item.price * qty;
+                                const canAffordTotal = (this.character.gold || 0) >= totalPrice;
+                                
+                                if (canAffordTotal) {
+                                    itemPrice.innerHTML = `价格：${item.price}金币 × ${qty} = ${totalPrice}金币`;
+                                } else {
+                                    itemPrice.innerHTML = `价格：${item.price}金币 × ${qty} = ${totalPrice}金币 <span class="not-enough">(金币不足)</span>`;
+                                }
+                                
+                                // 更新购买按钮状态
+                                if (canAffordTotal) {
+                                    buyBtn.classList.remove('disabled');
+                                    buyBtn.removeAttribute('title');
+                                } else {
+                                    buyBtn.classList.add('disabled');
+                                    buyBtn.title = '金币不足';
+                                }
+                            });
+                            
+                            quantitySelector.appendChild(qtyBtn);
+                        });
+                        
+                        // 购买按钮
+                        const buyBtn = document.createElement('button');
+                        buyBtn.className = 'buy-btn' + (canAfford ? '' : ' disabled');
+                        buyBtn.textContent = '购买';
+                        
+                        if (!canAfford) {
+                            buyBtn.title = '金币不足';
+                        }
+                        
+                        buyBtn.addEventListener('click', () => {
+                            if (buyBtn.classList.contains('disabled')) {
+                                return;
+                            }
+                            
+                            // 获取选中的数量
+                            const selectedQuantityBtn = quantitySelector.querySelector('.quantity-btn.selected');
+                            const quantity = selectedQuantityBtn ? parseInt(selectedQuantityBtn.dataset.quantity) : 1;
+                            
+                            // 调用购买方法
+                            this.buyItem(item.id, quantity);
+                        });
+                        
+                        // 将所有元素添加到物品元素中
+                        itemElement.appendChild(itemName);
+                        itemElement.appendChild(itemDesc);
+                        itemElement.appendChild(itemAttrs);
+                        itemElement.appendChild(itemPrice);
+                        itemElement.appendChild(quantitySelector);
+                        itemElement.appendChild(buyBtn);
+                        
+                        // 将物品元素添加到商店物品容器中
+                        shopItemsContainer.appendChild(itemElement);
+                    });
+                }
+                
+                // 显示商店模态框
+                shopModal.style.display = 'block';
+            } else {
+                this.addMessage('无法加载商店数据', 'error');
+            }
+        } catch (error) {
+            console.error('加载商店数据出错:', error);
+            this.addMessage('加载商店数据时出错', 'error');
+        }
+    }
+    
+    // 更新传送点显示
     updateTeleportPoints() {
         if (!this.gameMap || !this.currentMap || !this.currentMap.teleport_points) {
             console.error('地图容器或传送点数据未找到，无法更新传送点');
