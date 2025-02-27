@@ -215,7 +215,8 @@ class Game {
                 if (event.target.classList.contains('monster')) {
                     const monsterId = event.target.dataset.monsterId;
                     if (monsterId) {
-                        this.showMonsterModal(monsterId);
+                        // 直接攻击怪物，不再弹出模态窗口
+                        this.directAttackMonster(monsterId);
                     }
                 }
             });
@@ -708,14 +709,37 @@ class Game {
         console.log(`添加${liveMonsters.length}个活着的怪物到地图`);
         
         liveMonsters.forEach(monster => {
-            // 移除详细的怪物日志，减少控制台噪音
-            // console.log('添加怪物到地图:', monster);
+            // 创建怪物元素
             const monsterElement = document.createElement('div');
             monsterElement.className = 'monster';
             monsterElement.dataset.monsterId = monster.id;
             monsterElement.style.left = `${monster.position_x}px`;
             monsterElement.style.top = `${monster.position_y}px`;
-            monsterElement.innerHTML = monster.name;
+            
+            // 创建怪物名称元素
+            const nameElement = document.createElement('div');
+            nameElement.className = 'monster-name';
+            nameElement.textContent = monster.name;
+            
+            // 创建血条容器
+            const hpBarContainer = document.createElement('div');
+            hpBarContainer.className = 'monster-hp-bar-container';
+            
+            // 创建血条
+            const hpBar = document.createElement('div');
+            hpBar.className = 'monster-hp-bar';
+            hpBar.style.width = `${monster.hp_percentage}%`;
+            
+            // 添加血量文本
+            const hpText = document.createElement('div');
+            hpText.className = 'monster-hp-text';
+            hpText.textContent = `${monster.current_hp}/${monster.hp}`;
+            
+            // 组装元素
+            hpBarContainer.appendChild(hpBar);
+            monsterElement.appendChild(nameElement);
+            monsterElement.appendChild(hpBarContainer);
+            monsterElement.appendChild(hpText);
             
             // 添加提示信息
             monsterElement.title = `${monster.name} Lv.${monster.level || '?'} (点击攻击)`;
@@ -810,7 +834,7 @@ class Game {
         this.skills = skills.map(skill => {
             return {
                 ...skill,
-                is_auto_attacking: false, // 添加自动释放状态标志
+                is_auto_attacking: false, // 始终设为false，不再支持自动释放
                 cooldown_remaining: 0, // 添加冷却时间剩余
                 last_used: null // 添加上次使用时间
             };
@@ -832,17 +856,18 @@ class Game {
             const cooldownDisplay = skill.cooldown_remaining > 0 ? 
                 `<div class="skill-cooldown">${skill.cooldown_remaining}秒</div>` : '';
             
-            const autoClass = skill.is_auto_attacking ? 'skill-auto-active' : '';
+            // 移除自动释放相关的CSS类
+            // const autoClass = skill.is_auto_attacking ? 'skill-auto-active' : '';
             
             return `
-                <div class="skill ${autoClass}" data-skill-id="${skill.id}">
+                <div class="skill" data-skill-id="${skill.id}">
                     <div class="skill-icon">${skill.skill.icon || '技'}</div>
                     <div class="skill-info">
                         <div>${skill.skill.name} Lv.${skill.level}</div>
                         <div>MP消耗：${skill.skill.mp_cost}</div>
                         ${cooldownDisplay}
                     </div>
-                    <div class="skill-auto-indicator">${skill.is_auto_attacking ? '自动' : ''}</div>
+                    <!-- 移除自动释放指示器 -->
                 </div>
             `;
         }).join('');
@@ -858,10 +883,10 @@ class Game {
                 needsUpdate = true;
             }
             
-            // 如果技能已冷却完毕且开启了自动释放，尝试释放技能
-            if (skill.cooldown_remaining === 0 && skill.is_auto_attacking) {
-                this.tryAutoUseSkill(skill);
-            }
+            // 移除自动使用技能的逻辑
+            // if (skill.cooldown_remaining === 0 && skill.is_auto_attacking) {
+            //     this.tryAutoUseSkill(skill);
+            // }
         });
         
         if (needsUpdate) {
@@ -1632,17 +1657,14 @@ class Game {
             return;
         }
         
-        // 切换自动释放状态
-        skillObj.is_auto_attacking = !skillObj.is_auto_attacking;
+        // 不再切换自动释放状态，始终设为false
+        skillObj.is_auto_attacking = false;
         
-        // 显示状态变更消息
-        const statusText = skillObj.is_auto_attacking ? '开启' : '关闭';
-        this.addMessage(`已${statusText}技能 ${skillObj.skill.name} 的自动释放`, 'info');
+        // 显示消息
+        this.addMessage(`技能 ${skillObj.skill.name} 无法设置自动释放`, 'warning');
         
         // 更新技能列表显示
         this.renderSkillsList();
-        
-        // 移除立即尝试使用技能的逻辑，只在攻击怪物时才会自动释放
     }
     
     // 攻击怪物
@@ -1658,8 +1680,8 @@ class Game {
                 timestamp: new Date().toISOString()
             });
             
-            // 在攻击怪物前，检查是否有技能可以自动释放
-            this.tryAutoReleaseSkills(monsterId);
+            // 移除在攻击怪物前检查是否有技能可以自动释放的逻辑
+            // this.tryAutoReleaseSkills(monsterId);
             
             const response = await axios.post('/api/monster/attack', { monster_id: monsterId });
             console.log('攻击怪物响应:', response.data);
@@ -2269,6 +2291,20 @@ class Game {
                 }
             }
             
+            // 更新地图上怪物的血条
+            const monsterElement = document.querySelector(`.monster[data-monster-id="${data.monster_id}"]`);
+            if (monsterElement) {
+                const hpBar = monsterElement.querySelector('.monster-hp-bar');
+                if (hpBar) {
+                    hpBar.style.width = `${data.hp_percentage}%`;
+                }
+                
+                const hpText = monsterElement.querySelector('.monster-hp-text');
+                if (hpText) {
+                    hpText.textContent = `${data.current_hp}/${monster.hp}`;
+                }
+            }
+            
             if (data.attacker_id !== this.character.id) {
                 this.addMessage(`${data.attacker_name}对${data.monster_name}造成${data.damage}点伤害`);
             }
@@ -2429,6 +2465,46 @@ class Game {
         }
         
         // ... existing code ...
+    }
+
+    // 直接攻击怪物（不弹出模态窗口）
+    async directAttackMonster(monsterId) {
+        try {
+            console.log('直接攻击怪物，ID:', monsterId);
+            
+            // 发送测试请求记录数据
+            await axios.post('/api/test/log', { 
+                action: 'direct_attack_monster',
+                monster_id: monsterId,
+                timestamp: new Date().toISOString()
+            });
+            
+            const response = await axios.post('/api/monster/attack', { monster_id: monsterId });
+            console.log('攻击怪物响应:', response.data);
+            
+            // 更新怪物信息
+            if (response.data.monster) {
+                const monster = this.monsters.find(m => m.id === parseInt(monsterId));
+                if (monster) {
+                    monster.current_hp = response.data.monster.current_hp;
+                    monster.hp_percentage = (response.data.monster.current_hp / response.data.monster.hp) * 100;
+                    
+                    // 检查怪物是否已死亡
+                    if (response.data.monster_killed) {
+                        monster.is_dead = true;
+                    }
+                    
+                    // 更新怪物显示（包括血条）
+                    this.updateMonsters();
+                }
+            }
+            
+            this.handleCombatResult(response.data);
+            
+        } catch (error) {
+            console.error('攻击失败:', error);
+            this.addMessage('攻击失败', 'error');
+        }
     }
 }
 
