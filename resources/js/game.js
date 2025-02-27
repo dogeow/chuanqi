@@ -686,8 +686,34 @@ class Game {
         playerElement.style.left = `${this.character.position_x}px`;
         playerElement.style.top = `${this.character.position_y}px`;
         
-        // 设置玩家名称和等级
-        playerElement.innerHTML = `${this.character.name} <span class="player-level">Lv.${this.character.level}</span>`;
+        // 创建名字和等级的容器
+        const nameContainer = document.createElement('div');
+        nameContainer.className = 'player-name-container';
+        
+        // 设置玩家名称
+        const nameElement = document.createElement('div');
+        nameElement.className = 'player-name';
+        nameElement.textContent = this.character.name;
+        
+        // 设置玩家等级
+        const levelElement = document.createElement('div');
+        levelElement.className = 'player-level';
+        levelElement.textContent = `Lv.${this.character.level}`;
+        
+        // 清空玩家元素内容
+        playerElement.innerHTML = '';
+        
+        // 添加名字和等级到容器
+        nameContainer.appendChild(levelElement);
+        nameContainer.appendChild(nameElement);
+       
+        // 添加容器到玩家元素
+        playerElement.appendChild(nameContainer);
+        
+        // 添加角色图标（logo）
+        const logoElement = document.createElement('div');
+        logoElement.className = 'player-logo';
+        playerElement.appendChild(logoElement);
         
         console.log(`更新玩家位置: (${this.character.position_x}, ${this.character.position_y}), CSS位置: left=${playerElement.style.left}, top=${playerElement.style.top}`);
     }
@@ -767,8 +793,31 @@ class Game {
             playerElement.className = 'player other-player';
             playerElement.dataset.playerId = player.id;
             
-            // 添加玩家名称和等级显示
-            playerElement.innerHTML = `${player.name} <span class="player-level">Lv.${player.level || 1}</span>`;
+            // 创建名字和等级的容器
+            const nameContainer = document.createElement('div');
+            nameContainer.className = 'player-name-container';
+            
+            // 设置玩家名称
+            const nameElement = document.createElement('div');
+            nameElement.className = 'player-name';
+            nameElement.textContent = player.name;
+            
+            // 设置玩家等级
+            const levelElement = document.createElement('div');
+            levelElement.className = 'player-level';
+            levelElement.textContent = `Lv.${player.level || 1}`;
+            
+            // 添加名字和等级到容器
+            nameContainer.appendChild(nameElement);
+            nameContainer.appendChild(levelElement);
+            
+            // 添加容器到玩家元素
+            playerElement.appendChild(nameContainer);
+            
+            // 添加角色图标（logo）
+            const logoElement = document.createElement('div');
+            logoElement.className = 'player-logo other-player-logo';
+            playerElement.appendChild(logoElement);
             
             // 添加玩家信息提示
             playerElement.title = `${player.name} (等级 ${player.level || 1})`;
