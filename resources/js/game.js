@@ -883,14 +883,19 @@ class Game {
         // 添加传送点
         const teleportPoints = this.currentMap.teleport_points || [];
         teleportPoints.forEach(point => {
-            console.log(point);
             const teleportElement = document.createElement('div');
             teleportElement.className = 'teleport-point';
             teleportElement.style.left = `${point.position_x || point.x}px`;
             teleportElement.style.top = `${point.position_y || point.y}px`;
             
             // 添加提示信息
-            teleportElement.title = `${point.name || '目标地图'}`;
+            teleportElement.title = `进入「${point.name || '目标地图'}」`;
+            
+            // 创建地图名称标签
+            const mapNameLabel = document.createElement('div');
+            mapNameLabel.className = 'teleport-map-name';
+            mapNameLabel.textContent = point.name || '目标地图';
+            teleportElement.appendChild(mapNameLabel);
             
             // 添加点击事件
             teleportElement.addEventListener('click', () => {

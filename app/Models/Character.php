@@ -149,7 +149,10 @@ class Character extends Model
      */
     public function getAttackMinAttribute()
     {
-        return $this->attack - 2;
+        $rand = rand(0, 20);
+        $diff = floor(($rand /100) * $this->attack);
+
+        return $this->attack - $diff;
     }
     
     /**
@@ -157,7 +160,10 @@ class Character extends Model
      */
     public function getAttackMaxAttribute()
     {
-        return $this->attack + 2;
+        $rand = rand(0, 20);
+        $diff = ceil(($rand / 100) * $this->attack);
+
+        return $this->attack + $diff;
     }
     
     /**
