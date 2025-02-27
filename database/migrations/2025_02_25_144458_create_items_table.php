@@ -26,6 +26,7 @@ return new class extends Migration
             $table->integer('sell_price')->default(0); // 出售价格
             $table->boolean('is_tradable')->default(true); // 是否可交易
             $table->boolean('is_consumable')->default(false); // 是否可消耗
+            $table->boolean('is_equippable')->default(false); // 是否可装备
             $table->string('image')->nullable(); // 物品图片
             $table->timestamps();
         });

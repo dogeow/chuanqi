@@ -26,6 +26,7 @@ class ItemsTableSeeder extends Seeder
                 'sell_price' => 5,
                 'is_tradable' => 1,
                 'is_consumable' => 1,
+                'is_equippable' => 0,
                 'image' => '🧪',
             ],
             [
@@ -39,6 +40,7 @@ class ItemsTableSeeder extends Seeder
                 'sell_price' => 12,
                 'is_tradable' => 1,
                 'is_consumable' => 1,
+                'is_equippable' => 0,
                 'image' => '🧪',
             ],
             [
@@ -52,6 +54,7 @@ class ItemsTableSeeder extends Seeder
                 'sell_price' => 25,
                 'is_tradable' => 1,
                 'is_consumable' => 1,
+                'is_equippable' => 0,
                 'image' => '🧪',
             ],
             [
@@ -65,6 +68,7 @@ class ItemsTableSeeder extends Seeder
                 'sell_price' => 6,
                 'is_tradable' => 1,
                 'is_consumable' => 1,
+                'is_equippable' => 0,
                 'image' => '🧫',
             ],
             [
@@ -78,6 +82,7 @@ class ItemsTableSeeder extends Seeder
                 'sell_price' => 15,
                 'is_tradable' => 1,
                 'is_consumable' => 1,
+                'is_equippable' => 0,
                 'image' => '🧫',
             ],
             [
@@ -91,6 +96,7 @@ class ItemsTableSeeder extends Seeder
                 'sell_price' => 30,
                 'is_tradable' => 1,
                 'is_consumable' => 1,
+                'is_equippable' => 0,
                 'image' => '🧫',
             ],
         ];
@@ -108,6 +114,7 @@ class ItemsTableSeeder extends Seeder
                 'sell_price' => 10,
                 'is_tradable' => 1,
                 'is_consumable' => 0,
+                'is_equippable' => 1,
                 'image' => '🗡️',
             ],
             [
@@ -121,6 +128,7 @@ class ItemsTableSeeder extends Seeder
                 'sell_price' => 50,
                 'is_tradable' => 1,
                 'is_consumable' => 0,
+                'is_equippable' => 1,
                 'image' => '⚔️',
             ],
             [
@@ -134,6 +142,7 @@ class ItemsTableSeeder extends Seeder
                 'sell_price' => 125,
                 'is_tradable' => 1,
                 'is_consumable' => 0,
+                'is_equippable' => 1,
                 'image' => '⚔️',
             ],
             [
@@ -147,6 +156,7 @@ class ItemsTableSeeder extends Seeder
                 'sell_price' => 300,
                 'is_tradable' => 1,
                 'is_consumable' => 0,
+                'is_equippable' => 1,
                 'image' => '❄️⚔️',
             ],
             [
@@ -160,6 +170,7 @@ class ItemsTableSeeder extends Seeder
                 'sell_price' => 750,
                 'is_tradable' => 1,
                 'is_consumable' => 0,
+                'is_equippable' => 1,
                 'image' => '🔥⚔️',
             ],
         ];
@@ -177,6 +188,7 @@ class ItemsTableSeeder extends Seeder
                 'sell_price' => 10,
                 'is_tradable' => 1,
                 'is_consumable' => 0,
+                'is_equippable' => 1,
                 'image' => '🪖',
             ],
             [
@@ -190,6 +202,7 @@ class ItemsTableSeeder extends Seeder
                 'sell_price' => 40,
                 'is_tradable' => 1,
                 'is_consumable' => 0,
+                'is_equippable' => 1,
                 'image' => '🪖',
             ],
             [
@@ -203,6 +216,7 @@ class ItemsTableSeeder extends Seeder
                 'sell_price' => 100,
                 'is_tradable' => 1,
                 'is_consumable' => 0,
+                'is_equippable' => 1,
                 'image' => '🪖',
             ],
             [
@@ -217,6 +231,7 @@ class ItemsTableSeeder extends Seeder
                 'sell_price' => 225,
                 'is_tradable' => 1,
                 'is_consumable' => 0,
+                'is_equippable' => 1,
                 'image' => '👑',
             ],
         ];
@@ -234,6 +249,7 @@ class ItemsTableSeeder extends Seeder
                 'sell_price' => 7,
                 'is_tradable' => 1,
                 'is_consumable' => 0,
+                'is_equippable' => 1,
                 'image' => '👢',
             ],
             [
@@ -247,6 +263,7 @@ class ItemsTableSeeder extends Seeder
                 'sell_price' => 30,
                 'is_tradable' => 1,
                 'is_consumable' => 0,
+                'is_equippable' => 1,
                 'image' => '👢',
             ],
             [
@@ -260,6 +277,7 @@ class ItemsTableSeeder extends Seeder
                 'sell_price' => 75,
                 'is_tradable' => 1,
                 'is_consumable' => 0,
+                'is_equippable' => 1,
                 'image' => '👢',
             ],
             [
@@ -273,6 +291,7 @@ class ItemsTableSeeder extends Seeder
                 'sell_price' => 200,
                 'is_tradable' => 1,
                 'is_consumable' => 0,
+                'is_equippable' => 1,
                 'image' => '🌪️👢',
             ],
         ];
@@ -290,6 +309,7 @@ class ItemsTableSeeder extends Seeder
                 'sell_price' => 15,
                 'is_tradable' => 1,
                 'is_consumable' => 0,
+                'is_equippable' => 1,
                 'image' => '🥋',
             ],
             [
@@ -303,6 +323,7 @@ class ItemsTableSeeder extends Seeder
                 'sell_price' => 60,
                 'is_tradable' => 1,
                 'is_consumable' => 0,
+                'is_equippable' => 1,
                 'image' => '🥋',
             ],
             [
@@ -316,6 +337,7 @@ class ItemsTableSeeder extends Seeder
                 'sell_price' => 150,
                 'is_tradable' => 1,
                 'is_consumable' => 0,
+                'is_equippable' => 1,
                 'image' => '🥋',
             ],
             [
@@ -330,6 +352,7 @@ class ItemsTableSeeder extends Seeder
                 'sell_price' => 375,
                 'is_tradable' => 1,
                 'is_consumable' => 0,
+                'is_equippable' => 1,
                 'image' => '🐉🥋',
             ],
         ];
@@ -347,6 +370,7 @@ class ItemsTableSeeder extends Seeder
                 'sell_price' => 12,
                 'is_tradable' => 1,
                 'is_consumable' => 0,
+                'is_equippable' => 1,
                 'image' => '💍',
             ],
             [
@@ -360,6 +384,7 @@ class ItemsTableSeeder extends Seeder
                 'sell_price' => 50,
                 'is_tradable' => 1,
                 'is_consumable' => 0,
+                'is_equippable' => 1,
                 'image' => '💍',
             ],
             [
@@ -373,6 +398,7 @@ class ItemsTableSeeder extends Seeder
                 'sell_price' => 125,
                 'is_tradable' => 1,
                 'is_consumable' => 0,
+                'is_equippable' => 1,
                 'image' => '💍',
             ],
             [
@@ -386,6 +412,7 @@ class ItemsTableSeeder extends Seeder
                 'sell_price' => 200,
                 'is_tradable' => 1,
                 'is_consumable' => 0,
+                'is_equippable' => 1,
                 'image' => '❤️💍',
             ],
             [
@@ -399,6 +426,7 @@ class ItemsTableSeeder extends Seeder
                 'sell_price' => 200,
                 'is_tradable' => 1,
                 'is_consumable' => 0,
+                'is_equippable' => 1,
                 'image' => '🔮💍',
             ],
         ];
@@ -416,6 +444,7 @@ class ItemsTableSeeder extends Seeder
                 'sell_price' => 12,
                 'is_tradable' => 1,
                 'is_consumable' => 0,
+                'is_equippable' => 1,
                 'image' => '⚪',
             ],
             [
@@ -429,6 +458,7 @@ class ItemsTableSeeder extends Seeder
                 'sell_price' => 50,
                 'is_tradable' => 1,
                 'is_consumable' => 0,
+                'is_equippable' => 1,
                 'image' => '⚪',
             ],
             [
@@ -442,6 +472,7 @@ class ItemsTableSeeder extends Seeder
                 'sell_price' => 125,
                 'is_tradable' => 1,
                 'is_consumable' => 0,
+                'is_equippable' => 1,
                 'image' => '⚪',
             ],
             [
@@ -455,6 +486,7 @@ class ItemsTableSeeder extends Seeder
                 'sell_price' => 200,
                 'is_tradable' => 1,
                 'is_consumable' => 0,
+                'is_equippable' => 1,
                 'image' => '💪⚪',
             ],
         ];
@@ -472,6 +504,7 @@ class ItemsTableSeeder extends Seeder
                 'sell_price' => 10,
                 'is_tradable' => 1,
                 'is_consumable' => 0,
+                'is_equippable' => 1,
                 'image' => '🧣',
             ],
             [
@@ -485,6 +518,7 @@ class ItemsTableSeeder extends Seeder
                 'sell_price' => 40,
                 'is_tradable' => 1,
                 'is_consumable' => 0,
+                'is_equippable' => 1,
                 'image' => '🧣',
             ],
             [
@@ -499,6 +533,7 @@ class ItemsTableSeeder extends Seeder
                 'sell_price' => 100,
                 'is_tradable' => 1,
                 'is_consumable' => 0,
+                'is_equippable' => 1,
                 'image' => '🧝‍♀️🧣',
             ],
             [
@@ -512,6 +547,7 @@ class ItemsTableSeeder extends Seeder
                 'sell_price' => 500,
                 'is_tradable' => 1,
                 'is_consumable' => 0,
+                'is_equippable' => 1,
                 'image' => '👻🧣',
             ],
         ];

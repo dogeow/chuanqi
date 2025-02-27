@@ -1310,7 +1310,7 @@ class Game {
             }
         } catch (error) {
             console.error('装备物品失败:', error);
-            this.addMessage('装备物品失败');
+            this.addMessage(error.response.data.message || '装备物品失败');
         }
     }
     
