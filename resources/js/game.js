@@ -6,6 +6,10 @@ class Game {
         this.shops = [];
         this.otherPlayers = [];
         
+        // 自动攻击相关变量
+        this.isAutoAttacking = false;
+        this.currentAttackingMonsterId = null;
+        
         // 初始化DOM元素引用
         this.initDomElements();
         
@@ -206,6 +210,9 @@ class Game {
                 
                 console.log(`地图点击事件: (${x}, ${y})`);
                 
+                // 停止自动攻击
+                this.stopAutoAttack();
+                
                 // 移动角色到点击位置
                 this.moveCharacter(x, y);
             });
@@ -234,6 +241,8 @@ class Game {
             // 注意：传送点点击事件已在 updateTeleportPoints 方法中为每个传送点单独添加
             // 移除此处的事件监听器，避免重复触发
         }
+        
+        // 技能点击事件已移除，技能只作展示用途
         
         // 物品点击事件
         if (this.inventoryList) {
@@ -825,7 +834,6 @@ class Game {
         this.skills = skills.map(skill => {
             return {
                 ...skill,
-                is_auto_attacking: false, // 始终设为false，不再支持自动释放
                 cooldown_remaining: 0, // 添加冷却时间剩余
                 last_used: null // 添加上次使用时间
             };
@@ -847,9 +855,6 @@ class Game {
             const cooldownDisplay = skill.cooldown_remaining > 0 ? 
                 `<div class="skill-cooldown">${skill.cooldown_remaining}秒</div>` : '';
             
-            // 移除自动释放相关的CSS类
-            // const autoClass = skill.is_auto_attacking ? 'skill-auto-active' : '';
-            
             return `
                 <div class="skill" data-skill-id="${skill.id}">
                     <div class="skill-icon">${skill.skill.icon || '技'}</div>
@@ -858,7 +863,6 @@ class Game {
                         <div>MP消耗：${skill.skill.mp_cost}</div>
                         ${cooldownDisplay}
                     </div>
-                    <!-- 移除自动释放指示器 -->
                 </div>
             `;
         }).join('');
@@ -873,56 +877,10 @@ class Game {
                 skill.cooldown_remaining--;
                 needsUpdate = true;
             }
-            
-            // 移除自动使用技能的逻辑
-            // if (skill.cooldown_remaining === 0 && skill.is_auto_attacking) {
-            //     this.tryAutoUseSkill(skill);
-            // }
         });
         
         if (needsUpdate) {
             this.renderSkillsList();
-        }
-    }
-    
-    // 尝试自动释放技能
-    async tryAutoUseSkill(skill) {
-        // 检查是否有怪物可以攻击
-        if (!this.monsters || this.monsters.length === 0) {
-            return;
-        }
-        
-        // 找到最近的活着的怪物
-        const liveMonsters = this.monsters.filter(m => !m.is_dead);
-        if (liveMonsters.length === 0) {
-            return;
-        }
-        
-        // 简单地选择第一个活着的怪物作为目标
-        const targetMonster = liveMonsters[0];
-        
-        // 使用技能攻击怪物
-        try {
-            await this.useSkill(skill.id, targetMonster.id);
-        } catch (error) {
-            console.error('自动释放技能失败:', error);
-        }
-    }
-    
-    // 在攻击怪物时尝试释放所有设置为自动的技能
-    async tryAutoReleaseSkills(monsterId) {
-        // 获取所有设置为自动释放的技能
-        const autoSkills = this.skills.filter(s => s.is_auto_attacking && s.cooldown_remaining === 0);
-        
-        // 如果有可用的自动技能，依次释放
-        for (const skill of autoSkills) {
-            try {
-                await this.useSkill(skill.id, monsterId);
-                // 短暂延迟，避免同时释放多个技能导致的问题
-                await new Promise(resolve => setTimeout(resolve, 100));
-            } catch (error) {
-                console.error(`自动释放技能 ${skill.skill.name} 失败:`, error);
-            }
         }
     }
     
@@ -1083,671 +1041,6 @@ class Game {
                 });
             }
         });
-    }
-    
-    // 获取物品属性HTML
-    getItemAttributesHTML(item) {
-        if (!item) return '';
-        
-        let attributesHTML = '<div class="item-tooltip-attributes">';
-        
-        // 添加物品类型
-        if (item.type) {
-            attributesHTML += `<div class="item-attribute">类型: ${this.getItemTypeName(item.type)}</div>`;
-        }
-        
-        // 添加物品稀有度
-        if (item.rarity) {
-            attributesHTML += `<div class="item-attribute item-rarity-${item.rarity}">稀有度: ${this.getItemRarityName(item.rarity)}</div>`;
-        }
-        
-        // 添加物品属性加成
-        if (item.hp_bonus > 0) attributesHTML += `<div class="item-attribute item-bonus">生命值: +${item.hp_bonus}</div>`;
-        if (item.mp_bonus > 0) attributesHTML += `<div class="item-attribute item-bonus">魔法值: +${item.mp_bonus}</div>`;
-        if (item.attack_bonus > 0) attributesHTML += `<div class="item-attribute item-bonus">攻击力: +${item.attack_bonus}</div>`;
-        if (item.defense_bonus > 0) attributesHTML += `<div class="item-attribute item-bonus">防御力: +${item.defense_bonus}</div>`;
-        
-        // 添加物品价值
-        if (item.price > 0) {
-            attributesHTML += `<div class="item-attribute">价值: ${item.price}金币</div>`;
-        }
-        
-        attributesHTML += '</div>';
-        return attributesHTML;
-    }
-    
-    // 获取物品类型名称
-    getItemTypeName(type) {
-        const typeNames = {
-            'weapon': '武器',
-            'armor': '护甲',
-            'accessory': '饰品',
-            'consumable': '消耗品',
-            'material': '材料',
-            'quest': '任务物品',
-            'skill_book': '技能书',
-            'equipment': '装备'
-        };
-        return typeNames[type] || type;
-    }
-    
-    // 获取物品稀有度名称
-    getItemRarityName(rarity) {
-        const rarityNames = {
-            '1': '普通',
-            '2': '优秀',
-            '3': '精良',
-            '4': '稀有',
-            '5': '史诗',
-            '6': '传说'
-        };
-        return rarityNames[rarity] || rarity;
-    }
-    
-    // 定位弹出窗口
-    positionTooltip(tooltip, event) {
-        const padding = 10;
-        const tooltipWidth = tooltip.offsetWidth;
-        const tooltipHeight = tooltip.offsetHeight;
-        
-        // 计算位置，避免超出视口
-        let left = event.clientX + padding;
-        let top = event.clientY + padding;
-        
-        // 检查右边界
-        if (left + tooltipWidth > window.innerWidth) {
-            left = event.clientX - tooltipWidth - padding;
-        }
-        
-        // 检查下边界
-        if (top + tooltipHeight > window.innerHeight) {
-            top = event.clientY - tooltipHeight - padding;
-        }
-        
-        // 设置位置
-        tooltip.style.left = `${left}px`;
-        tooltip.style.top = `${top}px`;
-    }
-    
-    // 更新传送点显示
-    updateTeleportPoints() {
-        if (!this.gameMap || !this.currentMap) {
-            console.warn('无法更新传送点: gameMap或currentMap为空');
-            return;
-        }
-        
-        // 清除现有传送点、地图标签和地图指示器
-        document.querySelectorAll('.teleport-point, .map-label, .map-indicator').forEach(element => element.remove());
-        
-        // 确保传送点数据是数组
-        let teleportPoints = [];
-        
-        // 如果传送点是字符串，尝试解析它
-        if (typeof this.currentMap.teleport_points === 'string') {
-            try {
-                teleportPoints = JSON.parse(this.currentMap.teleport_points);
-                console.log('已解析传送点数据:', teleportPoints);
-            } catch (error) {
-                console.error('解析传送点数据失败:', error);
-                this.addMessage('解析传送点数据失败', 'error');
-            }
-        } else if (Array.isArray(this.currentMap.teleport_points)) {
-            teleportPoints = this.currentMap.teleport_points;
-        } else {
-            console.warn('传送点数据格式不正确:', this.currentMap.teleport_points);
-            this.addMessage('此地图上没有有效的传送点数据', 'warning');
-            return;
-        }
-        
-        // 添加传送点
-        if (teleportPoints.length > 0) {
-            console.log(`正在添加${teleportPoints.length}个传送点`);
-            
-            teleportPoints.forEach(point => {
-                const teleportElement = document.createElement('div');
-                teleportElement.className = 'teleport-point';
-                teleportElement.style.left = `${point.x}px`;
-                teleportElement.style.top = `${point.y}px`;
-                
-                // 获取目标地图名称
-                const targetMapName = point.target_map_name || `地图${point.target_map_id}`;
-                
-                // 添加点击事件
-                teleportElement.dataset.targetMapId = point.target_map_id;
-                teleportElement.dataset.targetX = point.target_x;
-                teleportElement.dataset.targetY = point.target_y;
-                teleportElement.addEventListener('click', () => {
-                    this.showTeleportConfirm(point.target_map_id, point.target_x, point.target_y, targetMapName);
-                });
-                
-                // 添加提示信息
-                teleportElement.title = `传送到${targetMapName}`;
-                
-                this.gameMap.appendChild(teleportElement);
-                // 减少日志输出，只在调试模式下显示详细信息
-                // console.log(`已添加传送点: ${point.x}, ${point.y} -> 地图${point.target_map_id}(${targetMapName})`);
-                
-                // 添加地图标签
-                const mapLabel = document.createElement('div');
-                mapLabel.className = 'map-label';
-                mapLabel.textContent = targetMapName;
-                mapLabel.style.left = `${point.x}px`;
-                mapLabel.style.top = `${point.y - 10}px`;
-                this.gameMap.appendChild(mapLabel);
-            });
-            
-            // 添加调试消息
-            this.addMessage(`此地图上有${teleportPoints.length}个传送点`, 'info');
-        } else {
-            console.warn('没有传送点数据');
-            this.addMessage('此地图上没有传送点', 'info');
-        }
-        
-        // 添加当前地图名称指示器
-        const mapIndicator = document.createElement('div');
-        mapIndicator.className = 'map-indicator';
-        mapIndicator.textContent = `当前地图: ${this.currentMap.name}`;
-        this.gameMap.appendChild(mapIndicator);
-    }
-    
-    // 显示传送确认
-    showTeleportConfirm(targetMapId, targetX, targetY, targetMapName) {
-        // 显示传送确认消息
-        this.addMessage(`准备传送到${targetMapName}...`, 'system');
-        
-        // 创建一个过渡动画元素
-        let transitionEl = document.querySelector('.map-transition');
-        if (!transitionEl) {
-            transitionEl = document.createElement('div');
-            transitionEl.className = 'map-transition';
-            transitionEl.innerHTML = `<div class="loading-text">正在加载 ${targetMapName}...</div>`;
-            document.body.appendChild(transitionEl);
-        } else {
-            transitionEl.innerHTML = `<div class="loading-text">正在加载 ${targetMapName}...</div>`;
-        }
-        
-        // 激活过渡动画，但使用较短的淡入时间
-        setTimeout(() => { 
-            transitionEl.classList.add('active');
-            
-            // 执行传送，减少等待时间
-            setTimeout(async () => {
-                await this.teleportToMap(targetMapId, targetX, targetY);
-                
-                // 传送完成后立即开始淡出动画
-                transitionEl.classList.remove('active');
-            }, 300);
-        }, 50);
-    }
-    
-    // 传送到其他地图
-    async teleportToMap(targetMapId, targetX, targetY) {
-        try {
-            // 验证目标坐标，如果是 undefined 则设置为 null
-            const validTargetX = targetX !== undefined ? targetX : null;
-            const validTargetY = targetY !== undefined ? targetY : null;
-            
-            // 显示传送动画
-            this.showTeleportingEffect();
-            
-            // 预先加载目标地图数据，避免切换后再加载导致的延迟
-            const response = await axios.post('/api/map/change', { 
-                map_id: targetMapId,
-                target_x: validTargetX,
-                target_y: validTargetY
-            });
-            
-            // 更新角色信息和地图
-            this.character = response.data.character;
-            this.currentMap = response.data.map;
-            
-            // 重新加载地图数据（这会调用 updateMap）
-            await this.loadMapData();
-            
-            // 移除重复调用
-            // this.updateMap();
-            
-            // 显示传送成功消息
-            this.addMessage(`成功传送到${this.currentMap.name}`, 'success');
-            
-            // 如果角色等级低于地图要求，显示警告
-            if (this.character.level < this.currentMap.level_required) {
-                this.addMessage(`警告: 您的等级低于地图要求(${this.currentMap.level_required}级)，将面临更大危险！`, 'warning');
-            }
-            
-            // 播放传送完成动画
-            this.showTeleportCompleteEffect();
-            
-            // 确保地图容器可见
-            const gameMapContainer = document.querySelector('.game-map-container');
-            if (gameMapContainer) {
-                gameMapContainer.style.display = 'block';
-            }
-        } catch (error) {
-            console.error('传送失败:', error);
-            if (error.response) {
-                console.error('错误状态码:', error.response.status);
-                console.error('错误数据:', error.response.data);
-                
-                // 检查是否因等级问题无法传送
-                if (error.response.data && error.response.data.message) {
-                    this.addMessage(`传送失败: ${error.response.data.message}`, 'error');
-                    return;
-                }
-            }
-            this.addMessage('传送失败，请重试', 'error');
-            
-            // 移除过渡动画
-            const transitionEl = document.querySelector('.map-transition');
-            if (transitionEl) {
-                transitionEl.classList.remove('active');
-            }
-        }
-    }
-    
-    // 显示传送中动画效果
-    showTeleportingEffect() {
-        const player = document.getElementById('player');
-        if (player) {
-            player.classList.add('teleporting');
-            
-            // 2秒后移除动画效果
-            setTimeout(() => {
-                player.classList.remove('teleporting');
-            }, 2000);
-        }
-    }
-    
-    // 显示传送完成效果
-    showTeleportCompleteEffect() {
-        const player = document.getElementById('player');
-        if (player) {
-            player.classList.add('teleport-complete');
-            
-            // 1秒后移除动画效果
-            setTimeout(() => {
-                player.classList.remove('teleport-complete');
-            }, 1000);
-        }
-    }
-    
-    // 移动角色
-    async moveCharacter(x, y) {
-        // 检查是否有角色数据
-        if (!this.character) {
-            console.error('无法移动角色：角色数据不存在');
-            return;
-        }
-        
-        // 检查是否在传送中
-        if (this.isTeleporting) {
-            console.log('角色正在传送中，忽略移动请求');
-            return;
-        }
-        
-        console.log(`尝试移动角色到坐标: (${x}, ${y})`);
-        
-        try {
-            // 正常移动
-            const response = await axios.post('/api/character/move', { 
-                x: x, 
-                y: y,
-                map_id: this.character.current_map_id || this.character.map_id // 添加地图ID
-            });
-            console.log('移动成功，服务器响应:', response.data);
-            
-            // 更新角色数据
-            if (response.data.character) {
-                this.character = response.data.character;
-                console.log(`角色位置已更新为: (${this.character.position_x}, ${this.character.position_y})`);
-                this.updatePlayerPosition();
-            }
-        } catch (error) {
-            console.error('移动失败:', error);
-            if (error.response) {
-                console.error('错误状态码:', error.response.status);
-                console.error('错误数据:', error.response.data);
-                
-                // 如果是等级不够的错误
-                if (error.response.data && error.response.data.message && 
-                    error.response.data.message.includes('等级不够')) {
-                    this.addMessage(error.response.data.message, 'error');
-                    return;
-                }
-            }
-            this.addMessage('移动失败', 'error');
-        }
-    }
-    
-    // 检查是否在传送点上
-    checkTeleportPoint(x, y) {
-        if (!this.currentMap || !this.currentMap.teleport_points) {
-            return null;
-        }
-        
-        // 检测距离，如果在传送点30px范围内就触发传送
-        const teleportRange = 30;
-        const teleportPoint = Array.isArray(this.currentMap.teleport_points) ? 
-            this.currentMap.teleport_points.find(point => {
-                const distance = Math.sqrt(
-                    Math.pow(point.x - x, 2) + 
-                    Math.pow(point.y - y, 2)
-                );
-                return distance <= teleportRange;
-            }) : null;
-            
-        return teleportPoint;
-    }
-    
-    // 显示怪物模态窗口
-    async showMonsterModal(monsterId) {
-        try {
-            const monster = this.monsters.find(m => m.id === parseInt(monsterId));
-            if (!monster) {
-                console.error('未找到怪物:', monsterId);
-                return;
-            }
-            
-            console.log('显示怪物信息:', monster);
-            
-            const monsterModal = document.getElementById('monster-modal');
-            const monsterNameEl = document.getElementById('monster-name');
-            const monsterLevelEl = document.getElementById('monster-level');
-            const monsterHpEl = document.getElementById('monster-hp');
-            const monsterHpBarEl = document.getElementById('monster-hp-bar');
-            const attackBtnEl = document.getElementById('attack-btn');
-            const skillBtnEl = document.getElementById('skill-btn');
-            const autoAttackBtnEl = document.getElementById('auto-attack-btn');
-            
-            monsterModal.dataset.monsterId = monster.id;
-            monsterNameEl.textContent = monster.name;
-            monsterLevelEl.textContent = `等级 ${monster.level}`;
-            monsterHpEl.textContent = `${monster.current_hp}/${monster.hp}`;
-            monsterHpBarEl.style.width = `${monster.hp_percentage}%`;
-            
-            // 重置自动攻击状态
-            this.isAutoAttacking = false;
-            if (autoAttackBtnEl) {
-                autoAttackBtnEl.textContent = '自动攻击';
-                autoAttackBtnEl.classList.remove('active');
-            }
-            
-            monsterModal.style.display = 'block';
-        } catch (error) {
-            console.error('显示怪物信息失败:', error);
-        }
-    }
-    
-    // 显示商店模态框
-    async showShopModal(shopId) {
-        try {
-            const response = await axios.get(`/api/shop/${shopId}`);
-            const shop = response.data.shop;
-            const shopItems = response.data.shop_items;
-            
-            const shopNameEl = document.getElementById('shop-name');
-            const shopItemsEl = document.getElementById('shop-items');
-            const shopModal = document.getElementById('shop-modal');
-            
-            if (!shopNameEl || !shopItemsEl || !shopModal) {
-                console.error('商店模态框元素未找到');
-                return;
-            }
-            
-            // 获取最新的角色金币数量
-            const characterResponse = await axios.get('/api/character');
-            this.character.gold = characterResponse.data.gold || 0;
-            
-            // 显示商店名称和玩家当前金币
-            shopNameEl.innerHTML = `${shop.name}您的金币: ${this.character.gold}`;
-            
-            shopItemsEl.innerHTML = shopItems.map(item => {
-                // 检查玩家是否有足够的金币购买该物品
-                const canAfford = this.character.gold >= item.price;
-                const affordClass = canAfford ? 'can-afford' : 'cannot-afford';
-                
-                return `
-                <div class="shop-item ${affordClass}" data-shop-item-id="${item.id}" data-price="${item.price}">
-                    <div class="shop-item-header">
-                        <div class="shop-item-icon">${item.item.image || '物'}</div>
-                        <div class="shop-item-name">${item.item.name}</div>
-                    </div>
-                    <div class="shop-item-details">
-                        <div class="shop-item-description">${item.item.description || ''}</div>
-                        <div class="shop-item-price">价格：${item.price}金币 ${!canAfford ? '<span class="not-enough">(金币不足)</span>' : ''}</div>
-                    </div>
-                    <div class="shop-item-actions">
-                        <div class="quantity-selector">
-                            <button class="quantity-btn" data-quantity="1">x1</button>
-                            <button class="quantity-btn" data-quantity="10">x10</button>
-                            <button class="quantity-btn" data-quantity="100">x100</button>
-                        </div>
-                        <button class="btn buy-btn ${!canAfford ? 'disabled' : ''}" 
-                                ${!canAfford ? 'title="金币不足"' : ''} 
-                                data-shop-item-id="${item.id}">
-                            购买
-                        </button>
-                    </div>
-                </div>
-                `;
-            }).join('');
-            
-            // 添加购买数量选择事件
-            const quantityBtns = shopItemsEl.querySelectorAll('.quantity-btn');
-            quantityBtns.forEach(btn => {
-                btn.addEventListener('click', (e) => {
-                    // 移除同级按钮的选中状态
-                    const parent = e.target.parentElement;
-                    parent.querySelectorAll('.quantity-btn').forEach(b => b.classList.remove('selected'));
-                    
-                    // 添加当前按钮的选中状态
-                    e.target.classList.add('selected');
-                    
-                    // 设置购买按钮的数量属性
-                    const shopItem = e.target.closest('.shop-item');
-                    const buyBtn = shopItem.querySelector('.buy-btn');
-                    const quantity = parseInt(e.target.dataset.quantity);
-                    const price = parseInt(shopItem.dataset.price);
-                    
-                    // 更新按钮状态
-                    buyBtn.dataset.quantity = quantity;
-                    
-                    // 检查是否有足够的金币购买指定数量
-                    const totalPrice = price * quantity;
-                    const canAfford = this.character.gold >= totalPrice;
-                    
-                    if (canAfford) {
-                        buyBtn.classList.remove('disabled');
-                        buyBtn.removeAttribute('title');
-                    } else {
-                        buyBtn.classList.add('disabled');
-                        buyBtn.setAttribute('title', '金币不足');
-                    }
-                });
-            });
-            
-            // 默认选中x1数量
-            quantityBtns.forEach(btn => {
-                if (btn.dataset.quantity === '1') {
-                    btn.click();
-                }
-            });
-            
-            // 添加购买按钮事件
-            const buyBtns = shopItemsEl.querySelectorAll('.buy-btn');
-            buyBtns.forEach(btn => {
-                btn.addEventListener('click', (e) => {
-                    if (btn.classList.contains('disabled')) return;
-                    
-                    const shopItemId = parseInt(btn.dataset.shopItemId);
-                    const quantity = parseInt(btn.dataset.quantity || 1);
-                    
-                    this.buyItem(shopItemId, quantity);
-                });
-            });
-            
-            shopModal.style.display = 'block';
-            
-            // 添加购买提示信息
-            this.addMessage(`您正在浏览${shop.name}，您有${this.character.gold}金币可用于购买`);
-        } catch (error) {
-            console.error('获取商店信息失败:', error);
-            this.addMessage('获取商店信息失败');
-        }
-    }
-    
-    // 显示物品模态框
-    showItemModal(itemId) {
-        // 这个方法现在不再需要显示模态框，因为我们在弹出窗口中处理物品操作
-        console.log('物品操作已移至弹出窗口，不再需要模态框');
-        // 不再显示模态框
-        return;
-        
-        // 以下代码保留但不执行
-        const inventoryItem = this.inventory.find(i => i.id === parseInt(itemId));
-        if (!inventoryItem) return;
-        
-        const itemNameEl = document.getElementById('item-name');
-        const itemDetailsEl = document.getElementById('item-details');
-        const itemActionsEl = document.getElementById('item-actions');
-        const itemModal = document.getElementById('item-modal');
-        
-        if (!itemNameEl || !itemDetailsEl || !itemActionsEl || !itemModal) {
-            console.error('物品模态框元素未找到');
-            return;
-        }
-        
-        itemNameEl.textContent = inventoryItem.item.name;
-        itemDetailsEl.innerHTML = `
-            <p>${inventoryItem.item.description}</p>
-            <p>数量：${inventoryItem.quantity}</p>
-        `;
-        
-        const actions = [];
-        if (inventoryItem.item.is_consumable) {
-            actions.push(`<button class="btn" onclick="game.useItem(${itemId})">使用</button>`);
-        }
-        if (inventoryItem.item.type === 'equipment') {
-            if (inventoryItem.is_equipped) {
-                actions.push(`<button class="btn" onclick="game.unequipItem(${itemId})">卸下</button>`);
-            } else {
-                actions.push(`<button class="btn" onclick="game.equipItem(${itemId})">装备</button>`);
-            }
-        }
-        actions.push(`<button class="btn" onclick="game.dropItem(${itemId})">丢弃</button>`);
-        
-        itemActionsEl.innerHTML = actions.join('');
-        itemModal.style.display = 'block';
-    }
-    
-    // 攻击怪物
-    async attackMonster() {
-        const monsterId = document.getElementById('monster-modal').dataset.monsterId;
-        try {
-            console.log('开始攻击怪物，ID:', monsterId);
-            
-            // 发送测试请求记录数据
-            await axios.post('/api/test/log', { 
-                action: 'attack_monster',
-                monster_id: monsterId,
-                timestamp: new Date().toISOString()
-            });
-            
-            // 移除在攻击怪物前检查是否有技能可以自动释放的逻辑
-            // this.tryAutoReleaseSkills(monsterId);
-            
-            const response = await axios.post('/api/monster/attack', { monster_id: monsterId });
-            console.log('攻击怪物响应:', response.data);
-            
-            // 更新怪物信息
-            if (response.data.monster) {
-                const monster = this.monsters.find(m => m.id === parseInt(monsterId));
-                if (monster) {
-                    console.log('更新前怪物数据:', { ...monster });
-                    monster.current_hp = response.data.monster.current_hp;
-                    monster.hp_percentage = (response.data.monster.current_hp / response.data.monster.hp) * 100;
-                    
-                    // 检查怪物是否已死亡
-                    if (response.data.monster_killed) {
-                        monster.is_dead = true;
-                        // 停止自动攻击
-                        this.isAutoAttacking = false;
-                    }
-                    
-                    console.log('更新后怪物数据:', { ...monster });
-                    
-                    // 更新怪物模态窗口中的血量显示
-                    const monsterModal = document.getElementById('monster-modal');
-                    if (monsterModal && monsterModal.style.display === 'block') {
-                        const monsterHpElement = monsterModal.querySelector('.monster-hp');
-                        if (monsterHpElement) {
-                            console.log('更新怪物血量文本:', `${response.data.monster.current_hp}/${response.data.monster.hp}`);
-                            monsterHpElement.textContent = `${response.data.monster.current_hp}/${response.data.monster.hp}`;
-                        } else {
-                            console.error('未找到怪物血量元素');
-                        }
-                        
-                        const monsterHpBar = monsterModal.querySelector('.monster-hp-bar');
-                        if (monsterHpBar) {
-                            console.log('更新怪物血量条宽度:', `${monster.hp_percentage}%`);
-                            monsterHpBar.style.width = `${monster.hp_percentage}%`;
-                        } else {
-                            console.error('未找到怪物血量条元素');
-                        }
-                    }
-                }
-            }
-            
-            this.handleCombatResult(response.data);
-            
-            // 如果开启了自动攻击且怪物没有死亡，继续攻击
-            if (this.isAutoAttacking && !response.data.monster_killed && !response.data.character_died) {
-                setTimeout(() => this.attackMonster(), 1000); // 每秒攻击一次
-            }
-        } catch (error) {
-            console.error('攻击失败:', error);
-            this.addMessage('攻击失败', 'error');
-            // 如果攻击失败但仍在自动攻击模式，尝试继续
-            if (this.isAutoAttacking) {
-                setTimeout(() => this.attackMonster(), 2000); // 失败后2秒再试
-            }
-        }
-    }
-    
-    // 切换自动攻击状态
-    toggleAutoAttack() {
-        this.isAutoAttacking = !this.isAutoAttacking;
-        const autoAttackBtn = document.getElementById('auto-attack-btn');
-        
-        if (this.isAutoAttacking) {
-            autoAttackBtn.textContent = '停止自动';
-            autoAttackBtn.classList.add('active');
-            this.addMessage('已开启自动攻击', 'system');
-            this.attackMonster(); // 立即开始第一次攻击
-        } else {
-            autoAttackBtn.textContent = '自动攻击';
-            autoAttackBtn.classList.remove('active');
-            this.addMessage('已停止自动攻击', 'system');
-        }
-    }
-    
-    // 使用技能
-    async useSkill(skillId, monsterId) {
-        try {
-            const response = await axios.post('/api/skill/use', {
-                skill_id: skillId,
-                monster_id: monsterId
-            });
-            this.handleCombatResult(response.data);
-            
-            const skillSelectModal = document.getElementById('skill-select-modal');
-            if (skillSelectModal) {
-                skillSelectModal.style.display = 'none';
-            }
-        } catch (error) {
-            console.error('使用技能失败:', error);
-            this.addMessage('使用技能失败');
-        }
     }
     
     // 购买物品
@@ -2445,6 +1738,13 @@ class Game {
         try {
             console.log('直接攻击怪物，ID:', monsterId);
             
+            // 保存当前攻击的怪物ID
+            this.currentAttackingMonsterId = monsterId;
+            
+            // 开启自动攻击
+            this.isAutoAttacking = true;
+            this.addMessage('开始自动攻击怪物', 'system');
+            
             // 发送测试请求记录数据
             await axios.post('/api/test/log', { 
                 action: 'direct_attack_monster',
@@ -2465,6 +1765,15 @@ class Game {
                     // 检查怪物是否已死亡
                     if (response.data.monster_killed) {
                         monster.is_dead = true;
+                        // 怪物已死亡，停止自动攻击
+                        this.isAutoAttacking = false;
+                    } else {
+                        // 怪物未死亡，继续自动攻击
+                        setTimeout(() => {
+                            if (this.isAutoAttacking && this.currentAttackingMonsterId === monsterId) {
+                                this.directAttackMonster(monsterId);
+                            }
+                        }, 1000); // 每秒攻击一次
                     }
                     
                     // 更新怪物显示（包括血条）
@@ -2477,7 +1786,109 @@ class Game {
         } catch (error) {
             console.error('攻击失败:', error);
             this.addMessage('攻击失败', 'error');
+            
+            // 如果攻击失败但仍在自动攻击模式，尝试继续
+            if (this.isAutoAttacking && this.currentAttackingMonsterId) {
+                setTimeout(() => {
+                    if (this.isAutoAttacking) {
+                        this.directAttackMonster(this.currentAttackingMonsterId);
+                    }
+                }, 2000); // 失败后2秒再试
+            }
         }
+    }
+
+    // 停止自动攻击
+    stopAutoAttack() {
+        if (this.isAutoAttacking) {
+            this.isAutoAttacking = false;
+            this.currentAttackingMonsterId = null;
+            this.addMessage('停止自动攻击', 'system');
+        }
+    }
+
+    // 获取物品属性HTML
+    getItemAttributesHTML(item) {
+        if (!item) return '';
+        
+        let attributesHTML = '<div class="item-tooltip-attributes">';
+        
+        // 添加物品类型
+        if (item.type) {
+            attributesHTML += `<div class="item-attribute">类型: ${this.getItemTypeName(item.type)}</div>`;
+        }
+        
+        // 添加物品稀有度
+        if (item.rarity) {
+            attributesHTML += `<div class="item-attribute item-rarity-${item.rarity}">稀有度: ${this.getItemRarityName(item.rarity)}</div>`;
+        }
+        
+        // 添加物品属性加成
+        if (item.hp_bonus > 0) attributesHTML += `<div class="item-attribute item-bonus">生命值: +${item.hp_bonus}</div>`;
+        if (item.mp_bonus > 0) attributesHTML += `<div class="item-attribute item-bonus">魔法值: +${item.mp_bonus}</div>`;
+        if (item.attack_bonus > 0) attributesHTML += `<div class="item-attribute item-bonus">攻击力: +${item.attack_bonus}</div>`;
+        if (item.defense_bonus > 0) attributesHTML += `<div class="item-attribute item-bonus">防御力: +${item.defense_bonus}</div>`;
+        
+        // 添加物品价值
+        if (item.price > 0) {
+            attributesHTML += `<div class="item-attribute">价值: ${item.price}金币</div>`;
+        }
+        
+        attributesHTML += '</div>';
+        return attributesHTML;
+    }
+    
+    // 获取物品类型名称
+    getItemTypeName(type) {
+        const typeNames = {
+            'weapon': '武器',
+            'armor': '护甲',
+            'accessory': '饰品',
+            'consumable': '消耗品',
+            'material': '材料',
+            'quest': '任务物品',
+            'skill_book': '技能书',
+            'equipment': '装备'
+        };
+        return typeNames[type] || type;
+    }
+    
+    // 获取物品稀有度名称
+    getItemRarityName(rarity) {
+        const rarityNames = {
+            '1': '普通',
+            '2': '优秀',
+            '3': '精良',
+            '4': '稀有',
+            '5': '史诗',
+            '6': '传说'
+        };
+        return rarityNames[rarity] || rarity;
+    }
+    
+    // 定位弹出窗口
+    positionTooltip(tooltip, event) {
+        const padding = 10;
+        const tooltipWidth = tooltip.offsetWidth;
+        const tooltipHeight = tooltip.offsetHeight;
+        
+        // 计算位置，避免超出视口
+        let left = event.clientX + padding;
+        let top = event.clientY + padding;
+        
+        // 检查右边界
+        if (left + tooltipWidth > window.innerWidth) {
+            left = event.clientX - tooltipWidth - padding;
+        }
+        
+        // 检查下边界
+        if (top + tooltipHeight > window.innerHeight) {
+            top = event.clientY - tooltipHeight - padding;
+        }
+        
+        // 设置位置
+        tooltip.style.left = `${left}px`;
+        tooltip.style.top = `${top}px`;
     }
 }
 
