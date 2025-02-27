@@ -177,17 +177,7 @@ class GameController extends Controller
             $otherPlayers = Character::where('current_map_id', $mapId)
                 ->where('id', '!=', $character->id)
                 ->where('updated_at', '>', now()->subMinutes(5)) // 只获取5分钟内活跃的角色
-                ->select('id', 'name', 'level', 'position_x', 'position_y')
                 ->get();
-
-            // 记录调试信息
-            \Log::info('地图数据请求', [
-                'map_id' => $mapId,
-                'character_id' => $character->id,
-                'other_players_count' => $otherPlayers->count(),
-                'monsters_count' => $monsters->count(),
-                'shops_count' => $shops->count()
-            ]);
             
             // 返回完整地图数据
             return response()->json([
