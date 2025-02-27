@@ -70,27 +70,57 @@ class InventoryController extends Controller
         }
 
         $item = $inventoryItem->item;
-
-        // 检查物品是否可使用
-        if ($item->type != 'consumable') {
-            return response()->json([
-                'success' => false,
-                'message' => '该物品不可使用'
-            ], 400);
-        }
-
-        // 应用物品效果
-        $effects = json_decode($item->effects, true);
         $message = '使用了' . $item->name;
 
-        if (isset($effects['hp'])) {
-            $character->current_hp = min($character->max_hp, $character->current_hp + $effects['hp']);
-            $message .= '，恢复了' . $effects['hp'] . '点生命值';
-        }
+        // 根据物品类型应用不同效果
+        if ($item->type == 'skill_book') {
+            // 技能书逻辑
+            $skillId = $item->skill_id;
+            
+            // 检查角色是否已学习该技能
+            $existingSkill = \App\Models\CharacterSkill::where('character_id', $character->id)
+                ->where('skill_id', $skillId)
+                ->first();
+                
+            if ($existingSkill) {
+                return response()->json([
+                    'success' => false,
+                    'message' => '已经学习了该技能'
+                ], 400);
+            }
+            
+            // 获取技能信息
+            $skill = \App\Models\Skill::find($skillId);
+            
+            // 检查角色等级是否满足要求
+            if ($character->level < $skill->level_required) {
+                return response()->json([
+                    'success' => false,
+                    'message' => '角色等级不足，无法学习该技能'
+                ], 400);
+            }
+            
+            // 学习技能
+            $characterSkill = new \App\Models\CharacterSkill();
+            $characterSkill->character_id = $character->id;
+            $characterSkill->skill_id = $skillId;
+            $characterSkill->level = 1;
+            $characterSkill->save();
+            
+            $message .= '，学会了技能：' . $skill->name;
+        } else {
+            // 应用物品效果
+            $effects = json_decode($item->effects, true);
 
-        if (isset($effects['mp'])) {
-            $character->current_mp = min($character->max_mp, $character->current_mp + $effects['mp']);
-            $message .= '，恢复了' . $effects['mp'] . '点魔法值';
+            if (isset($effects['hp'])) {
+                $character->current_hp = min($character->max_hp, $character->current_hp + $effects['hp']);
+                $message .= '，恢复了' . $effects['hp'] . '点生命值';
+            }
+
+            if (isset($effects['mp'])) {
+                $character->current_mp = min($character->max_mp, $character->current_mp + $effects['mp']);
+                $message .= '，恢复了' . $effects['mp'] . '点魔法值';
+            }
         }
 
         // 更新角色状态
