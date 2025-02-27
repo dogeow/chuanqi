@@ -932,16 +932,6 @@ class Game {
                         itemDesc.className = 'shop-item-desc';
                         itemDesc.textContent = item.item.description || '无描述';
                         
-                        // 物品类型
-                        const itemType = document.createElement('div');
-                        itemType.className = 'shop-item-type';
-                        itemType.textContent = `类型: ${this.getItemTypeName(item.item.type)}`;
-                        
-                        // 物品稀有度
-                        const itemRarity = document.createElement('div');
-                        itemRarity.className = 'shop-item-rarity';
-                        itemRarity.textContent = `稀有度: ${this.getItemRarityName(item.item.rarity) || '未知'}`;
-                        
                         // 物品属性
                         const itemAttrs = document.createElement('div');
                         itemAttrs.className = 'shop-item-attrs';
@@ -1039,8 +1029,6 @@ class Game {
                         // 将所有元素添加到物品元素中
                         itemElement.appendChild(itemName);
                         itemElement.appendChild(itemDesc);
-                        itemElement.appendChild(itemType);
-                        itemElement.appendChild(itemRarity);
                         itemElement.appendChild(itemAttrs);
                         itemElement.appendChild(itemPrice);
                         itemElement.appendChild(quantitySelector);

@@ -776,16 +776,6 @@ body {
 @keyframes spin {
     to { transform: rotate(360deg); }
 }
-
-/* 地图管理界面样式开始，这部分需要被删除 */
-.map-admin-panel, .admin-header, .admin-header h2, .close-admin, .close-admin:hover, 
-.admin-section, .admin-section h3, .form-group, .form-group label, 
-.form-group input, .form-group select, .form-group input:focus, .form-group select:focus,
-.admin-btn, .admin-btn:hover, .teleport-list, .map-teleports, .map-teleports h4,
-.map-teleports ul, .map-teleports li, .map-teleports li:last-child,
-.delete-teleport, .delete-teleport:hover {
-    /* 将地图管理样式设置为空，等同于移除 */
-}
 /* 地图管理界面样式结束 */
 
 /* 新的垂直侧边栏样式 */

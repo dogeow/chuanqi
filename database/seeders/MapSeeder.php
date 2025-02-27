@@ -30,9 +30,9 @@ class MapSeeder extends Seeder
                 ['x' => 300, 'y' => 300],
             ]),
             'teleport_points' => json_encode([
-                ['x' => 750, 'y' => 100, 'target_map_id' => 2, 'target_x' => 50, 'target_y' => 400, 'name' => '幽暗森林'],
-                ['x' => 750, 'y' => 200, 'target_map_id' => 3, 'target_x' => 50, 'target_y' => 200, 'name' => '古老矿洞'],
-                ['x' => 750, 'y' => 300, 'target_map_id' => 4, 'target_x' => 50, 'target_y' => 400, 'name' => '炽热沙漠'],
+                ['x' => 950, 'y' => 100, 'target_map_id' => 2, 'target_x' => 50, 'target_y' => 400, 'name' => '幽暗森林'],
+                ['x' => 950, 'y' => 200, 'target_map_id' => 3, 'target_x' => 50, 'target_y' => 200, 'name' => '古老矿洞'],
+                ['x' => 950, 'y' => 300, 'target_map_id' => 4, 'target_x' => 50, 'target_y' => 400, 'name' => '炽热沙漠'],
             ]),
         ]);
 
@@ -42,8 +42,8 @@ class MapSeeder extends Seeder
             'description' => '茂密的森林，阳光难以穿透树冠，隐藏着各种危险生物。',
             'level_required' => 5,
             'type' => 'normal',
-            'width' => 1200,
-            'height' => 900,
+            'width' => 1000,
+            'height' => 600,
             'background_image' => 'maps/forest.jpg',
             'spawn_points' => json_encode([
                 ['x' => 150, 'y' => 150],
@@ -52,7 +52,7 @@ class MapSeeder extends Seeder
             ]),
             'teleport_points' => json_encode([
                 ['x' => 50, 'y' => 400, 'target_map_id' => 1, 'target_x' => 750, 'target_y' => 400, 'name' => '新手村'],
-                ['x' => 750, 'y' => 400, 'target_map_id' => 3, 'target_x' => 50, 'target_y' => 400, 'name' => '古老矿洞'],
+                ['x' => 950, 'y' => 400, 'target_map_id' => 3, 'target_x' => 50, 'target_y' => 400, 'name' => '古老矿洞'],
             ]),
         ]);
 
@@ -63,7 +63,7 @@ class MapSeeder extends Seeder
             'level_required' => 10,
             'type' => 'dungeon',
             'width' => 1000,
-            'height' => 800,
+            'height' => 600,
             'background_image' => 'maps/cave.jpg',
             'spawn_points' => json_encode([
                 ['x' => 100, 'y' => 200],
@@ -73,7 +73,7 @@ class MapSeeder extends Seeder
             'teleport_points' => json_encode([
                 ['x' => 50, 'y' => 200, 'target_map_id' => 1, 'target_x' => 750, 'target_y' => 200, 'name' => '新手村'],
                 ['x' => 50, 'y' => 400, 'target_map_id' => 2, 'target_x' => 750, 'target_y' => 400, 'name' => '幽暗森林'],
-                ['x' => 750, 'y' => 400, 'target_map_id' => 4, 'target_x' => 750, 'target_y' => 200, 'name' => '炽热沙漠'],
+                ['x' => 950, 'y' => 400, 'target_map_id' => 4, 'target_x' => 750, 'target_y' => 200, 'name' => '炽热沙漠'],
             ]),
         ]);
 
@@ -83,8 +83,8 @@ class MapSeeder extends Seeder
             'description' => '一片荒芜的沙漠，白天烈日炎炎，夜晚寒冷刺骨，隐藏着远古的遗迹。',
             'level_required' => 15,
             'type' => 'normal',
-            'width' => 1400,
-            'height' => 1000,
+            'width' => 1000,
+            'height' => 600,
             'background_image' => 'maps/desert.jpg',
             'spawn_points' => json_encode([
                 ['x' => 200, 'y' => 200],
@@ -93,7 +93,7 @@ class MapSeeder extends Seeder
             ]),
             'teleport_points' => json_encode([
                 ['x' => 50, 'y' => 400, 'target_map_id' => 1, 'target_x' => 750, 'target_y' => 500, 'name' => '新手村'],
-                ['x' => 750, 'y' => 200, 'target_map_id' => 3, 'target_x' => 750, 'target_y' => 400, 'name' => '古老矿洞'],
+                ['x' => 950, 'y' => 200, 'target_map_id' => 3, 'target_x' => 750, 'target_y' => 400, 'name' => '古老矿洞'],
             ]),
         ]);
     }
