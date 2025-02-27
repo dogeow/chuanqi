@@ -425,8 +425,6 @@ body {
     background-color: #333;
     padding: 20px;
     border-radius: 8px;
-    width: 400px;
-    max-width: 90%;
 }
 
 .modal-header {
@@ -1197,7 +1195,7 @@ body {
     padding: 10px;
     background-color: #444;
     border-radius: 8px;
-    border-left: 4px solid transparent;
+    border: 2px solid transparent;
     transition: all 0.3s ease;
 }
 
@@ -1206,11 +1204,11 @@ body {
 }
 
 .can-afford {
-    border-left: 4px solid #2ecc71;
+    border: 2px solid #2ecc71;
 }
 
 .cannot-afford {
-    border-left: 4px solid #e74c3c;
+    border: 2px solid #e74c3c;
     opacity: 0.8;
 }
 
