@@ -259,8 +259,8 @@ class ShopController extends Controller
         $totalSellPrice = round($sellPrice * $request->quantity);
 
         // 增加金币
-        $user->gold += $totalSellPrice;
-        $user->save();
+        $character->gold += $totalSellPrice;
+        $character->save();
 
         // 减少物品数量
         $inventoryItem->quantity -= $request->quantity;

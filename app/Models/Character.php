@@ -165,12 +165,4 @@ class Character extends Model
 
         return $this->attack + $diff;
     }
-    
-    /**
-     * 获取金币的访问器
-     */
-    public function getGoldAttribute()
-    {
-        return $this->user->gold;
-    }
 }

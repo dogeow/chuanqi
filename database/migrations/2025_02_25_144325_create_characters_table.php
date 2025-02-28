@@ -15,6 +15,7 @@ return new class extends Migration
             $table->id();
             $table->unsignedBigInteger('user_id');
             $table->string('name');
+            $table->integer('gold')->default(0);
             $table->integer('level')->default(1);
             $table->integer('exp')->default(0);
             $table->integer('base_hp')->default(100);

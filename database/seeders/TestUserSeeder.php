@@ -25,7 +25,6 @@ class TestUserSeeder extends Seeder
             'name' => '测试玩家',
             'email' => 'test@example.com',
             'password' => Hash::make('password'),
-            'gold' => 1000,
         ]);
 
         // 创建角色
@@ -33,6 +32,7 @@ class TestUserSeeder extends Seeder
             'user_id' => $user->id,
             'name' => '测试角色',
             'level' => 1,
+            'gold' => 0,
             'exp' => 0,
             'max_hp' => 100,
             'current_hp' => 100,
@@ -50,13 +50,13 @@ class TestUserSeeder extends Seeder
             'name' => '测试玩家2',
             'email' => 'test2@example.com',
             'password' => Hash::make('password'),
-            'gold' => 1000,
         ]);
 
         // 创建第二个角色
         Character::create([
             'user_id' => $user2->id,
             'name' => '测试角色2',
+            'gold' => 0,
             'level' => 1,
             'exp' => 0,
             'max_hp' => 100,

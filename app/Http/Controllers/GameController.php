@@ -45,6 +45,7 @@ class GameController extends Controller
             // 如果用户没有角色，自动创建一个
             $character = new Character([
                 'name' => $user->name . '的角色',
+                'gold' => 0,
                 'level' => 1,
                 'exp' => 0,
                 'max_hp' => 100,
@@ -63,7 +64,6 @@ class GameController extends Controller
             return response()->json([
                 'success' => true,
                 'character' => $character,
-                'gold' => $user->gold ?? 0,
                 'message' => '已为您创建新角色'
             ]);
         }
@@ -71,7 +71,6 @@ class GameController extends Controller
         return response()->json([
             'success' => true,
             'character' => $character,
-            'gold' => $user->gold ?? 0
         ]);
     }
 
@@ -373,7 +372,7 @@ class GameController extends Controller
             $goldGained = $monster->gold_reward;
             
             $character->exp += $expGained;
-            $user->gold += $goldGained;
+            $character->gold += $goldGained;
             $user->save();
             
             // 检查是否升级
