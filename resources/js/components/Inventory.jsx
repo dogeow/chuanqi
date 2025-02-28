@@ -1,9 +1,11 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { useGame } from '../context/GameContext.jsx';
 
 function Inventory() {
     const { character, inventory, useItem, equipItem, unequipItem, dropItem } = useGame();
     const [activeTooltip, setActiveTooltip] = useState(null);
+    const [tooltipPosition, setTooltipPosition] = useState({ top: 0, left: 0 });
+    const tooltipRef = useRef(null);
     
     // 关闭物品提示框
     const closeTooltip = () => {
@@ -27,6 +29,28 @@ function Inventory() {
     // 处理物品点击
     const handleItemClick = (item, e) => {
         e.stopPropagation();
+        
+        // 计算提示框位置
+        const rect = e.currentTarget.getBoundingClientRect();
+        const position = {
+            left: rect.right + 10, // 在物品右侧显示
+            top: rect.top
+        };
+        
+        // 检查是否会超出屏幕右侧
+        if (position.left + 250 > window.innerWidth) { // 假设提示框宽度为250px
+            position.left = rect.left - 260; // 在物品左侧显示
+        }
+        
+        // 检查是否会超出屏幕底部
+        if (tooltipRef.current) {
+            const tooltipHeight = tooltipRef.current.offsetHeight;
+            if (position.top + tooltipHeight > window.innerHeight) {
+                position.top = window.innerHeight - tooltipHeight - 10;
+            }
+        }
+        
+        setTooltipPosition(position);
         setActiveTooltip(item);
     };
     
@@ -80,6 +104,16 @@ function Inventory() {
         return item && item.type && ['weapon', 'armor', 'accessory'].includes(item.type);
     };
     
+    // 判断角色是否可以装备该物品
+    const canEquipItem = (item) => {
+        if (!isEquippableItem(item)) return false;
+        
+        // 这里可以添加更多的装备条件判断，比如等级要求、职业要求等
+        // 例如：if (character.level < item.level_required) return false;
+        
+        return true;
+    };
+    
     if (!inventory || inventory.length === 0) {
         return <div id="inventory-list" className="inventory-empty">背包为空</div>;
     }
@@ -96,17 +130,25 @@ function Inventory() {
                     <div className="item-icon">{item.item.image || '📦'}</div>
                     {item.quantity > 1 && <span className="item-badge">{item.quantity}</span>}
                     {item.is_equipped && <span className="item-equipped">已装备</span>}
+                    {!item.is_equipped && isEquippableItem(item.item) && 
+                        <span className={`item-equippable ${canEquipItem(item.item) ? 'can-equip' : 'cannot-equip'}`}>
+                            {canEquipItem(item.item) ? '可装备' : '不可装备'}
+                        </span>
+                    }
                 </div>
             ))}
             
             {activeTooltip && (
-                <div className="item-tooltip" style={{
-                    position: 'fixed',
-                    top: '50%',
-                    left: '50%',
-                    transform: 'translate(-50%, -50%)',
-                    zIndex: 1000
-                }}>
+                <div 
+                    ref={tooltipRef}
+                    className="item-tooltip" 
+                    style={{
+                        position: 'fixed',
+                        top: `${tooltipPosition.top}px`,
+                        left: `${tooltipPosition.left}px`,
+                        zIndex: 1000
+                    }}
+                >
                     <div className="item-tooltip-header">
                         <div className="item-tooltip-icon">
                             {activeTooltip.item.image || '📦'}
@@ -134,6 +176,12 @@ function Inventory() {
                         <div className="item-tooltip-equipped">已装备</div>
                     )}
                     
+                    {!activeTooltip.is_equipped && isEquippableItem(activeTooltip.item) && (
+                        <div className={`item-tooltip-equippable ${canEquipItem(activeTooltip.item) ? 'can-equip' : 'cannot-equip'}`}>
+                            {canEquipItem(activeTooltip.item) ? '可装备此物品' : '不满足装备条件'}
+                        </div>
+                    )}
+                    
                     <div className="item-tooltip-actions">
                         {activeTooltip.item.is_consumable && (
                             <button 
@@ -151,6 +199,7 @@ function Inventory() {
                                     activeTooltip.is_equipped ? 'unequip' : 'equip', 
                                     activeTooltip.id
                                 )}
+                                disabled={!activeTooltip.is_equipped && !canEquipItem(activeTooltip.item)}
                             >
                                 {activeTooltip.is_equipped ? '卸下' : '装备'}
                             </button>

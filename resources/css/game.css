@@ -1246,6 +1246,28 @@ body {
     border: 1px solid #333;
 }
 
+/* 物品可装备状态标签 */
+.item-equippable {
+    position: absolute;
+    bottom: -5px;
+    left: -5px;
+    color: white;
+    border-radius: 3px;
+    font-size: 8px;
+    padding: 2px;
+    line-height: 1;
+    border: 1px solid #333;
+    white-space: nowrap;
+}
+
+.item-equippable.can-equip {
+    background-color: #2196F3;
+}
+
+.item-equippable.cannot-equip {
+    background-color: #e74c3c;
+}
+
 /* 物品弹出窗口样式 */
 .item-tooltip {
     position: fixed;
@@ -2287,4 +2309,27 @@ kbd {
     background-color: #2a2a2a;
     border-color: #444;
     color: #777;
+}
+
+/* 物品提示框中的可装备状态 */
+.item-tooltip-equippable {
+    margin-top: 8px;
+    font-weight: bold;
+    border-top: 1px solid #555;
+    padding-top: 5px;
+}
+
+.item-tooltip-equippable.can-equip {
+    color: #2196F3;
+}
+
+.item-tooltip-equippable.cannot-equip {
+    color: #e74c3c;
+}
+
+/* 禁用的装备按钮 */
+.item-action-btn:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+    background-color: #555;
 } 
