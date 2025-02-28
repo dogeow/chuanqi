@@ -392,10 +392,8 @@ function GameMap() {
                 {/* 添加小地图指示器 */}
                 <div className="mini-map" style={{
                     position: 'fixed',
-                    bottom: '10px',
-                    right: '10px',
-                    width: '150px',
-                    height: '150px',
+                    width: '100px',
+                    height: '100px',
                     backgroundColor: 'rgba(0, 0, 0, 0.7)',
                     border: '2px solid #444',
                     borderRadius: '5px',

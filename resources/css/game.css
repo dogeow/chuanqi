@@ -315,7 +315,6 @@ body {
 }
 
 .game-map-container {
-    flex: 1;
     position: relative;
     overflow: auto;
     background-color: #2d2d2d;
@@ -1110,15 +1109,6 @@ body {
     overflow-y: auto;
 }
 
-/* 消息容器 */
-.messages-container {
-    height: 150px;
-    background-color: #333;
-    padding: 10px;
-    border-top: 1px solid #444;
-    overflow-y: auto;
-}
-
 .messages {
     padding: 10px;
     background-color: #444;
@@ -1637,13 +1627,6 @@ body {
     overflow: hidden;
 }
 
-/* 游戏地图容器 */
-.game-map-container {
-    flex: 1;
-    position: relative;
-    overflow: hidden;
-}
-
 /* 游戏地图 */
 .game-map {
     width: 100%;
@@ -1660,6 +1643,13 @@ body {
     background-color: rgba(0, 0, 0, 0.7);
     border-top: 1px solid #333;
     padding: 10px;
+}
+
+/* 移动设备消息列表容器 */
+@media (max-width: 768px) {
+    .messages-container {
+        height: 100%;
+    }
 }
 
 /* 游戏控制按钮 */
@@ -1794,6 +1784,7 @@ body {
     .game-content {
         flex: 1;
         height: 100vh;
+        flex-direction: row;
     }
     
     .game-controls {
