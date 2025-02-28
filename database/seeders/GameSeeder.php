@@ -10,6 +10,7 @@ use App\Models\Item;
 use App\Models\ShopItem;
 use App\Models\Skill;
 use App\Models\DropRate;
+use Illuminate\Support\Facades\DB;
 
 class GameSeeder extends Seeder
 {
@@ -346,6 +347,565 @@ class GameSeeder extends Seeder
             'image' => 'items/wooden_sword.png',
         ]);
 
+        // 消耗品
+        $consumables = [
+            [
+                'name' => '初级生命药水',
+                'description' => '恢复50点生命值',
+                'type' => 'consumable',
+                'rarity' => 'common',
+                'level_required' => 1,
+                'hp_bonus' => 50,
+                'buy_price' => 20,
+                'sell_price' => 5,
+                'is_tradable' => 1,
+                'is_consumable' => 1,
+                'is_equippable' => 0,
+                'image' => '🧪',
+            ],
+            [
+                'name' => '中级生命药水',
+                'description' => '恢复150点生命值',
+                'type' => 'consumable',
+                'rarity' => 'uncommon',
+                'level_required' => 5,
+                'hp_bonus' => 150,
+                'buy_price' => 50,
+                'sell_price' => 12,
+                'is_tradable' => 1,
+                'is_consumable' => 1,
+                'is_equippable' => 0,
+                'image' => '🧪',
+            ],
+            [
+                'name' => '高级生命药水',
+                'description' => '恢复300点生命值',
+                'type' => 'consumable',
+                'rarity' => 'rare',
+                'level_required' => 10,
+                'hp_bonus' => 300,
+                'buy_price' => 100,
+                'sell_price' => 25,
+                'is_tradable' => 1,
+                'is_consumable' => 1,
+                'is_equippable' => 0,
+                'image' => '🧪',
+            ],
+            [
+                'name' => '初级魔法药水',
+                'description' => '恢复30点魔法值',
+                'type' => 'consumable',
+                'rarity' => 'common',
+                'level_required' => 1,
+                'mp_bonus' => 30,
+                'buy_price' => 25,
+                'sell_price' => 6,
+                'is_tradable' => 1,
+                'is_consumable' => 1,
+                'is_equippable' => 0,
+                'image' => '🧫',
+            ],
+            [
+                'name' => '中级魔法药水',
+                'description' => '恢复100点魔法值',
+                'type' => 'consumable',
+                'rarity' => 'uncommon',
+                'level_required' => 5,
+                'mp_bonus' => 100,
+                'buy_price' => 60,
+                'sell_price' => 15,
+                'is_tradable' => 1,
+                'is_consumable' => 1,
+                'is_equippable' => 0,
+                'image' => '🧫',
+            ],
+            [
+                'name' => '高级魔法药水',
+                'description' => '恢复200点魔法值',
+                'type' => 'consumable',
+                'rarity' => 'rare',
+                'level_required' => 10,
+                'mp_bonus' => 200,
+                'buy_price' => 120,
+                'sell_price' => 30,
+                'is_tradable' => 1,
+                'is_consumable' => 1,
+                'is_equippable' => 0,
+                'image' => '🧫',
+            ],
+        ];
+
+        // 武器
+        $weapons = [
+            [
+                'name' => '新手木剑',
+                'description' => '新手常用的木制剑，攻击力较低',
+                'type' => 'weapon',
+                'rarity' => 'common',
+                'level_required' => 1,
+                'attack_bonus' => 5,
+                'buy_price' => 50,
+                'sell_price' => 10,
+                'is_tradable' => 1,
+                'is_consumable' => 0,
+                'is_equippable' => 1,
+                'image' => '🗡️',
+            ],
+            [
+                'name' => '铁制长剑',
+                'description' => '普通铁匠打造的长剑，坚固耐用',
+                'type' => 'weapon',
+                'rarity' => 'common',
+                'level_required' => 5,
+                'attack_bonus' => 15,
+                'buy_price' => 200,
+                'sell_price' => 50,
+                'is_tradable' => 1,
+                'is_consumable' => 0,
+                'is_equippable' => 1,
+                'image' => '⚔️',
+            ],
+            [
+                'name' => '精钢大剑',
+                'description' => '使用精钢打造的大剑，攻击力显著提升',
+                'type' => 'weapon',
+                'rarity' => 'uncommon',
+                'level_required' => 10,
+                'attack_bonus' => 30,
+                'buy_price' => 500,
+                'sell_price' => 125,
+                'is_tradable' => 1,
+                'is_consumable' => 0,
+                'is_equippable' => 1,
+                'image' => '⚔️',
+            ],
+            [
+                'name' => '寒冰之刃',
+                'description' => '蕴含冰元素的魔法剑，可冻结敌人',
+                'type' => 'weapon',
+                'rarity' => 'rare',
+                'level_required' => 15,
+                'attack_bonus' => 45,
+                'buy_price' => 1200,
+                'sell_price' => 300,
+                'is_tradable' => 1,
+                'is_consumable' => 0,
+                'is_equippable' => 1,
+                'image' => '❄️⚔️',
+            ],
+            [
+                'name' => '炎龙之怒',
+                'description' => '传说中由龙息锻造的神剑，蕴含强大火元素力量',
+                'type' => 'weapon',
+                'rarity' => 'epic',
+                'level_required' => 20,
+                'attack_bonus' => 70,
+                'buy_price' => 3000,
+                'sell_price' => 750,
+                'is_tradable' => 1,
+                'is_consumable' => 0,
+                'is_equippable' => 1,
+                'image' => '🔥⚔️',
+            ],
+        ];
+
+        // 头盔
+        $helmets = [
+            [
+                'name' => '皮革头盔',
+                'description' => '简单的皮革头盔，提供基础防护',
+                'type' => 'helmet',
+                'rarity' => 'common',
+                'level_required' => 1,
+                'defense_bonus' => 3,
+                'buy_price' => 40,
+                'sell_price' => 10,
+                'is_tradable' => 1,
+                'is_consumable' => 0,
+                'is_equippable' => 1,
+                'image' => '🪖',
+            ],
+            [
+                'name' => '铁制头盔',
+                'description' => '铁匠打造的坚固头盔',
+                'type' => 'helmet',
+                'rarity' => 'common',
+                'level_required' => 5,
+                'defense_bonus' => 8,
+                'buy_price' => 160,
+                'sell_price' => 40,
+                'is_tradable' => 1,
+                'is_consumable' => 0,
+                'is_equippable' => 1,
+                'image' => '🪖',
+            ],
+            [
+                'name' => '精钢头盔',
+                'description' => '使用精钢打造的头盔，提供优秀防护',
+                'type' => 'helmet',
+                'rarity' => 'uncommon',
+                'level_required' => 10,
+                'defense_bonus' => 15,
+                'buy_price' => 400,
+                'sell_price' => 100,
+                'is_tradable' => 1,
+                'is_consumable' => 0,
+                'is_equippable' => 1,
+                'image' => '🪖',
+            ],
+            [
+                'name' => '智慧之冠',
+                'description' => '蕴含魔法力量的头盔，增加魔法值',
+                'type' => 'helmet',
+                'rarity' => 'rare',
+                'level_required' => 15,
+                'defense_bonus' => 20,
+                'mp_bonus' => 50,
+                'buy_price' => 900,
+                'sell_price' => 225,
+                'is_tradable' => 1,
+                'is_consumable' => 0,
+                'is_equippable' => 1,
+                'image' => '👑',
+            ],
+        ];
+
+        // 靴子
+        $boots = [
+            [
+                'name' => '皮革靴子',
+                'description' => '简单的皮革靴子，提供基础防护',
+                'type' => 'boots',
+                'rarity' => 'common',
+                'level_required' => 1,
+                'defense_bonus' => 2,
+                'buy_price' => 30,
+                'sell_price' => 7,
+                'is_tradable' => 1,
+                'is_consumable' => 0,
+                'is_equippable' => 1,
+                'image' => '👢',
+            ],
+            [
+                'name' => '铁制战靴',
+                'description' => '铁匠打造的坚固战靴',
+                'type' => 'boots',
+                'rarity' => 'common',
+                'level_required' => 5,
+                'defense_bonus' => 6,
+                'buy_price' => 120,
+                'sell_price' => 30,
+                'is_tradable' => 1,
+                'is_consumable' => 0,
+                'is_equippable' => 1,
+                'image' => '👢',
+            ],
+            [
+                'name' => '精钢战靴',
+                'description' => '使用精钢打造的战靴，提供优秀防护',
+                'type' => 'boots',
+                'rarity' => 'uncommon',
+                'level_required' => 10,
+                'defense_bonus' => 12,
+                'buy_price' => 300,
+                'sell_price' => 75,
+                'is_tradable' => 1,
+                'is_consumable' => 0,
+                'is_equippable' => 1,
+                'image' => '👢',
+            ],
+            [
+                'name' => '疾风之靴',
+                'description' => '附魔的靴子，提高移动速度',
+                'type' => 'boots',
+                'rarity' => 'rare',
+                'level_required' => 15,
+                'defense_bonus' => 18,
+                'buy_price' => 800,
+                'sell_price' => 200,
+                'is_tradable' => 1,
+                'is_consumable' => 0,
+                'is_equippable' => 1,
+                'image' => '🌪️👢',
+            ],
+        ];
+
+        // 衣服/胸甲
+        $armors = [
+            [
+                'name' => '皮革护甲',
+                'description' => '简单的皮革护甲，提供基础防护',
+                'type' => 'armor',
+                'rarity' => 'common',
+                'level_required' => 1,
+                'defense_bonus' => 5,
+                'buy_price' => 60,
+                'sell_price' => 15,
+                'is_tradable' => 1,
+                'is_consumable' => 0,
+                'is_equippable' => 1,
+                'image' => '🥋',
+            ],
+            [
+                'name' => '铁制胸甲',
+                'description' => '铁匠打造的坚固胸甲',
+                'type' => 'armor',
+                'rarity' => 'common',
+                'level_required' => 5,
+                'defense_bonus' => 12,
+                'buy_price' => 240,
+                'sell_price' => 60,
+                'is_tradable' => 1,
+                'is_consumable' => 0,
+                'is_equippable' => 1,
+                'image' => '🥋',
+            ],
+            [
+                'name' => '精钢板甲',
+                'description' => '使用精钢打造的板甲，提供优秀防护',
+                'type' => 'armor',
+                'rarity' => 'uncommon',
+                'level_required' => 10,
+                'defense_bonus' => 25,
+                'buy_price' => 600,
+                'sell_price' => 150,
+                'is_tradable' => 1,
+                'is_consumable' => 0,
+                'is_equippable' => 1,
+                'image' => '🥋',
+            ],
+            [
+                'name' => '龙鳞胸甲',
+                'description' => '使用龙鳞制作的胸甲，提供极佳防护',
+                'type' => 'armor',
+                'rarity' => 'rare',
+                'level_required' => 15,
+                'defense_bonus' => 40,
+                'hp_bonus' => 100,
+                'buy_price' => 1500,
+                'sell_price' => 375,
+                'is_tradable' => 1,
+                'is_consumable' => 0,
+                'is_equippable' => 1,
+                'image' => '🐉🥋',
+            ],
+        ];
+
+        // 戒指
+        $rings = [
+            [
+                'name' => '铜戒指',
+                'description' => '普通的铜戒指，略微增加攻击力',
+                'type' => 'ring',
+                'rarity' => 'common',
+                'level_required' => 1,
+                'attack_bonus' => 2,
+                'buy_price' => 50,
+                'sell_price' => 12,
+                'is_tradable' => 1,
+                'is_consumable' => 0,
+                'is_equippable' => 1,
+                'image' => '💍',
+            ],
+            [
+                'name' => '银戒指',
+                'description' => '银制戒指，增加攻击力',
+                'type' => 'ring',
+                'rarity' => 'uncommon',
+                'level_required' => 5,
+                'attack_bonus' => 5,
+                'buy_price' => 200,
+                'sell_price' => 50,
+                'is_tradable' => 1,
+                'is_consumable' => 0,
+                'is_equippable' => 1,
+                'image' => '💍',
+            ],
+            [
+                'name' => '金戒指',
+                'description' => '金制戒指，显著增加攻击力',
+                'type' => 'ring',
+                'rarity' => 'rare',
+                'level_required' => 10,
+                'attack_bonus' => 10,
+                'buy_price' => 500,
+                'sell_price' => 125,
+                'is_tradable' => 1,
+                'is_consumable' => 0,
+                'is_equippable' => 1,
+                'image' => '💍',
+            ],
+            [
+                'name' => '生命戒指',
+                'description' => '蕴含生命能量的戒指，增加生命值',
+                'type' => 'ring',
+                'rarity' => 'rare',
+                'level_required' => 15,
+                'hp_bonus' => 100,
+                'buy_price' => 800,
+                'sell_price' => 200,
+                'is_tradable' => 1,
+                'is_consumable' => 0,
+                'is_equippable' => 1,
+                'image' => '❤️💍',
+            ],
+            [
+                'name' => '魔法戒指',
+                'description' => '蕴含魔法能量的戒指，增加魔法值',
+                'type' => 'ring',
+                'rarity' => 'rare',
+                'level_required' => 15,
+                'mp_bonus' => 80,
+                'buy_price' => 800,
+                'sell_price' => 200,
+                'is_tradable' => 1,
+                'is_consumable' => 0,
+                'is_equippable' => 1,
+                'image' => '🔮💍',
+            ],
+        ];
+
+        // 手镯
+        $bracelets = [
+            [
+                'name' => '铜手镯',
+                'description' => '普通的铜手镯，略微增加防御力',
+                'type' => 'bracelet',
+                'rarity' => 'common',
+                'level_required' => 1,
+                'defense_bonus' => 2,
+                'buy_price' => 50,
+                'sell_price' => 12,
+                'is_tradable' => 1,
+                'is_consumable' => 0,
+                'is_equippable' => 1,
+                'image' => '⚪',
+            ],
+            [
+                'name' => '银手镯',
+                'description' => '银制手镯，增加防御力',
+                'type' => 'bracelet',
+                'rarity' => 'uncommon',
+                'level_required' => 5,
+                'defense_bonus' => 5,
+                'buy_price' => 200,
+                'sell_price' => 50,
+                'is_tradable' => 1,
+                'is_consumable' => 0,
+                'is_equippable' => 1,
+                'image' => '⚪',
+            ],
+            [
+                'name' => '金手镯',
+                'description' => '金制手镯，显著增加防御力',
+                'type' => 'bracelet',
+                'rarity' => 'rare',
+                'level_required' => 10,
+                'defense_bonus' => 10,
+                'buy_price' => 500,
+                'sell_price' => 125,
+                'is_tradable' => 1,
+                'is_consumable' => 0,
+                'is_equippable' => 1,
+                'image' => '⚪',
+            ],
+            [
+                'name' => '力量手镯',
+                'description' => '蕴含力量能量的手镯，增加攻击力',
+                'type' => 'bracelet',
+                'rarity' => 'rare',
+                'level_required' => 15,
+                'attack_bonus' => 15,
+                'buy_price' => 800,
+                'sell_price' => 200,
+                'is_tradable' => 1,
+                'is_consumable' => 0,
+                'is_equippable' => 1,
+                'image' => '💪⚪',
+            ],
+        ];
+
+        // 披风
+        $cloaks = [
+            [
+                'name' => '布制披风',
+                'description' => '普通的布制披风，提供基础防护',
+                'type' => 'cloak',
+                'rarity' => 'common',
+                'level_required' => 1,
+                'defense_bonus' => 2,
+                'buy_price' => 40,
+                'sell_price' => 10,
+                'is_tradable' => 1,
+                'is_consumable' => 0,
+                'is_equippable' => 1,
+                'image' => '🧣',
+            ],
+            [
+                'name' => '皮革披风',
+                'description' => '皮革制作的披风，提供更好的防护',
+                'type' => 'cloak',
+                'rarity' => 'uncommon',
+                'level_required' => 5,
+                'defense_bonus' => 5,
+                'buy_price' => 160,
+                'sell_price' => 40,
+                'is_tradable' => 1,
+                'is_consumable' => 0,
+                'is_equippable' => 1,
+                'image' => '🧣',
+            ],
+            [
+                'name' => '精灵披风',
+                'description' => '精灵编织的披风，轻盈且防护优秀',
+                'type' => 'cloak',
+                'rarity' => 'rare',
+                'level_required' => 10,
+                'defense_bonus' => 8,
+                'mp_bonus' => 30,
+                'buy_price' => 400,
+                'sell_price' => 100,
+                'is_tradable' => 1,
+                'is_consumable' => 0,
+                'is_equippable' => 1,
+                'image' => '🧝‍♀️🧣',
+            ],
+            [
+                'name' => '隐形披风',
+                'description' => '传说中的隐形披风，可以在战斗中提供额外闪避',
+                'type' => 'cloak',
+                'rarity' => 'epic',
+                'level_required' => 20,
+                'defense_bonus' => 15,
+                'buy_price' => 2000,
+                'sell_price' => 500,
+                'is_tradable' => 1,
+                'is_consumable' => 0,
+                'is_equippable' => 1,
+                'image' => '👻🧣',
+            ],
+        ];
+
+        // 合并所有物品
+        $allItems = array_merge(
+            $consumables,
+            $weapons,
+            $helmets,
+            $boots,
+            $armors,
+            $rings,
+            $bracelets,
+            $cloaks
+        );
+
+        // 插入数据库
+        foreach ($allItems as $item) {
+            DB::table('items')->insert(array_merge($item, [
+                'created_at' => now(),
+                'updated_at' => now(),
+            ]));
+        }
+
         // 创建商店
         $generalShop = Shop::create([
             'name' => '杂货店',
@@ -357,13 +917,6 @@ class GameSeeder extends Seeder
             'image' => 'shops/general.png',
         ]);
 
-        // 添加商店物品
-        ShopItem::create([
-            'shop_id' => $generalShop->id,
-            'item_id' => $healthPotion->id,
-            'price' => $healthPotion->buy_price,
-            'stock' => -1,
-        ]);
 
         ShopItem::create([
             'shop_id' => $generalShop->id,
@@ -372,18 +925,176 @@ class GameSeeder extends Seeder
             'stock' => -1,
         ]);
 
-        // 创建技能
-        Skill::create([
-            'name' => '突刺',
-            'description' => '向前突进并刺击敌人',
-            'cooldown' => 5,
-            'mp_cost' => 10,
-            'damage' => 15,
-            'effect_type' => 'damage',
-            'effect_value' => 0,
-            'effect_duration' => 0,
-            'level_required' => 1,
-            'icon' => 'skills/thrust.png',
+        // 添加更多商品到杂货店
+        ShopItem::create([
+            'shop_id' => $generalShop->id,
+            'item_id' => $healthPotion->id,
+            'price' => $healthPotion->buy_price,
+            'stock' => 20,
+        ]);
+
+        // 从数据库获取物品ID
+        $itemIds = DB::table('items')->pluck('id', 'name');
+        
+        // 添加消耗品到商店
+        ShopItem::create([
+            'shop_id' => $generalShop->id,
+            'item_id' => $itemIds['初级生命药水'],
+            'price' => 20,
+            'stock' => 30,
+        ]);
+        
+        ShopItem::create([
+            'shop_id' => $generalShop->id,
+            'item_id' => $itemIds['中级生命药水'],
+            'price' => 50,
+            'stock' => 15,
+        ]);
+        
+        ShopItem::create([
+            'shop_id' => $generalShop->id,
+            'item_id' => $itemIds['初级魔法药水'],
+            'price' => 25,
+            'stock' => 30,
+        ]);
+        
+        ShopItem::create([
+            'shop_id' => $generalShop->id,
+            'item_id' => $itemIds['中级魔法药水'],
+            'price' => 60,
+            'stock' => 15,
+        ]);
+        
+        // 添加装备到商店
+        ShopItem::create([
+            'shop_id' => $generalShop->id,
+            'item_id' => $itemIds['新手木剑'],
+            'price' => 50,
+            'stock' => 5,
+        ]);
+        
+        ShopItem::create([
+            'shop_id' => $generalShop->id,
+            'item_id' => $itemIds['铁制长剑'],
+            'price' => 200,
+            'stock' => 3,
+        ]);
+        
+        ShopItem::create([
+            'shop_id' => $generalShop->id,
+            'item_id' => $itemIds['皮革头盔'],
+            'price' => 40,
+            'stock' => 5,
+        ]);
+        
+        ShopItem::create([
+            'shop_id' => $generalShop->id,
+            'item_id' => $itemIds['皮革靴子'],
+            'price' => 30,
+            'stock' => 5,
+        ]);
+        
+        ShopItem::create([
+            'shop_id' => $generalShop->id,
+            'item_id' => $itemIds['皮革护甲'],
+            'price' => 60,
+            'stock' => 5,
+        ]);
+        
+        ShopItem::create([
+            'shop_id' => $generalShop->id,
+            'item_id' => $itemIds['铜戒指'],
+            'price' => 50,
+            'stock' => 3,
+        ]);
+        
+        ShopItem::create([
+            'shop_id' => $generalShop->id,
+            'item_id' => $itemIds['铜手镯'],
+            'price' => 50,
+            'stock' => 3,
+        ]);
+        
+        ShopItem::create([
+            'shop_id' => $generalShop->id,
+            'item_id' => $itemIds['布制披风'],
+            'price' => 40,
+            'stock' => 5,
+        ]);
+        
+        // 创建森林地图的商店
+        $forestShop = Shop::create([
+            'name' => '森林商人',
+            'description' => '在森林中经营的神秘商人，提供一些特殊物品',
+            'map_id' => $forestMap->id,
+            'position_x' => 250,
+            'position_y' => 200,
+            'type' => 'special',
+            'image' => 'shops/forest_merchant.png',
+        ]);
+        
+        // 添加森林商店的商品
+        ShopItem::create([
+            'shop_id' => $forestShop->id,
+            'item_id' => $itemIds['高级生命药水'],
+            'price' => 100,
+            'stock' => 10,
+        ]);
+        
+        ShopItem::create([
+            'shop_id' => $forestShop->id,
+            'item_id' => $itemIds['高级魔法药水'],
+            'price' => 120,
+            'stock' => 10,
+        ]);
+        
+        ShopItem::create([
+            'shop_id' => $forestShop->id,
+            'item_id' => $itemIds['精钢大剑'],
+            'price' => 500,
+            'stock' => 2,
+        ]);
+        
+        ShopItem::create([
+            'shop_id' => $forestShop->id,
+            'item_id' => $itemIds['精钢头盔'],
+            'price' => 400,
+            'stock' => 2,
+        ]);
+        
+        ShopItem::create([
+            'shop_id' => $forestShop->id,
+            'item_id' => $itemIds['精钢战靴'],
+            'price' => 300,
+            'stock' => 2,
+        ]);
+        
+        ShopItem::create([
+            'shop_id' => $forestShop->id,
+            'item_id' => $itemIds['精钢板甲'],
+            'price' => 600,
+            'stock' => 2,
+        ]);
+        
+        ShopItem::create([
+            'shop_id' => $forestShop->id,
+            'item_id' => $itemIds['银戒指'],
+            'price' => 200,
+            'stock' => 3,
+        ]);
+        
+        ShopItem::create([
+            'shop_id' => $forestShop->id,
+            'item_id' => $itemIds['银手镯'],
+            'price' => 200,
+            'stock' => 3,
+        ]);
+        
+        ShopItem::create([
+            'shop_id' => $forestShop->id,
+            'item_id' => $itemIds['皮革披风'],
+            'price' => 160,
+            'stock' => 3,
         ]);
 
         // 设置掉落率

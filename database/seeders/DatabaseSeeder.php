@@ -23,7 +23,6 @@ class DatabaseSeeder extends Seeder
         $this->call([
             GameSeeder::class,
             TestUserSeeder::class,
-            ItemsTableSeeder::class,
             SkillsTableSeeder::class,
             SkillItemsSeeder::class,
         ]);

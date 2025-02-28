@@ -1054,6 +1054,7 @@ class Game {
                     }
                     .shop-items-grid {
                         display: flex;
+                        flex-wrap: wrap;
                         justify-content: center;
                         grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
                         gap: 15px;
@@ -1359,29 +1360,104 @@ class Game {
                     // 创建物品信息弹出窗口
                     const tooltip = document.createElement('div');
                     tooltip.className = 'item-tooltip';
-                    tooltip.innerHTML = `
-                        <div class="item-tooltip-header">
-                            <div class="item-tooltip-icon">${inventoryItem.item.image || '物'}</div>
-                            <div class="item-tooltip-title">
-                                <div class="item-tooltip-name">${inventoryItem.item.name}</div>
-                                <div class="item-tooltip-quantity">数量: ${inventoryItem.quantity}</div>
-                            </div>
-                            <div class="tooltip-close">×</div>
-                        </div>
-                        <div class="item-tooltip-description">${inventoryItem.item.description || '无描述'}</div>
-                        ${this.getItemAttributesHTML(inventoryItem.item)}
-                        ${inventoryItem.is_equipped ? '<div class="item-tooltip-equipped">已装备</div>' : ''}
-                        <div class="item-tooltip-actions">
-                            ${inventoryItem.item.is_consumable ? 
-                                `<button class="item-action-btn use-btn" data-action="use" data-item-id="${inventoryItem.id}">使用</button>` : ''}
-                            ${this.isEquippableItem(inventoryItem.item) ? 
-                                (inventoryItem.is_equipped ? 
-                                    `<button class="item-action-btn unequip-btn" data-action="unequip" data-item-id="${inventoryItem.id}">卸下</button>` : 
-                                    `<button class="item-action-btn equip-btn" data-action="equip" data-item-id="${inventoryItem.id}">装备</button>`) 
-                                : ''}
-                            <button class="item-action-btn drop-btn" data-action="drop" data-item-id="${inventoryItem.id}">丢弃</button>
-                        </div>
-                    `;
+                    
+                    // 创建头部
+                    const header = document.createElement('div');
+                    header.className = 'item-tooltip-header';
+                    
+                    // 创建图标
+                    const icon = document.createElement('div');
+                    icon.className = 'item-tooltip-icon';
+                    icon.textContent = inventoryItem.item.image || '物';
+                    
+                    // 创建标题区域
+                    const titleContainer = document.createElement('div');
+                    titleContainer.className = 'item-tooltip-title';
+                    
+                    // 创建名称
+                    const name = document.createElement('div');
+                    name.className = 'item-tooltip-name';
+                    name.textContent = inventoryItem.item.name;
+                    
+                    // 创建数量
+                    const quantity = document.createElement('div');
+                    quantity.className = 'item-tooltip-quantity';
+                    quantity.textContent = `数量: ${inventoryItem.quantity}`;
+                    
+                    // 创建关闭按钮
+                    const closeBtn = document.createElement('div');
+                    closeBtn.className = 'tooltip-close';
+                    closeBtn.textContent = '×';
+                    
+                    // 组装标题区域
+                    titleContainer.appendChild(name);
+                    titleContainer.appendChild(quantity);
+                    
+                    // 组装头部
+                    header.appendChild(icon);
+                    header.appendChild(titleContainer);
+                    header.appendChild(closeBtn);
+                    
+                    // 创建描述
+                    const description = document.createElement('div');
+                    description.className = 'item-tooltip-description';
+                    description.textContent = inventoryItem.item.description || '无描述';
+                    
+                    // 创建属性区域
+                    const attributes = document.createElement('div');
+                    attributes.innerHTML = this.getItemAttributesHTML(inventoryItem.item);
+                    
+                    // 创建装备状态提示（如果已装备）
+                    if (inventoryItem.is_equipped) {
+                        const equippedStatus = document.createElement('div');
+                        equippedStatus.className = 'item-tooltip-equipped';
+                        equippedStatus.textContent = '已装备';
+                        tooltip.appendChild(equippedStatus);
+                    }
+                    
+                    // 创建操作按钮区域
+                    const actions = document.createElement('div');
+                    actions.className = 'item-tooltip-actions';
+                    
+                    // 添加使用按钮（如果可消耗）
+                    if (inventoryItem.item.is_consumable) {
+                        const useBtn = document.createElement('button');
+                        useBtn.className = 'item-action-btn use-btn';
+                        useBtn.dataset.action = 'use';
+                        useBtn.dataset.itemId = inventoryItem.id;
+                        useBtn.textContent = '使用';
+                        actions.appendChild(useBtn);
+                    }
+                    
+                    // 添加装备/卸下按钮（如果可装备）
+                    if (this.isEquippableItem(inventoryItem.item)) {
+                        const equipBtn = document.createElement('button');
+                        if (inventoryItem.is_equipped) {
+                            equipBtn.className = 'item-action-btn unequip-btn';
+                            equipBtn.dataset.action = 'unequip';
+                            equipBtn.textContent = '卸下';
+                        } else {
+                            equipBtn.className = 'item-action-btn equip-btn';
+                            equipBtn.dataset.action = 'equip';
+                            equipBtn.textContent = '装备';
+                        }
+                        equipBtn.dataset.itemId = inventoryItem.id;
+                        actions.appendChild(equipBtn);
+                    }
+                    
+                    // 添加丢弃按钮
+                    const dropBtn = document.createElement('button');
+                    dropBtn.className = 'item-action-btn drop-btn';
+                    dropBtn.dataset.action = 'drop';
+                    dropBtn.dataset.itemId = inventoryItem.id;
+                    dropBtn.textContent = '丢弃';
+                    actions.appendChild(dropBtn);
+                    
+                    // 组装整个tooltip
+                    tooltip.appendChild(header);
+                    tooltip.appendChild(description);
+                    tooltip.appendChild(attributes);
+                    tooltip.appendChild(actions);
                     
                     // 将弹出窗口添加到文档中
                     document.body.appendChild(tooltip);

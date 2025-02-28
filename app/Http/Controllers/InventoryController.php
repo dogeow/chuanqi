@@ -110,17 +110,14 @@ class InventoryController extends Controller
             
             $message .= '，学会了技能：' . $skill->name;
         } else {
-            // 应用物品效果
-            $effects = json_decode($item->effects, true);
-
-            if (isset($effects['hp'])) {
-                $character->current_hp = min($character->max_hp, $character->current_hp + $effects['hp']);
-                $message .= '，恢复了' . $effects['hp'] . '点生命值';
+            if (isset($item->hp_bonus)) {
+                $character->current_hp = min($character->max_hp, $character->current_hp + $item->hp_bonus);
+                $message .= '，恢复了' . $item->hp_bonus . '点生命值';
             }
 
-            if (isset($effects['mp'])) {
-                $character->current_mp = min($character->max_mp, $character->current_mp + $effects['mp']);
-                $message .= '，恢复了' . $effects['mp'] . '点魔法值';
+            if (isset($item->hp_bonus)) {
+                $character->current_mp = min($character->max_mp, $character->current_mp + $item->hp_bonus);
+                $message .= '，恢复了' . $item->hp_bonus . '点魔法值';
             }
         }
 
