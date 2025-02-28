@@ -216,6 +216,13 @@ class Game {
                 if (event.target.classList.contains('monster')) {
                     const monsterId = event.target.dataset.monsterId;
                     if (monsterId) {
+                        // 检查怪物是否已经死亡
+                        const monster = this.monsters.find(m => m.id === parseInt(monsterId));
+                        if (monster && (monster.is_dead || monster.current_hp <= 0)) {
+                            this.addMessage(`${monster.name} 已经死亡，无法攻击`, 'warning');
+                            return;
+                        }
+                        
                         // 直接攻击怪物，不再弹出模态窗口
                         this.directAttackMonster(monsterId);
                     }
@@ -227,6 +234,9 @@ class Game {
                 if (event.target.classList.contains('shop')) {
                     const shopId = event.target.dataset.shopId;
                     if (shopId) {
+                        // 停止自动攻击
+                        this.stopAutoAttack();
+                        
                         this.showShopModal(shopId);
                     }
                 }
@@ -1205,6 +1215,9 @@ class Game {
             
             // 添加点击事件
             teleportElement.addEventListener('click', () => {
+                // 停止自动攻击
+                this.stopAutoAttack();
+                
                 this.teleportToMap(point.target_map_id, point.target_x || point.target_position_x, point.target_y || point.target_position_y);
             });
             
@@ -2273,11 +2286,22 @@ class Game {
         try {
             console.log('直接攻击怪物，ID:', monsterId);
             
+            // 如果已经在攻击其他怪物，先停止之前的攻击
+            if (this.isAutoAttacking && this.currentAttackingMonsterId !== monsterId) {
+                this.stopAutoAttack();
+            }
+            
             // 保存当前攻击的怪物ID
             this.currentAttackingMonsterId = monsterId;
             
             // 开启自动攻击
             this.isAutoAttacking = true;
+            
+            // 添加攻击提示信息
+            const monster = this.monsters.find(m => m.id === parseInt(monsterId));
+            if (monster) {
+                this.addMessage(`开始自动攻击 ${monster.name}`, 'combat');
+            }
             
             // 发送测试请求记录数据
             await axios.post('/api/test/log', { 
@@ -2301,11 +2325,20 @@ class Game {
                         monster.is_dead = true;
                         // 怪物已死亡，停止自动攻击
                         this.isAutoAttacking = false;
+                        this.currentAttackingMonsterId = null;
+                        this.addMessage(`${monster.name} 已被击杀，停止自动攻击`, 'success');
                     } else {
                         // 怪物未死亡，继续自动攻击
                         setTimeout(() => {
                             if (this.isAutoAttacking && this.currentAttackingMonsterId === monsterId) {
-                                this.directAttackMonster(monsterId);
+                                // 检查怪物是否仍然存在且未死亡
+                                const targetMonster = this.monsters.find(m => m.id === parseInt(monsterId));
+                                if (targetMonster && !targetMonster.is_dead && targetMonster.current_hp > 0) {
+                                    this.directAttackMonster(monsterId);
+                                } else {
+                                    // 怪物不存在或已死亡，停止自动攻击
+                                    this.stopAutoAttack();
+                                }
                             }
                         }, 1000); // 每秒攻击一次
                     }
@@ -2489,6 +2522,9 @@ class Game {
     // 传送到指定地图的指定位置
     async teleportToMap(mapId, x, y) {
         try {
+            // 停止自动攻击
+            this.stopAutoAttack();
+            
             // 添加传送动画效果
             const playerElement = document.querySelector('.player:not(.other-player)');
             if (playerElement) {

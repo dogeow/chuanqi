@@ -219,11 +219,11 @@
 }
 
 .message.error {
-    background-color: #500;
+    background-color: rgb(127, 0, 0);
 }
 
 .message.combat {
-    background-color: #505;
+    background-color: rgb(255, 0, 0);
 }
 
 /* 加载中样式 */
@@ -1607,17 +1607,14 @@ body {
 
 .message.success {
     background-color: rgba(0, 128, 0, 0.3);
-    color: #5f5;
 }
 
 .message.error {
-    background-color: rgba(128, 0, 0, 0.3);
-    color: #f55;
+    background-color: rgba(127, 0, 0, 0.3);
 }
 
 .message.combat {
-    background-color: rgba(128, 0, 128, 0.3);
-    color: #f5f;
+    background-color: rgba(255, 0, 0, 0.3);
 }
 
 /* 角色信息 */
