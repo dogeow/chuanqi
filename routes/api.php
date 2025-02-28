@@ -55,7 +55,7 @@ Route::middleware('auth:sanctum')->group(function () {
     // 商店相关
     Route::get('/shop/{shopId}', [ShopController::class, 'getShop']);
     Route::get('/shops/map/{mapId}', [ShopController::class, 'getShopsByMap']);
-    Route::post('/shop/buy', [ShopController::class, 'buyItem']);
+    Route::post('/shop/buy', [ShopController::class, 'buy']);
     Route::post('/shop/sell', [ShopController::class, 'sellItem']);
 });
 

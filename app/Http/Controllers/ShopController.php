@@ -45,10 +45,26 @@ class ShopController extends Controller
             ], 404);
         }
         
-        // 获取商店物品
+        // 获取商店物品，确保加载完整的物品信息
         $shopItems = ShopItem::where('shop_id', $shop->id)
-            ->with('item')
-            ->get();
+            ->with(['item' => function($query) {
+                $query->select('id', 'name', 'description', 'type', 'is_consumable');
+            }])
+            ->get()
+            ->map(function($shopItem) {
+                // 确保每个商店物品都有关联的物品信息
+                if (!$shopItem->item) {
+                    // 如果物品不存在，添加一个默认值
+                    $shopItem->item = [
+                        'id' => $shopItem->item_id,
+                        'name' => '未知物品',
+                        'description' => '物品信息不可用',
+                        'type' => '未知类型',
+                        'is_consumable' => false
+                    ];
+                }
+                return $shopItem;
+            });
 
         return response()->json([
             'success' => true,
@@ -82,92 +98,95 @@ class ShopController extends Controller
     }
 
     /**
-     * 购买物品
+     * 购买商店物品
      */
-    public function buyItem(Request $request)
+    public function buy(Request $request)
     {
         $request->validate([
-            'shop_item_id' => 'required|exists:shop_items,id',
-            'quantity' => 'required|integer|min:1',
+            'shop_item_id' => 'required|integer|exists:shop_items,id',
+            'quantity' => 'integer|min:1|max:100',
         ]);
 
-        $user = Auth::user();
-        $character = Character::where('user_id', $user->id)->first();
+        $shopItemId = $request->shop_item_id;
+        $quantity = $request->quantity ?? 1; // 默认购买数量为1
 
-        if (!$character) {
+        $character = Auth::user()->character;
+        $shopItem = ShopItem::with('item')->find($shopItemId);
+
+        if (!$shopItem) {
             return response()->json([
                 'success' => false,
-                'message' => '角色不存在'
-            ], 404);
-        }
-
-        $shopItem = ShopItem::with('item', 'shop')->find($request->shop_item_id);
-        
-        // 检查商店是否在当前地图
-        if ($shopItem->shop->map_id != $character->current_map_id) {
-            return response()->json([
-                'success' => false,
-                'message' => '商店不在当前地图'
-            ], 400);
+                'message' => '商品不存在'
+            ]);
         }
 
         // 计算总价
-        $totalPrice = $shopItem->price * $request->quantity;
-        
+        $totalPrice = $shopItem->price * $quantity;
+
         // 检查金币是否足够
-        if (!$user->gold || $user->gold < $totalPrice) {
+        if ($character->gold < $totalPrice) {
             return response()->json([
                 'success' => false,
                 'message' => '金币不足'
-            ], 400);
+            ]);
+        }
+
+        // 检查物品是否为消耗品
+        $isConsumable = $shopItem->item->is_consumable;
+        
+        // 如果不是消耗品，检查是否已拥有
+        if (!$isConsumable) {
+            $existingItem = $character->items()->where('item_id', $shopItem->item_id)->first();
+            if ($existingItem) {
+                return response()->json([
+                    'success' => false,
+                    'message' => '你已经拥有此物品'
+                ]);
+            }
+            
+            // 非消耗品只能购买一个
+            $quantity = 1;
         }
 
         // 扣除金币
-        $user->gold -= $totalPrice;
-        $user->save();
+        $character->gold -= $totalPrice;
+        $character->save();
 
         // 添加物品到背包
-        $existingItem = Inventory::where('character_id', $character->id)
-            ->where('item_id', $shopItem->item_id)
-            ->where('is_equipped', false)
-            ->first();
-
-        if ($existingItem) {
-            // 已有该物品，增加数量
-            $existingItem->quantity += $request->quantity;
-            $existingItem->save();
+        if ($isConsumable) {
+            // 对于消耗品，检查是否已有该物品，如果有则增加数量
+            $existingItem = $character->items()->where('item_id', $shopItem->item_id)->first();
+            
+            if ($existingItem) {
+                $existingItem->pivot->quantity += $quantity;
+                $existingItem->pivot->save();
+            } else {
+                $character->items()->attach($shopItem->item_id, ['quantity' => $quantity]);
+            }
         } else {
-            // 没有该物品，创建新记录
-            $inventoryItem = new Inventory();
-            $inventoryItem->character_id = $character->id;
-            $inventoryItem->item_id = $shopItem->item_id;
-            $inventoryItem->quantity = $request->quantity;
-            $inventoryItem->is_equipped = false;
-            $inventoryItem->save();
+            // 非消耗品直接添加
+            $character->items()->attach($shopItem->item_id, ['quantity' => 1]);
         }
 
-        // 广播购买物品事件
-        event(new GameEvent('shop.buy', [
-            'character_id' => $character->id,
-            'character_name' => $character->name,
-            'item_id' => $shopItem->item_id,
-            'item_name' => $shopItem->item->name,
-            'quantity' => $request->quantity,
-            'price' => $totalPrice
-        ], $character->current_map_id));
-
         // 获取更新后的背包
-        $inventory = Inventory::where('character_id', $character->id)
-            ->with('item')
-            ->get();
+        $inventory = $character->items()->with('item')->get()->map(function ($item) {
+            return [
+                'id' => $item->id,
+                'name' => $item->name,
+                'description' => $item->description,
+                'type' => $item->type,
+                'is_consumable' => $item->is_consumable,
+                'quantity' => $item->pivot->quantity,
+                'equipped' => $item->pivot->equipped,
+            ];
+        });
 
         return response()->json([
             'success' => true,
-            'message' => "成功购买 {$shopItem->item->name} x{$request->quantity}",
+            'message' => "成功购买 {$quantity} 个 {$shopItem->item->name}",
             'character' => $character,
-            'inventory' => $inventory,
-            'current_gold' => $user->gold,
-            'item_name' => $shopItem->item->name
+            'current_gold' => $character->gold,
+            'inventory' => $inventory
         ]);
     }
 

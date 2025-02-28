@@ -434,9 +434,6 @@ export function GameProvider({ children }) {
     
     // 处理商店点击
     const handleShopClick = async (shopId) => {
-        console.log('点击商店:', shopId);
-        
-        // 查找商店信息
         const shop = shops.find(s => s.id === shopId);
         if (shop) {
             addMessage(`你访问了商店: ${shop.name}`, 'info');
@@ -455,19 +452,62 @@ export function GameProvider({ children }) {
                     shopModal.innerHTML = `
                         <div class="shop-modal-content">
                             <div class="shop-modal-header">
-                                <h3>${shop.name}</h3>
+                                <h3>${shop.name} <span class="player-gold">您的金币: ${character.gold}</span></h3>
                                 <span class="close-btn">&times;</span>
                             </div>
                             <div class="shop-modal-body">
                                 <div class="shop-items">
                                     ${shopItems.length > 0 ? 
-                                        shopItems.map(item => `
-                                            <div class="shop-item" data-item-id="${item.item_id}">
-                                                <div class="item-name">${item.item_name}</div>
-                                                <div class="item-price">${item.price} 金币</div>
-                                                <button class="buy-btn" data-shop-item-id="${item.id}">购买</button>
-                                            </div>
-                                        `).join('') : 
+                                        shopItems.map(item => {
+                                            // 判断是否有足够的金币购买不同数量的物品
+                                            const canAfford1 = character.gold >= item.price;
+                                            const canAfford10 = character.gold >= (item.price * 10);
+                                            const canAfford100 = character.gold >= (item.price * 100);
+                                            
+                                            // 判断是否为消耗品，确保item.item存在
+                                            const isConsumable = item.item && item.item.is_consumable ? true : false;
+                                            
+                                            // 数量选择按钮
+                                            const quantityButtons = isConsumable ? 
+                                                `<div class="quantity-selector">
+                                                    <div class="quantity-label">数量:</div>
+                                                    <div class="quantity-buttons">
+                                                        <button class="quantity-btn selected" data-quantity="1">X1</button>
+                                                        <button class="quantity-btn ${!canAfford10 ? 'disabled' : ''}" data-quantity="10">X10</button>
+                                                        <button class="quantity-btn ${!canAfford100 ? 'disabled' : ''}" data-quantity="100">X100</button>
+                                                    </div>
+                                                </div>` : '';
+                                            
+                                            // 获取物品名称和类型，确保item.item存在
+                                            const itemName = item.item ? item.item.name : '未知物品';
+                                            const itemType = item.item ? item.item.type : '未知类型';
+                                            const itemDesc = item.item ? (item.item.description || '无描述') : '无描述';
+                                            const itemIcon = itemName.charAt(0);
+                                            
+                                            return `
+                                                <div class="shop-item ${canAfford1 ? 'can-afford' : 'cannot-afford'}" 
+                                                    data-item-id="${item.item_id}" 
+                                                    data-shop-item-id="${item.id}" 
+                                                    data-price="${item.price}"
+                                                    data-is-consumable="${isConsumable}">
+                                                    <div class="shop-item-header">
+                                                        <div class="shop-item-icon">${itemIcon}</div>
+                                                        <div class="shop-item-title">
+                                                            <div class="shop-item-name">${itemName}</div>
+                                                            <div class="shop-item-type">${itemType}</div>
+                                                        </div>
+                                                    </div>
+                                                    <div class="shop-item-details">
+                                                        <div class="shop-item-description">${itemDesc}</div>
+                                                        <div class="shop-item-price">价格: ${item.price} 金币</div>
+                                                    </div>
+                                                    ${quantityButtons}
+                                                    <button class="buy-btn ${!canAfford1 ? 'disabled' : ''}" 
+                                                        data-shop-item-id="${item.id}" 
+                                                        ${!canAfford1 ? 'title="金币不足"' : ''}>购买</button>
+                                                </div>
+                                            `;
+                                        }).join('') : 
                                         '<div class="no-items">该商店暂无商品</div>'
                                     }
                                 </div>
@@ -486,13 +526,84 @@ export function GameProvider({ children }) {
                         });
                     }
                     
+                    // 添加数量选择按钮事件
+                    const quantityBtns = shopModal.querySelectorAll('.quantity-btn');
+                    quantityBtns.forEach(btn => {
+                        btn.addEventListener('click', () => {
+                            // 如果按钮被禁用，不执行任何操作
+                            if (btn.classList.contains('disabled')) {
+                                return;
+                            }
+                            
+                            // 获取商品元素
+                            const shopItem = btn.closest('.shop-item');
+                            if (!shopItem) return;
+                            
+                            // 移除其他按钮的选中状态
+                            shopItem.querySelectorAll('.quantity-btn').forEach(b => {
+                                b.classList.remove('selected');
+                            });
+                            
+                            // 设置当前按钮为选中状态
+                            btn.classList.add('selected');
+                            
+                            // 获取价格和数量
+                            const price = parseInt(shopItem.dataset.price);
+                            const quantity = parseInt(btn.dataset.quantity);
+                            const totalPrice = price * quantity;
+                            
+                            // 更新价格显示
+                            const priceEl = shopItem.querySelector('.shop-item-price');
+                            if (priceEl) {
+                                if (quantity > 1) {
+                                    priceEl.innerHTML = `价格: ${price} 金币 × ${quantity} = ${totalPrice} 金币`;
+                                } else {
+                                    priceEl.innerHTML = `价格: ${price} 金币`;
+                                }
+                            }
+                            
+                            // 更新购买按钮状态
+                            const buyBtn = shopItem.querySelector('.buy-btn');
+                            if (buyBtn) {
+                                const canAfford = character.gold >= totalPrice;
+                                
+                                if (canAfford) {
+                                    buyBtn.classList.remove('disabled');
+                                    buyBtn.removeAttribute('title');
+                                } else {
+                                    buyBtn.classList.add('disabled');
+                                    buyBtn.setAttribute('title', '金币不足');
+                                }
+                            }
+                        });
+                    });
+                    
                     // 添加购买按钮事件
                     const buyBtns = shopModal.querySelectorAll('.buy-btn');
                     buyBtns.forEach(btn => {
                         btn.addEventListener('click', async () => {
+                            // 如果按钮被禁用，不执行任何操作
+                            if (btn.classList.contains('disabled')) {
+                                return;
+                            }
+                            
                             const shopItemId = btn.dataset.shopItemId;
+                            const shopItem = btn.closest('.shop-item');
+                            
+                            // 获取选中的数量
+                            let quantity = 1;
+                            if (shopItem && shopItem.dataset.isConsumable === 'true') {
+                                const selectedQuantityBtn = shopItem.querySelector('.quantity-btn.selected');
+                                if (selectedQuantityBtn) {
+                                    quantity = parseInt(selectedQuantityBtn.dataset.quantity);
+                                }
+                            }
+                            
                             try {
-                                const buyResponse = await axios.post('/api/shop/buy', { shop_item_id: shopItemId });
+                                const buyResponse = await axios.post('/api/shop/buy', { 
+                                    shop_item_id: shopItemId,
+                                    quantity: quantity
+                                });
                                 
                                 if (buyResponse.data.success) {
                                     addMessage(buyResponse.data.message || '购买成功', 'success');
@@ -502,27 +613,114 @@ export function GameProvider({ children }) {
                                         setCharacter(buyResponse.data.character);
                                     }
                                     
-                                    // 更新背包
+                                    // 更新金币显示
+                                    const goldSpan = shopModal.querySelector('.player-gold');
+                                    if (goldSpan) {
+                                        goldSpan.textContent = `您的金币: ${buyResponse.data.current_gold}`;
+                                    }
+                                    
+                                    // 更新物品列表
                                     if (buyResponse.data.inventory) {
                                         setInventory(buyResponse.data.inventory);
                                     }
+                                    
+                                    // 更新商店物品的可购买状态
+                                    updateShopItemsAffordability(shopModal, buyResponse.data.current_gold);
                                 } else {
                                     addMessage(buyResponse.data.message || '购买失败', 'error');
                                 }
                             } catch (error) {
-                                console.error('购买物品出错:', error);
-                                addMessage('购买物品出错，请稍后再试', 'error');
+                                console.error('购买物品失败:', error);
+                                addMessage('购买物品失败，请稍后再试', 'error');
                             }
                         });
                     });
                 } else {
-                    addMessage(response.data.message || '获取商店信息失败', 'error');
+                    addMessage(response.data.message || '无法加载商店数据', 'error');
                 }
             } catch (error) {
-                console.error('获取商店信息出错:', error);
-                addMessage('获取商店信息出错，请稍后再试', 'error');
+                console.error('加载商店数据出错:', error);
+                addMessage('加载商店数据时出错', 'error');
             }
         }
+    };
+    
+    // 更新商店物品的可购买状态
+    const updateShopItemsAffordability = (shopModal, currentGold) => {
+        const shopItems = shopModal.querySelectorAll('.shop-item');
+        shopItems.forEach(item => {
+            const price = parseInt(item.dataset.price || 0);
+            const isConsumable = item.dataset.isConsumable === 'true';
+            
+            // 获取当前选中的数量
+            const selectedQuantityBtn = item.querySelector('.quantity-btn.selected');
+            const quantity = selectedQuantityBtn ? parseInt(selectedQuantityBtn.dataset.quantity) : 1;
+            
+            // 计算总价
+            const totalPrice = price * quantity;
+            
+            // 判断是否有足够的金币
+            const canAfford = currentGold >= totalPrice;
+            
+            // 更新样式类
+            if (canAfford) {
+                item.classList.remove('cannot-afford');
+                item.classList.add('can-afford');
+                
+                // 更新价格显示
+                const priceEl = item.querySelector('.shop-item-price');
+                if (priceEl) {
+                    if (quantity > 1) {
+                        priceEl.innerHTML = `价格: ${price} 金币 × ${quantity} = ${totalPrice} 金币`;
+                    } else {
+                        priceEl.innerHTML = `价格: ${price} 金币`;
+                    }
+                }
+                
+                // 更新按钮
+                const buyBtn = item.querySelector('.buy-btn');
+                if (buyBtn) {
+                    buyBtn.classList.remove('disabled');
+                    buyBtn.removeAttribute('title');
+                }
+            } else {
+                item.classList.remove('can-afford');
+                item.classList.add('cannot-afford');
+                
+                // 更新价格显示
+                const priceEl = item.querySelector('.shop-item-price');
+                if (priceEl) {
+                    if (quantity > 1) {
+                        priceEl.innerHTML = `价格: ${price} 金币 × ${quantity} = ${totalPrice} 金币 <span class="not-enough">(金币不足)</span>`;
+                    } else {
+                        priceEl.innerHTML = `价格: ${price} 金币 <span class="not-enough">(金币不足)</span>`;
+                    }
+                }
+                
+                // 更新按钮
+                const buyBtn = item.querySelector('.buy-btn');
+                if (buyBtn) {
+                    buyBtn.classList.add('disabled');
+                    buyBtn.setAttribute('title', '金币不足');
+                }
+            }
+            
+            // 更新数量按钮状态
+            if (isConsumable) {
+                const quantityBtns = item.querySelectorAll('.quantity-btn');
+                quantityBtns.forEach(btn => {
+                    const btnQuantity = parseInt(btn.dataset.quantity);
+                    const btnTotalPrice = price * btnQuantity;
+                    const canAffordBtn = currentGold >= btnTotalPrice;
+                    
+                    if (canAffordBtn) {
+                        btn.classList.remove('disabled');
+                    } else {
+                        btn.classList.add('disabled');
+                    }
+                });
+            }
+        });
     };
     
     // 处理NPC点击
