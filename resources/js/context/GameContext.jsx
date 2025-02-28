@@ -32,13 +32,13 @@ export function GameProvider({ children }) {
                 throw new Error(characterResponse.data.message || '获取角色数据失败');
             }
             
-            const character = characterResponse.data.character;
-            setCharacter(character);
-            addMessage(`欢迎回来，${character.name}！`, 'success');
+            const characterData = characterResponse.data.character;
+            setCharacter(characterData);
+            addMessage(`欢迎回来，${characterData.name}！`, 'success');
             
             // 获取当前地图信息
             addMessage('正在加载地图数据...', 'info');
-            const mapResponse = await axios.get(`/api/map/${character.current_map_id}`);
+            const mapResponse = await axios.get(`/api/map/${characterData.current_map_id}`);
             if (!mapResponse.data.success) {
                 throw new Error(mapResponse.data.message || '获取地图数据失败');
             }
@@ -84,8 +84,17 @@ export function GameProvider({ children }) {
                 addMessage('背包数据加载失败', 'warning');
             }
             
-            // 初始化WebSocket连接
-            initWebSocket();
+            // 确保角色和地图数据都已加载完成后再初始化WebSocket
+            // 使用局部变量而不是React状态
+            if (characterData && characterData.id && map) {
+                // 直接初始化WebSocket，不依赖React状态
+                initWebSocketWithData(characterData, map);
+            } else {
+                console.error('无法初始化WebSocket：角色或地图数据加载失败');
+                console.log('角色数据:', characterData);
+                console.log('地图数据:', map);
+                addMessage('实时连接初始化失败，部分功能可能不可用', 'error');
+            }
             
             addMessage('游戏数据加载成功', 'success');
         } catch (error) {
@@ -102,15 +111,25 @@ export function GameProvider({ children }) {
         // eslint-disable-next-line react-hooks/exhaustive-deps
     }, []);
     
-    // 初始化WebSocket连接
-    const initWebSocket = () => {
-        if (!character || !character.id || !currentMap) {
-            console.warn('WebSocket初始化延迟：角色或地图数据尚未加载');
+    // 使用原始数据初始化WebSocket，不依赖React状态
+    const initWebSocketWithData = (characterData, mapData) => {
+        if (!characterData || !characterData.id) {
+            console.warn('WebSocket初始化失败：角色数据无效');
             return;
         }
         
-        const mapId = character.current_map_id;
-        console.log('初始化WebSocket连接，角色ID:', character.id, '地图ID:', mapId);
+        if (!mapData) {
+            console.warn('WebSocket初始化失败：地图数据无效');
+            return;
+        }
+        
+        const mapId = characterData.current_map_id;
+        if (!mapId) {
+            console.warn('WebSocket初始化失败：地图ID不存在');
+            return;
+        }
+        
+        console.log('初始化WebSocket连接，角色ID:', characterData.id, '地图ID:', mapId);
         
         try {
             // 确保Echo对象存在
@@ -119,6 +138,15 @@ export function GameProvider({ children }) {
                 addMessage('实时连接初始化失败，部分功能可能不可用', 'error');
                 return;
             }
+            
+            // 先离开之前的频道（如果有）
+            Object.keys(window.Echo.connector.channels).forEach(channel => {
+                if (channel.startsWith('presence-map.')) {
+                    const channelName = channel.replace('presence-', '');
+                    console.log('离开之前的地图频道:', channelName);
+                    window.Echo.leave(channelName);
+                }
+            });
             
             // 订阅到地图频道接收实时事件
             const mapChannel = window.Echo.join(`map.${mapId}`);
@@ -152,7 +180,6 @@ export function GameProvider({ children }) {
                     case 'monster.respawned':
                         handleMonsterRespawned(eventData.data);
                         break;
-                    // 可以添加更多事件类型的处理
                     default:
                         console.log(`未处理的事件类型: ${eventData.type}`, eventData.data);
                 }
@@ -162,13 +189,13 @@ export function GameProvider({ children }) {
             mapChannel.here((users) => {
                 console.log('当前在线玩家:', users);
                 // 更新其他玩家列表
-                const filteredPlayers = users.filter(user => user.id !== character.id);
+                const filteredPlayers = users.filter(user => user.id !== characterData.id);
                 setOtherPlayers(filteredPlayers);
             });
             
             mapChannel.joining((user) => {
                 console.log('玩家加入地图:', user);
-                if (user.id !== character.id) {
+                if (user.id !== characterData.id) {
                     addMessage(`${user.name || '玩家'} 进入了地图`, 'info');
                     setOtherPlayers(prev => {
                         // 检查玩家是否已经在列表中
@@ -182,7 +209,7 @@ export function GameProvider({ children }) {
             
             mapChannel.leaving((user) => {
                 console.log('玩家离开地图:', user);
-                if (user && user.id && user.id !== character.id) {
+                if (user && user.id && user.id !== characterData.id) {
                     addMessage(`${user.name || '玩家'} 离开了地图`, 'info');
                     setOtherPlayers(prev => prev.filter(p => p.id !== user.id));
                 }
@@ -586,7 +613,17 @@ export function GameProvider({ children }) {
                             setMapMarkers(map_markers || []);
                             
                             // 重新初始化WebSocket连接
-                            initWebSocket();
+                            // 添加延迟确保状态已更新
+                            setTimeout(() => {
+                                // 使用最新的地图数据和角色数据
+                                const updatedCharacter = {
+                                    ...character,
+                                    current_map_id: teleport.target_map_id
+                                };
+                                
+                                // 使用新的函数初始化WebSocket
+                                initWebSocketWithData(updatedCharacter, map);
+                            }, 300);
                             
                             addMessage(`传送成功！欢迎来到 ${teleport.target_map_name}`, 'success');
                         } else {
@@ -777,6 +814,23 @@ export function GameProvider({ children }) {
         setIsAutoAttacking(false);
         setCurrentAttackingMonsterId(null);
         console.log('停止自动攻击');
+    };
+    
+    // 初始化WebSocket连接
+    const initWebSocket = () => {
+        // 再次检查角色和地图数据是否已加载
+        if (!character || !character.id) {
+            console.warn('WebSocket初始化失败：角色数据尚未加载');
+            return;
+        }
+        
+        if (!currentMap) {
+            console.warn('WebSocket初始化失败：地图数据尚未加载');
+            return;
+        }
+        
+        // 使用新的函数初始化WebSocket
+        initWebSocketWithData(character, currentMap);
     };
     
     // 提供上下文值
