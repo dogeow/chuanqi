@@ -27,7 +27,7 @@ class ShopController extends Controller
         }
 
         $user = Auth::user();
-        $character = Character::where('user_id', $user->id)->first();
+        $character = $user->character;
 
         if (!$character) {
             return response()->json([
@@ -79,7 +79,7 @@ class ShopController extends Controller
     public function getShopsByMap(Request $request)
     {
         $user = Auth::user();
-        $character = Character::where('user_id', $user->id)->first();
+        $character = $user->character;
 
         if (!$character) {
             return response()->json([
@@ -168,18 +168,8 @@ class ShopController extends Controller
             $character->items()->attach($shopItem->item_id, ['quantity' => 1]);
         }
 
-        // 获取更新后的背包
-        $inventory = $character->items()->with('item')->get()->map(function ($item) {
-            return [
-                'id' => $item->id,
-                'name' => $item->name,
-                'description' => $item->description,
-                'type' => $item->type,
-                'is_consumable' => $item->is_consumable,
-                'quantity' => $item->pivot->quantity,
-                'equipped' => $item->pivot->equipped,
-            ];
-        });
+        // 获取用户的背包，附带物品信息
+        $inventory = $character->items()->with('item')->get();
 
         return response()->json([
             'success' => true,
@@ -202,7 +192,7 @@ class ShopController extends Controller
         ]);
 
         $user = Auth::user();
-        $character = Character::where('user_id', $user->id)->first();
+        $character = $user->character;
 
         if (!$character) {
             return response()->json([

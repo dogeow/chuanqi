@@ -127,10 +127,10 @@ function Inventory() {
                     data-item-id={item.id}
                     onClick={(e) => handleItemClick(item, e)}
                 >
-                    <div className="item-icon">{item.item.image || '📦'}</div>
+                    <div className="item-icon">{item && item.item ? (item.item.image || '📦') : '📦'}</div>
                     {item.quantity > 1 && <span className="item-badge">{item.quantity}</span>}
                     {item.is_equipped && <span className="item-equipped">已装备</span>}
-                    {!item.is_equipped && isEquippableItem(item.item) && 
+                    {!item.is_equipped && item.item && isEquippableItem(item.item) && 
                         <span className={`item-equippable ${canEquipItem(item.item) ? 'can-equip' : 'cannot-equip'}`}>
                             {canEquipItem(item.item) ? '可装备' : '不可装备'}
                         </span>
@@ -151,21 +151,21 @@ function Inventory() {
                 >
                     <div className="item-tooltip-header">
                         <div className="item-tooltip-icon">
-                            {activeTooltip.item.image || '📦'}
+                            {activeTooltip.item && activeTooltip.item.image ? activeTooltip.item.image : '📦'}
                         </div>
                         <div className="item-tooltip-title">
-                            <div className={`item-tooltip-name ${getRarityClass(activeTooltip.item.rarity)}`}>
-                                {activeTooltip.item.name}
+                            <div className={`item-tooltip-name ${getRarityClass(activeTooltip.item && activeTooltip.item.rarity)}`}>
+                                {activeTooltip.item ? activeTooltip.item.name : '未知物品'}
                             </div>
                             <div className="item-tooltip-quantity">
-                                数量: {activeTooltip.quantity}
+                                数量: {activeTooltip.quantity || 0}
                             </div>
                         </div>
                         <div className="tooltip-close" onClick={closeTooltip}>×</div>
                     </div>
                     
                     <div className="item-tooltip-description">
-                        {activeTooltip.item.description || '无描述'}
+                        {activeTooltip.item && activeTooltip.item.description ? activeTooltip.item.description : '无描述'}
                     </div>
                     
                     <div className="item-tooltip-attributes" 
@@ -176,14 +176,14 @@ function Inventory() {
                         <div className="item-tooltip-equipped">已装备</div>
                     )}
                     
-                    {!activeTooltip.is_equipped && isEquippableItem(activeTooltip.item) && (
+                    {!activeTooltip.is_equipped && activeTooltip.item && isEquippableItem(activeTooltip.item) && (
                         <div className={`item-tooltip-equippable ${canEquipItem(activeTooltip.item) ? 'can-equip' : 'cannot-equip'}`}>
                             {canEquipItem(activeTooltip.item) ? '可装备此物品' : '不满足装备条件'}
                         </div>
                     )}
                     
                     <div className="item-tooltip-actions">
-                        {activeTooltip.item.is_consumable && (
+                        {activeTooltip.item && activeTooltip.item.is_consumable && (
                             <button 
                                 className="item-action-btn use-btn"
                                 onClick={() => handleItemAction('use', activeTooltip.id)}
@@ -192,7 +192,7 @@ function Inventory() {
                             </button>
                         )}
                         
-                        {isEquippableItem(activeTooltip.item) && (
+                        {activeTooltip.item && isEquippableItem(activeTooltip.item) && (
                             <button 
                                 className={`item-action-btn ${activeTooltip.is_equipped ? 'unequip-btn' : 'equip-btn'}`}
                                 onClick={() => handleItemAction(

@@ -135,8 +135,6 @@ function GameMap() {
                 {/* 地图名称显示 */}
                 <div className="map-name" style={{ 
                     position: 'fixed', 
-                    top: '10px', 
-                    left: '10px', 
                     padding: '5px 10px', 
                     backgroundColor: 'rgba(0,0,0,0.7)', 
                     borderRadius: '5px',

@@ -11,8 +11,9 @@ export default defineConfig({
         }),
         tailwindcss(),
         react({
-            fastRefresh: true,
             jsxRuntime: 'automatic',
+            fastRefresh: true,
+            development: true
         }),
     ],
     server: {
@@ -35,5 +36,9 @@ export default defineConfig({
         commonjsOptions: {
             transformMixedEsModules: true,
         },
+        sourcemap: true,
+    },
+    css: {
+        devSourcemap: true,
     },
 });

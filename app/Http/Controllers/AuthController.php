@@ -120,7 +120,7 @@ class AuthController extends Controller
                 'position_y' => 100,
             ]);
             
-            $user->characters()->save($character);
+            $user->character()->save($character);
             \Log::info('角色创建成功', ['character_id' => $character->id]);
             
             \DB::commit();

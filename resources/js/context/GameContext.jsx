@@ -993,7 +993,7 @@ export function GameProvider({ children }) {
             console.log('使用物品:', itemId);
             addMessage('正在使用物品...', 'info');
             
-            const response = await axios.post('/api/inventory/use', { inventory_id: itemId });
+            const response = await axios.post('/api/item/use', { character_item_id: itemId });
             
             if (response.data.success) {
                 addMessage(response.data.message || '成功使用物品', 'success');

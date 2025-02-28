@@ -75,7 +75,7 @@ class Character extends Model
      */
     public function items()
     {
-        return $this->belongsToMany(Item::class, 'inventories')
+        return $this->belongsToMany(\App\Models\Item::class, 'inventories')
             ->withPivot('quantity', 'is_equipped')
             ->withTimestamps();
     }

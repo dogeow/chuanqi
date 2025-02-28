@@ -59,7 +59,7 @@ class GameController extends Controller
                 'position_y' => 100,
             ]);
             
-            $user->characters()->save($character);
+            $user->character()->save($character);
             
             return response()->json([
                 'success' => true,

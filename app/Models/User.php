@@ -50,8 +50,8 @@ class User extends Authenticatable
     /**
      * 获取用户的角色
      */
-    public function characters()
+    public function character()
     {
-        return $this->hasMany(Character::class);
+        return $this->hasOne(Character::class);
     }
 }
