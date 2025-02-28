@@ -103,8 +103,8 @@ function GameMap() {
                     key={`boundary-${index}`}
                     className="map-boundary"
                     style={{
-                        left: `${boundary.x}px`,
-                        top: `${boundary.y}px`,
+                        left: `${boundary.position_x || boundary.x}px`,
+                        top: `${boundary.position_y || boundary.y}px`,
                         width: `${boundary.width}px`,
                         height: `${boundary.height}px`
                     }}
@@ -117,8 +117,8 @@ function GameMap() {
                     key={`marker-${index}`}
                     className={`map-marker ${marker.type}`}
                     style={{
-                        left: `${marker.x}px`,
-                        top: `${marker.y}px`
+                        left: `${marker.position_x || marker.x}px`,
+                        top: `${marker.position_y || marker.y}px`
                     }}
                 >
                     {marker.type === 'quest' && '❗'}
@@ -167,7 +167,7 @@ function GameMap() {
                         whiteSpace: 'nowrap',
                         textAlign: 'center',
                         zIndex: 5
-                    }}>{point.target_map_name}</div>
+                    }}>{point.target_map_name || point.name}</div>
                     {point.level_required && 
                         <div className="map-level-required" style={{
                             position: 'absolute',
@@ -192,8 +192,8 @@ function GameMap() {
                     key={`npc-${npc.id}`}
                     className={`npc ${npc.has_quest ? 'has-quest' : ''}`}
                     style={{
-                        left: `${npc.x || 400}px`,
-                        top: `${npc.y || 400}px`
+                        left: `${npc.position_x || 400}px`,
+                        top: `${npc.position_y || 400}px`
                     }}
                     onClick={(e) => {
                         e.stopPropagation();
@@ -250,8 +250,8 @@ function GameMap() {
                     data-monster-id={monster.id}
                     style={{ 
                         position: 'absolute',
-                        left: `${monster.x || 100}px`, 
-                        top: `${monster.y || 100}px`,
+                        left: `${monster.position_x || 100}px`, 
+                        top: `${monster.position_y || 100}px`,
                         zIndex: 5
                     }}
                     onClick={(e) => {
@@ -280,8 +280,8 @@ function GameMap() {
                     data-shop-id={shop.id}
                     style={{ 
                         position: 'absolute',
-                        left: `${shop.x || 200}px`, 
-                        top: `${shop.y || 200}px`,
+                        left: `${shop.position_x || 200}px`, 
+                        top: `${shop.position_y || 200}px`,
                         width: '32px',
                         height: '32px',
                         backgroundColor: 'gold',
