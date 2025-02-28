@@ -145,8 +145,7 @@ function GameContent() {
     
     return (
         <div className="game-layout">
-            {/* PC端始终显示角色信息，移动设备根据状态显示 */}
-            {(!isMobile || (isMobile && !isLandscape) || (isMobile && isLandscape && showCharacterInfo)) && (
+            {!isMobile && (
                 <div className={`vertical-sidebar ${isMobile && isLandscape ? 'mobile-hidden' : ''}`}>
                     <CharacterInfo />
                 </div>
@@ -185,6 +184,7 @@ function GameContent() {
                     title="角色信息" 
                     isOpen={showCharacterInfo} 
                     onClose={toggleCharacterInfo}
+                    onClick={()=>setShowCharacterInfo(!showCharacterInfo)}
                 >
                     <CharacterInfo />
                 </SidebarModal>
