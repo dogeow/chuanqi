@@ -1,8 +1,18 @@
 import React, { useRef, useEffect } from 'react';
 import { useGame } from '../context/GameContext.jsx';
 
+// 添加传送点脉动动画样式
+const teleportPulseStyle = `
+@keyframes pulse {
+    0% { transform: translate(-50%, -50%) scale(1); opacity: 0.8; box-shadow: 0 0 15px rgba(153, 102, 255, 0.7); }
+    50% { transform: translate(-50%, -50%) scale(1.1); opacity: 1; box-shadow: 0 0 20px rgba(153, 102, 255, 0.9); }
+    100% { transform: translate(-50%, -50%) scale(1); opacity: 0.8; box-shadow: 0 0 15px rgba(153, 102, 255, 0.7); }
+}
+`;
+
 function GameMap() {
     const { 
+        character,
         currentMap, 
         monsters, 
         shops, 
@@ -26,7 +36,8 @@ function GameMap() {
         console.log('怪物数据:', monsters);
         console.log('NPC数据:', npcs);
         console.log('传送点数据:', teleportPoints);
-    }, [currentMap, monsters, npcs, teleportPoints]);
+        console.log('角色位置:', character?.position_x, character?.position_y);
+    }, [currentMap, monsters, npcs, teleportPoints, character]);
     
     // 处理地图点击事件
     function handleMapClick(e) {
@@ -56,6 +67,9 @@ function GameMap() {
             onClick={handleMapClick}
             style={{ backgroundColor: '#111', position: 'relative', width: '100%', height: '100%' }}
         >
+            {/* 添加传送点动画样式 */}
+            <style>{teleportPulseStyle}</style>
+            
             {/* 渲染地图背景 */}
             <div 
                 className="map-background" 
@@ -120,17 +134,55 @@ function GameMap() {
                     className="teleport-point"
                     style={{
                         left: `${point.x || 300}px`,
-                        top: `${point.y || 300}px`
+                        top: `${point.y || 300}px`,
+                        backgroundColor: '#9966ff',
+                        width: '40px',
+                        height: '40px',
+                        borderRadius: '50%',
+                        transform: 'translate(-50%, -50%)',
+                        zIndex: 4,
+                        cursor: 'pointer',
+                        display: 'flex',
+                        justifyContent: 'center',
+                        alignItems: 'center',
+                        boxShadow: '0 0 15px rgba(153, 102, 255, 0.7)',
+                        border: '2px solid #fff',
+                        animation: 'pulse 2s infinite'
                     }}
                     onClick={(e) => {
                         e.stopPropagation();
                         handleTeleportClick(point.id);
                     }}
                 >
-                    <div className="teleport-map-name">{point.target_map_name}</div>
+                    <div className="teleport-map-name" style={{
+                        position: 'absolute',
+                        bottom: '-20px',
+                        left: '50%',
+                        transform: 'translateX(-50%)',
+                        backgroundColor: 'rgba(0, 0, 0, 0.7)',
+                        color: 'white',
+                        padding: '2px 6px',
+                        borderRadius: '4px',
+                        fontSize: '12px',
+                        whiteSpace: 'nowrap',
+                        textAlign: 'center',
+                        zIndex: 5
+                    }}>{point.target_map_name}</div>
                     {point.level_required && 
-                        <div className="map-level-required">等级要求: {point.level_required}</div>
+                        <div className="map-level-required" style={{
+                            position: 'absolute',
+                            top: '-20px',
+                            left: '50%',
+                            transform: 'translateX(-50%)',
+                            backgroundColor: 'rgba(0, 0, 0, 0.7)',
+                            color: 'white',
+                            padding: '2px 6px',
+                            borderRadius: '4px',
+                            fontSize: '10px',
+                            whiteSpace: 'nowrap'
+                        }}>等级要求: {point.level_required}</div>
                     }
+                    <span style={{ fontSize: '16px' }}>📍</span>
                 </div>
             )) : null}
             
@@ -163,18 +215,19 @@ function GameMap() {
                     backgroundColor: 'blue',
                     borderRadius: '50%',
                     zIndex: 10,
-                    left: '50%',
-                    top: '50%',
-                    transform: 'translate(-50%, -50%)'
+                    left: `${character?.position_x || 100}px`,
+                    top: `${character?.position_y || 100}px`,
+                    transform: 'translate(-50%, -50%)',
+                    transition: 'left 0.3s ease-out, top 0.3s ease-out'
                 }}
             ></div>
             
             {/* 渲染怪物 */}
-            {monsters && monsters.length > 0 ? monsters.map(monster => (
+            {monsters && monsters.length > 0 ? monsters.filter(monster => !monster.is_dead && monster.current_hp > 0).map(monster => (
                 <div 
                     key={monster.id} 
                     className="monster" 
-                    data-id={monster.id}
+                    data-monster-id={monster.id}
                     style={{ 
                         position: 'absolute',
                         left: `${monster.x || 100}px`, 
@@ -204,7 +257,7 @@ function GameMap() {
                 <div 
                     key={shop.id} 
                     className="shop" 
-                    data-id={shop.id}
+                    data-shop-id={shop.id}
                     style={{ 
                         position: 'absolute',
                         left: `${shop.x || 200}px`, 
@@ -241,15 +294,31 @@ function GameMap() {
                     className="other-player"
                     style={{
                         position: 'absolute',
-                        left: `${player.x || 150}px`,
-                        top: `${player.y || 150}px`,
-                        zIndex: 8
+                        width: '32px',
+                        height: '32px',
+                        backgroundColor: 'green',
+                        borderRadius: '50%',
+                        zIndex: 8,
+                        left: `${player.position_x || 150}px`,
+                        top: `${player.position_y || 150}px`,
+                        transform: 'translate(-50%, -50%)',
+                        transition: 'left 0.3s ease-out, top 0.3s ease-out'
                     }}
                 >
-                    <div className="other-player-logo"></div>
-                    <div className="player-name-container">
-                        <span className="player-level">Lv.{player.level}</span>
-                        <span className="player-name">{player.name}</span>
+                    <div className="player-name-container" style={{
+                        position: 'absolute',
+                        bottom: '100%',
+                        left: '50%',
+                        transform: 'translateX(-50%)',
+                        whiteSpace: 'nowrap',
+                        backgroundColor: 'rgba(0,0,0,0.7)',
+                        padding: '2px 5px',
+                        borderRadius: '3px',
+                        fontSize: '12px',
+                        textAlign: 'center'
+                    }}>
+                        <div className="player-name">{player.name}</div>
+                        <div className="player-level">Lv.{player.level || 1}</div>
                     </div>
                 </div>
             )) : null}

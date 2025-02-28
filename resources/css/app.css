@@ -1,1 +1,110 @@
 @import 'tailwindcss';
+
+/* 商店模态框样式 */
+.shop-modal {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background-color: rgba(0, 0, 0, 0.7);
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    z-index: 1000;
+}
+
+.shop-modal-content {
+    background-color: #222;
+    border-radius: 8px;
+    width: 80%;
+    max-width: 600px;
+    max-height: 80vh;
+    overflow-y: auto;
+    box-shadow: 0 0 20px rgba(0, 0, 0, 0.5);
+    border: 2px solid #444;
+}
+
+.shop-modal-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 15px 20px;
+    border-bottom: 1px solid #444;
+    background-color: #333;
+    border-radius: 8px 8px 0 0;
+}
+
+.shop-modal-header h3 {
+    margin: 0;
+    color: #fff;
+    font-size: 18px;
+}
+
+.close-btn {
+    font-size: 24px;
+    color: #999;
+    cursor: pointer;
+    transition: color 0.3s;
+}
+
+.close-btn:hover {
+    color: #fff;
+}
+
+.shop-modal-body {
+    padding: 20px;
+}
+
+.shop-items {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+    gap: 15px;
+}
+
+.shop-item {
+    background-color: #333;
+    border-radius: 6px;
+    padding: 15px;
+    border: 1px solid #444;
+    transition: all 0.3s;
+}
+
+.shop-item:hover {
+    background-color: #3a3a3a;
+    transform: translateY(-2px);
+    box-shadow: 0 5px 15px rgba(0, 0, 0, 0.3);
+}
+
+.item-name {
+    font-weight: bold;
+    margin-bottom: 8px;
+    color: #fff;
+}
+
+.item-price {
+    color: gold;
+    margin-bottom: 12px;
+}
+
+.buy-btn {
+    background-color: #4a6;
+    color: #fff;
+    border: none;
+    border-radius: 4px;
+    padding: 6px 12px;
+    cursor: pointer;
+    transition: background-color 0.3s;
+    width: 100%;
+}
+
+.buy-btn:hover {
+    background-color: #5b7;
+}
+
+.no-items {
+    grid-column: 1 / -1;
+    text-align: center;
+    padding: 20px;
+    color: #999;
+}

@@ -186,7 +186,10 @@ class GameController extends Controller
                 'character' => $character,
                 'monsters' => $monsters,
                 'shops' => $shops,
-                'other_players' => $otherPlayers
+                'other_players' => $otherPlayers,
+                'teleport_points' => $map->teleport_points,
+                'npcs' => [], // 暂时返回空数组
+                'map_markers' => [] // 暂时返回空数组
             ]);
         } catch (\Exception $e) {
             \Log::error('获取地图数据异常: ' . $e->getMessage(), [
@@ -646,6 +649,15 @@ class GameController extends Controller
             ]
         ], $character->current_map_id));
 
+        // 处理传送点数据
+        if (is_string($targetMap->teleport_points)) {
+            $targetMap->teleport_points = json_decode($targetMap->teleport_points, true);
+        }
+        
+        if (is_null($targetMap->teleport_points)) {
+            $targetMap->teleport_points = [];
+        }
+
         // 返回更新后的角色和地图数据
         return response()->json([
             'success' => true,
@@ -653,7 +665,8 @@ class GameController extends Controller
             'map' => $targetMap,
             'map_name' => $targetMap->name,
             'position_x' => $character->position_x,
-            'position_y' => $character->position_y
+            'position_y' => $character->position_y,
+            'teleport_points' => $targetMap->teleport_points
         ]);
     }
 } 
