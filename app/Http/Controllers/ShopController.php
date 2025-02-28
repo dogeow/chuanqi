@@ -54,14 +54,14 @@ class ShopController extends Controller
             ->map(function($shopItem) {
                 // 确保每个商店物品都有关联的物品信息
                 if (!$shopItem->item) {
-                    // 如果物品不存在，添加一个默认值
-                    $shopItem->item = [
+                    // 如果物品不存在，创建一个Item模型实例而不是数组
+                    $shopItem->item = new Item([
                         'id' => $shopItem->item_id,
                         'name' => '未知物品',
                         'description' => '物品信息不可用',
                         'type' => '未知类型',
                         'is_consumable' => false
-                    ];
+                    ]);
                 }
                 return $shopItem;
             });
@@ -168,8 +168,10 @@ class ShopController extends Controller
             $character->items()->attach($shopItem->item_id, ['quantity' => 1]);
         }
 
-        // 获取用户的背包，附带物品信息
-        $inventory = $character->items()->with('item')->get();
+        // 获取角色背包物品
+        $inventory = Inventory::where('character_id', $character->id)
+            ->with('item')
+            ->get();
 
         return response()->json([
             'success' => true,
