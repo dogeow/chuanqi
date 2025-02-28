@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { useGame } from '../context/GameContext.jsx';
 
 function CharacterInfo() {
-    const { character } = useGame();
+    const { character, inventory } = useGame();
     const [showDetails, setShowDetails] = useState(false);
     
     // 如果角色未加载，不显示任何内容
@@ -22,11 +22,15 @@ function CharacterInfo() {
     // 计算魔法值百分比
     const mpPercentage = character.max_mp ? Math.floor((character.current_mp / character.max_mp) * 100) : 0;
     
+    // 获取已装备的物品
+    const equippedItems = inventory ? inventory.filter(item => item.is_equipped) : [];
+    
     return (
         <div className="character-info">
             <div className="character-header">
-                <h3 className="character-name">{character.name}</h3>
-                <div className="character-level">Lv.{character.level}</div>
+                <h3 className="character-name">
+                    <span className="character-level">Lv.{character.level}</span> {character.name}
+                </h3>
                 <button className="details-toggle" onClick={toggleDetails}>
                     {showDetails ? '收起' : '详情'}
                 </button>
@@ -79,7 +83,7 @@ function CharacterInfo() {
                     </div>
                     <div className="stat">
                         <span className="stat-label">金币:</span> 
-                        <span className="stat-value">{character.gold}</span>
+                        <span className="stat-value">{character.gold || 0}</span>
                     </div>
                 </div>
                 
@@ -127,6 +131,26 @@ function CharacterInfo() {
                                 <span className="stat-label">位置:</span> 
                                 <span className="stat-value">({Math.round(character.position_x || 0)}, {Math.round(character.position_y || 0)})</span>
                             </div>
+                        </div>
+                    </div>
+                )}
+                
+                {/* 显示已装备的物品 */}
+                {equippedItems.length > 0 && (
+                    <div className="equipped-items">
+                        <h4>已装备物品</h4>
+                        <div className="equipped-items-list">
+                            {equippedItems.map(inventoryItem => (
+                                <div key={inventoryItem.id} className="equipped-item">
+                                    <div className="equipped-item-icon">
+                                        {inventoryItem.item.image || '📦'}
+                                    </div>
+                                    <div className="equipped-item-info">
+                                        <div className="equipped-item-name">{inventoryItem.item.name}</div>
+                                        <div className="equipped-item-type">{inventoryItem.item.type}</div>
+                                    </div>
+                                </div>
+                            ))}
                         </div>
                     </div>
                 )}

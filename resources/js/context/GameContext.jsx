@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useState, useEffect } from 'react';
+import React, { createContext, useContext, useState, useEffect, useRef } from 'react';
 import axios from 'axios';
 
 // 创建游戏上下文
@@ -19,9 +19,24 @@ export function GameProvider({ children }) {
     const [isAutoAttacking, setIsAutoAttacking] = useState(false);
     const [currentAttackingMonsterId, setCurrentAttackingMonsterId] = useState(null);
     const [isLoading, setIsLoading] = useState(true);
+    // 添加一个ref来跟踪是否已经开始加载
+    const isLoadingStartedRef = useRef(false);
+    // 添加一个ref来存储最近的消息，用于防止重复
+    const recentMessagesRef = useRef({});
+    // 创建一个ref来存储角色进入事件的时间戳
+    const characterEnterTimes = useRef({});
     
     // 加载游戏数据
     const loadGameData = async () => {
+        // 如果已经开始加载，则不再重复加载
+        if (isLoadingStartedRef.current) {
+            console.log('游戏数据已经在加载中，跳过重复加载');
+            return;
+        }
+        
+        // 标记加载已开始
+        isLoadingStartedRef.current = true;
+        
         try {
             setIsLoading(true);
             addMessage('正在加载角色数据...', 'info');
@@ -102,6 +117,10 @@ export function GameProvider({ children }) {
             addMessage(`加载游戏数据时发生错误: ${error.message}`, 'error');
         } finally {
             setIsLoading(false);
+            // 加载完成后重置标志，允许将来再次加载（例如刷新游戏）
+            setTimeout(() => {
+                isLoadingStartedRef.current = false;
+            }, 1000);
         }
     };
     
@@ -139,8 +158,17 @@ export function GameProvider({ children }) {
                 return;
             }
             
+            // 检查是否已经连接到相同的地图频道
+            const currentChannels = Object.keys(window.Echo.connector.channels);
+            const targetChannel = `presence-map.${mapId}`;
+            
+            if (currentChannels.includes(targetChannel)) {
+                console.log('已经连接到目标地图频道，跳过重新初始化');
+                return;
+            }
+            
             // 先离开之前的频道（如果有）
-            Object.keys(window.Echo.connector.channels).forEach(channel => {
+            currentChannels.forEach(channel => {
                 if (channel.startsWith('presence-map.')) {
                     const channelName = channel.replace('presence-', '');
                     console.log('离开之前的地图频道:', channelName);
@@ -148,83 +176,95 @@ export function GameProvider({ children }) {
                 }
             });
             
-            // 订阅到地图频道接收实时事件
-            const mapChannel = window.Echo.join(`map.${mapId}`);
-            
-            // 监听广播的游戏事件
-            mapChannel.listen('.game.event', (eventData) => {
-                console.log('收到游戏事件:', eventData);
+            // 添加延迟确保旧连接完全清除
+            setTimeout(() => {
+                // 订阅到地图频道接收实时事件
+                const mapChannel = window.Echo.join(`map.${mapId}`);
                 
-                if (!eventData || !eventData.type) {
-                    console.warn('收到无效的游戏事件数据');
-                    return;
-                }
-                
-                // 处理不同类型的事件
-                switch (eventData.type) {
-                    case 'character.move':
-                        handleCharacterMove(eventData.data);
-                        break;
-                    case 'character.enter':
-                        handleCharacterEnter(eventData.data);
-                        break;
-                    case 'character.leave':
-                        handleCharacterLeave(eventData.data);
-                        break;
-                    case 'monster.killed':
-                        handleMonsterKilled(eventData.data);
-                        break;
-                    case 'monster.respawning':
-                        handleMonsterRespawning(eventData.data);
-                        break;
-                    case 'monster.respawned':
-                        handleMonsterRespawned(eventData.data);
-                        break;
-                    default:
-                        console.log(`未处理的事件类型: ${eventData.type}`, eventData.data);
-                }
-            });
-            
-            // 处理玩家加入事件
-            mapChannel.here((users) => {
-                console.log('当前在线玩家:', users);
-                // 更新其他玩家列表
-                const filteredPlayers = users.filter(user => user.id !== characterData.id);
-                setOtherPlayers(filteredPlayers);
-            });
-            
-            mapChannel.joining((user) => {
-                console.log('玩家加入地图:', user);
-                if (user.id !== characterData.id) {
-                    addMessage(`${user.name || '玩家'} 进入了地图`, 'info');
-                    setOtherPlayers(prev => {
-                        // 检查玩家是否已经在列表中
-                        if (!prev.find(p => p.id === user.id)) {
-                            return [...prev, user];
-                        }
-                        return prev;
-                    });
-                }
-            });
-            
-            mapChannel.leaving((user) => {
-                console.log('玩家离开地图:', user);
-                if (user && user.id && user.id !== characterData.id) {
-                    addMessage(`${user.name || '玩家'} 离开了地图`, 'info');
-                    setOtherPlayers(prev => prev.filter(p => p.id !== user.id));
-                }
-            });
-            
-            // 发送当前玩家加入地图的事件
-            axios.post('/api/map/enter', { map_id: mapId })
-                .then(response => {
-                    console.log('发送地图进入通知成功:', response.data);
-                })
-                .catch(error => {
-                    console.error('发送地图进入通知失败:', error);
+                // 监听广播的游戏事件
+                mapChannel.listen('.game.event', (eventData) => {
+                    console.log('收到游戏事件:', eventData);
+                    
+                    if (!eventData || !eventData.type) {
+                        console.warn('收到无效的游戏事件数据');
+                        return;
+                    }
+                    
+                    // 处理不同类型的事件
+                    switch (eventData.type) {
+                        case 'character.move':
+                            handleCharacterMove(eventData.data);
+                            break;
+                        case 'character.enter':
+                            handleCharacterEnter(eventData.data);
+                            break;
+                        case 'character.leave':
+                            handleCharacterLeave(eventData.data);
+                            break;
+                        case 'monster.killed':
+                            handleMonsterKilled(eventData.data);
+                            break;
+                        case 'monster.respawning':
+                            handleMonsterRespawning(eventData.data);
+                            break;
+                        case 'monster.respawned':
+                            handleMonsterRespawned(eventData.data);
+                            break;
+                        default:
+                            console.log(`未处理的事件类型: ${eventData.type}`, eventData.data);
+                    }
                 });
                 
-            console.log('WebSocket初始化完成');
+                // 处理玩家加入事件
+                mapChannel.here((users) => {
+                    console.log('当前在线玩家:', users);
+                    // 更新其他玩家列表
+                    const filteredPlayers = users.filter(user => user.id !== characterData.id);
+                    setOtherPlayers(filteredPlayers);
+                });
+                
+                mapChannel.joining((user) => {
+                    console.log('玩家加入地图:', user);
+                    if (user.id !== characterData.id) {
+                        addMessage(`${user.name || '玩家'} 进入了地图`, 'info');
+                        setOtherPlayers(prev => {
+                            // 检查玩家是否已经在列表中
+                            if (!prev.find(p => p.id === user.id)) {
+                                return [...prev, user];
+                            }
+                            return prev;
+                        });
+                    }
+                });
+                
+                mapChannel.leaving((user) => {
+                    console.log('玩家离开地图:', user);
+                    if (user && user.id && user.id !== characterData.id) {
+                        addMessage(`${user.name || '玩家'} 离开了地图`, 'info');
+                        setOtherPlayers(prev => prev.filter(p => p.id !== user.id));
+                    }
+                });
+                
+                // 发送当前玩家加入地图的事件
+                // 添加防抖，避免短时间内多次调用API
+                const now = Date.now();
+                const lastMapEnterTime = window.lastMapEnterTime || 0;
+                if (now - lastMapEnterTime > 3000) { // 3秒内不重复发送
+                    window.lastMapEnterTime = now;
+                    
+                    axios.post('/api/map/enter', { map_id: mapId })
+                        .then(response => {
+                            console.log('发送地图进入通知成功:', response.data);
+                        })
+                        .catch(error => {
+                            console.error('发送地图进入通知失败:', error);
+                        });
+                } else {
+                    console.log('跳过重复的地图进入通知');
+                }
+                
+                console.log('WebSocket初始化完成');
+            }, 300);
         } catch (error) {
             console.error('WebSocket初始化失败:', error);
             addMessage('实时连接失败，部分功能可能不可用', 'error');
@@ -259,8 +299,18 @@ export function GameProvider({ children }) {
     // 处理其他玩家进入事件
     const handleCharacterEnter = (data) => {
         if (!data || !data.character || !data.character.id || data.character.id === character?.id) {
+            console.log('忽略无效或自己的角色进入事件');
             return;
         }
+        
+        // 添加防抖处理，避免短时间内重复处理同一角色的进入事件
+        const now = Date.now();
+        const lastEnterTime = characterEnterTimes.current[data.character.id] || 0;
+        if (now - lastEnterTime < 2000) { // 2秒内不重复处理
+            console.log('忽略重复的角色进入事件');
+            return;
+        }
+        characterEnterTimes.current[data.character.id] = now;
         
         console.log('玩家进入:', data.character);
         addMessage(`${data.character.name || '玩家'} 进入了地图`, 'info');
@@ -358,8 +408,22 @@ export function GameProvider({ children }) {
         addMessage(`${data.monster_name} 已重生`, 'info');
     };
     
-    // 添加消息
+    // 添加消息，优化防止短时间内添加重复消息
     const addMessage = (message, type = 'info') => {
+        // 检查是否是最近2秒内的重复消息
+        const now = Date.now();
+        const messageKey = `${message}-${type}`;
+        const lastTime = recentMessagesRef.current[messageKey] || 0;
+        
+        if (now - lastTime < 2000) {
+            console.log('忽略重复消息:', message);
+            return;
+        }
+        
+        // 记录这条消息的时间
+        recentMessagesRef.current[messageKey] = now;
+        
+        // 添加消息到状态
         setMessages(prev => [...prev, { text: message, type, timestamp: new Date() }]);
     };
     
@@ -816,12 +880,14 @@ export function GameProvider({ children }) {
                                 // 使用最新的地图数据和角色数据
                                 const updatedCharacter = {
                                     ...character,
-                                    current_map_id: teleport.target_map_id
+                                    current_map_id: teleport.target_map_id,
+                                    position_x: teleport.target_x || teleport.target_position_x || 0,
+                                    position_y: teleport.target_y || teleport.target_position_y || 0
                                 };
                                 
                                 // 使用新的函数初始化WebSocket
                                 initWebSocketWithData(updatedCharacter, map);
-                            }, 300);
+                            }, 500); // 增加延迟时间，确保旧连接完全清除
                             
                             addMessage(`传送成功！欢迎来到 ${teleport.target_map_name}`, 'success');
                         } else {
