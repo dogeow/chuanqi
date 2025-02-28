@@ -47,11 +47,17 @@ function GameHelp({ onClose }) {
 }
 
 // 游戏控制按钮组件
-function GameControls({ onToggleHelp }) {
+function GameControls({ onToggleHelp, onToggleCharacterInfo, onToggleInventory }) {
     return (
         <div className="game-controls">
             <button className="control-btn help-btn" onClick={onToggleHelp} title="帮助">
                 <span>?</span>
+            </button>
+            <button className="control-btn character-btn" onClick={onToggleCharacterInfo} title="角色信息">
+                <span>C</span>
+            </button>
+            <button className="control-btn inventory-btn" onClick={onToggleInventory} title="背包">
+                <span>I</span>
             </button>
             <button className="control-btn map-btn" title="地图">
                 <span>M</span>
@@ -63,10 +69,50 @@ function GameControls({ onToggleHelp }) {
     );
 }
 
+// 侧边栏模态框组件
+function SidebarModal({ title, isOpen, onClose, children }) {
+    if (!isOpen) return null;
+    
+    return (
+        <div className="sidebar-modal">
+            <div className="sidebar-modal-content">
+                <div className="sidebar-modal-header">
+                    <h3>{title}</h3>
+                    <button className="close-btn" onClick={onClose}>×</button>
+                </div>
+                <div className="sidebar-modal-body">
+                    {children}
+                </div>
+            </div>
+        </div>
+    );
+}
+
 // 游戏内容组件
 function GameContent() {
     const { loadGameData, isLoading } = useGame();
     const [showHelp, setShowHelp] = useState(false);
+    const [showCharacterInfo, setShowCharacterInfo] = useState(false);
+    const [showInventory, setShowInventory] = useState(false);
+    const [isLandscape, setIsLandscape] = useState(false);
+    
+    // 检测屏幕方向
+    useEffect(() => {
+        const checkOrientation = () => {
+            setIsLandscape(window.innerWidth > window.innerHeight);
+        };
+        
+        // 初始检测
+        checkOrientation();
+        
+        // 监听屏幕尺寸变化
+        window.addEventListener('resize', checkOrientation);
+        
+        // 清理监听器
+        return () => {
+            window.removeEventListener('resize', checkOrientation);
+        };
+    }, []);
     
     // 加载游戏数据
     useEffect(() => {
@@ -79,6 +125,16 @@ function GameContent() {
         setShowHelp(!showHelp);
     };
     
+    // 切换角色信息显示
+    const toggleCharacterInfo = () => {
+        setShowCharacterInfo(!showCharacterInfo);
+    };
+    
+    // 切换背包显示
+    const toggleInventory = () => {
+        setShowInventory(!showInventory);
+    };
+    
     // 显示加载中状态
     if (isLoading) {
         return <div className="loading">加载游戏中...</div>;
@@ -86,14 +142,21 @@ function GameContent() {
     
     return (
         <div className="game-layout">
-            <div className="vertical-sidebar">
-                <CharacterInfo />
-            </div>
+            {/* 在横屏模式下隐藏侧边栏，在竖屏模式下显示 */}
+            {(!isLandscape || (isLandscape && showCharacterInfo)) && (
+                <div className={`vertical-sidebar ${isLandscape ? 'mobile-hidden' : ''}`}>
+                    <CharacterInfo />
+                </div>
+            )}
             
             <div className="game-content">
                 <div className="game-map-container">
                     <GameMap />
-                    <GameControls onToggleHelp={toggleHelp} />
+                    <GameControls 
+                        onToggleHelp={toggleHelp} 
+                        onToggleCharacterInfo={toggleCharacterInfo}
+                        onToggleInventory={toggleInventory}
+                    />
                 </div>
                 
                 <div className="messages-container">
@@ -101,12 +164,39 @@ function GameContent() {
                 </div>
             </div>
             
-            <div className="inventory-sidebar">
-                <div className="inventory-section">
-                    <h3>背包</h3>
-                    <Inventory />
+            {/* 在横屏模式下隐藏背包，在竖屏模式下显示 */}
+            {(!isLandscape || (isLandscape && showInventory)) && (
+                <div className={`inventory-sidebar ${isLandscape ? 'mobile-hidden' : ''}`}>
+                    <div className="inventory-section">
+                        <h3>背包</h3>
+                        <Inventory />
+                    </div>
                 </div>
-            </div>
+            )}
+            
+            {/* 横屏模式下的角色信息模态框 */}
+            {isLandscape && (
+                <SidebarModal 
+                    title="角色信息" 
+                    isOpen={showCharacterInfo} 
+                    onClose={toggleCharacterInfo}
+                >
+                    <CharacterInfo />
+                </SidebarModal>
+            )}
+            
+            {/* 横屏模式下的背包模态框 */}
+            {isLandscape && (
+                <SidebarModal 
+                    title="背包" 
+                    isOpen={showInventory} 
+                    onClose={toggleInventory}
+                >
+                    <div className="inventory-section">
+                        <Inventory />
+                    </div>
+                </SidebarModal>
+            )}
             
             {showHelp && <div className="overlay">
                 <GameHelp onClose={toggleHelp} />
