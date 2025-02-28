@@ -212,15 +212,35 @@ function GameMap() {
                     position: 'absolute',
                     width: '32px',
                     height: '32px',
-                    backgroundColor: 'blue',
+                    backgroundColor: '#3366ff',
                     borderRadius: '50%',
                     zIndex: 10,
                     left: `${character?.position_x || 100}px`,
                     top: `${character?.position_y || 100}px`,
                     transform: 'translate(-50%, -50%)',
-                    transition: 'left 0.3s ease-out, top 0.3s ease-out'
+                    transition: 'left 0.2s ease-out, top 0.2s ease-out',
+                    boxShadow: '0 0 10px rgba(51, 102, 255, 0.7)',
+                    display: 'flex',
+                    justifyContent: 'center',
+                    alignItems: 'center',
+                    color: 'white',
+                    fontSize: '10px',
+                    fontWeight: 'bold'
                 }}
-            ></div>
+            >
+                <div className="player-level" style={{
+                    position: 'absolute',
+                    top: '-15px',
+                    left: '50%',
+                    transform: 'translateX(-50%)',
+                    backgroundColor: 'rgba(0, 0, 0, 0.7)',
+                    color: 'white',
+                    padding: '1px 4px',
+                    borderRadius: '3px',
+                    fontSize: '10px',
+                    whiteSpace: 'nowrap'
+                }}>Lv.{character?.level || 1}</div>
+            </div>
             
             {/* 渲染怪物 */}
             {monsters && monsters.length > 0 ? monsters.filter(monster => !monster.is_dead && monster.current_hp > 0).map(monster => (

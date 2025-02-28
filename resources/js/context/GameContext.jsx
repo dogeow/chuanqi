@@ -643,13 +643,53 @@ export function GameProvider({ children }) {
     // 移动角色
     const moveCharacter = async (x, y) => {
         try {
-            // 更新本地角色位置（立即反馈）
+            // 保存原始位置，以便在移动失败时回滚
+            const originalX = character?.position_x;
+            const originalY = character?.position_y;
+            
+            // 立即更新本地角色位置（提供即时视觉反馈）
             if (character) {
                 setCharacter(prev => ({
                     ...prev,
                     position_x: x,
                     position_y: y
                 }));
+            }
+            
+            // 添加点击位置的视觉效果
+            const clickEffect = document.createElement('div');
+            clickEffect.style.position = 'absolute';
+            clickEffect.style.left = `${x}px`;
+            clickEffect.style.top = `${y}px`;
+            clickEffect.style.width = '20px';
+            clickEffect.style.height = '20px';
+            clickEffect.style.borderRadius = '50%';
+            clickEffect.style.backgroundColor = 'rgba(100, 149, 237, 0.5)';
+            clickEffect.style.transform = 'translate(-50%, -50%)';
+            clickEffect.style.zIndex = '5';
+            clickEffect.style.pointerEvents = 'none'; // 确保不会干扰点击
+            clickEffect.style.animation = 'clickFadeOut 1s forwards';
+            
+            // 添加动画样式
+            const styleElement = document.createElement('style');
+            styleElement.textContent = `
+                @keyframes clickFadeOut {
+                    0% { opacity: 0.8; transform: translate(-50%, -50%) scale(0.5); }
+                    100% { opacity: 0; transform: translate(-50%, -50%) scale(1.5); }
+                }
+            `;
+            document.head.appendChild(styleElement);
+            
+            // 将效果添加到地图
+            const gameMap = document.querySelector('.game-map');
+            if (gameMap) {
+                gameMap.appendChild(clickEffect);
+                
+                // 动画结束后移除元素
+                setTimeout(() => {
+                    clickEffect.remove();
+                    styleElement.remove();
+                }, 1000);
             }
             
             // 调用API
@@ -660,6 +700,7 @@ export function GameProvider({ children }) {
             
             if (response.data.success) {
                 console.log('移动成功:', response.data);
+                // 可以在这里更新角色状态，但我们已经在前面更新了
             } else {
                 console.error('移动失败:', response.data.message);
                 addMessage(`移动失败: ${response.data.message}`, 'error');
@@ -667,6 +708,13 @@ export function GameProvider({ children }) {
                 // 如果服务器拒绝移动，恢复原始位置
                 if (response.data.character) {
                     setCharacter(response.data.character);
+                } else if (originalX !== undefined && originalY !== undefined) {
+                    // 如果没有返回角色数据，使用保存的原始位置
+                    setCharacter(prev => ({
+                        ...prev,
+                        position_x: originalX,
+                        position_y: originalY
+                    }));
                 }
             }
         } catch (error) {
