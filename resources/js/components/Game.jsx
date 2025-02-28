@@ -46,24 +46,15 @@ function GameHelp({ onClose }) {
     );
 }
 
-// 游戏控制按钮组件
-function GameControls({ onToggleHelp, onToggleCharacterInfo, onToggleInventory }) {
+// 游戏控制按钮组件 - 只在移动设备上显示
+function GameControls({ onToggleCharacterInfo, onToggleInventory }) {
     return (
         <div className="game-controls">
-            <button className="control-btn help-btn" onClick={onToggleHelp} title="帮助">
-                <span>?</span>
-            </button>
             <button className="control-btn character-btn" onClick={onToggleCharacterInfo} title="角色信息">
                 <span>C</span>
             </button>
             <button className="control-btn inventory-btn" onClick={onToggleInventory} title="背包">
                 <span>I</span>
-            </button>
-            <button className="control-btn map-btn" title="地图">
-                <span>M</span>
-            </button>
-            <button className="control-btn settings-btn" title="设置">
-                <span>⚙</span>
             </button>
         </div>
     );
@@ -95,22 +86,34 @@ function GameContent() {
     const [showCharacterInfo, setShowCharacterInfo] = useState(false);
     const [showInventory, setShowInventory] = useState(false);
     const [isLandscape, setIsLandscape] = useState(false);
+    const [isMobile, setIsMobile] = useState(false);
     
-    // 检测屏幕方向
+    // 检测设备类型和屏幕方向
     useEffect(() => {
-        const checkOrientation = () => {
+        const checkDeviceAndOrientation = () => {
+            // 更精确地检测移动设备
+            const isMobileDevice = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent) || 
+                                  (window.innerWidth < 768);
+            
+            setIsMobile(isMobileDevice);
             setIsLandscape(window.innerWidth > window.innerHeight);
+            
+            // 如果是电脑端，自动显示角色信息和背包
+            if (!isMobileDevice) {
+                setShowCharacterInfo(true);
+                setShowInventory(true);
+            }
         };
         
         // 初始检测
-        checkOrientation();
+        checkDeviceAndOrientation();
         
         // 监听屏幕尺寸变化
-        window.addEventListener('resize', checkOrientation);
+        window.addEventListener('resize', checkDeviceAndOrientation);
         
         // 清理监听器
         return () => {
-            window.removeEventListener('resize', checkOrientation);
+            window.removeEventListener('resize', checkDeviceAndOrientation);
         };
     }, []);
     
@@ -142,9 +145,9 @@ function GameContent() {
     
     return (
         <div className="game-layout">
-            {/* 在横屏模式下隐藏侧边栏，在竖屏模式下显示 */}
-            {(!isLandscape || (isLandscape && showCharacterInfo)) && (
-                <div className={`vertical-sidebar ${isLandscape ? 'mobile-hidden' : ''}`}>
+            {/* PC端始终显示角色信息，移动设备根据状态显示 */}
+            {(!isMobile || (isMobile && !isLandscape) || (isMobile && isLandscape && showCharacterInfo)) && (
+                <div className={`vertical-sidebar ${isMobile && isLandscape ? 'mobile-hidden' : ''}`}>
                     <CharacterInfo />
                 </div>
             )}
@@ -152,11 +155,13 @@ function GameContent() {
             <div className="game-content">
                 <div className="game-map-container">
                     <GameMap />
-                    <GameControls 
-                        onToggleHelp={toggleHelp} 
-                        onToggleCharacterInfo={toggleCharacterInfo}
-                        onToggleInventory={toggleInventory}
-                    />
+                    {/* 只在移动设备上显示控制按钮 */}
+                    {isMobile && (
+                        <GameControls 
+                            onToggleCharacterInfo={toggleCharacterInfo}
+                            onToggleInventory={toggleInventory}
+                        />
+                    )}
                 </div>
                 
                 <div className="messages-container">
@@ -164,9 +169,9 @@ function GameContent() {
                 </div>
             </div>
             
-            {/* 在横屏模式下隐藏背包，在竖屏模式下显示 */}
-            {(!isLandscape || (isLandscape && showInventory)) && (
-                <div className={`inventory-sidebar ${isLandscape ? 'mobile-hidden' : ''}`}>
+            {/* PC端始终显示背包，移动设备根据状态显示 */}
+            {(!isMobile || (isMobile && !isLandscape) || (isMobile && isLandscape && showInventory)) && (
+                <div className={`inventory-sidebar ${isMobile && isLandscape ? 'mobile-hidden' : ''}`}>
                     <div className="inventory-section">
                         <h3>背包</h3>
                         <Inventory />
@@ -174,8 +179,8 @@ function GameContent() {
                 </div>
             )}
             
-            {/* 横屏模式下的角色信息模态框 */}
-            {isLandscape && (
+            {/* 移动设备横屏模式下的角色信息模态框 */}
+            {isMobile && isLandscape && (
                 <SidebarModal 
                     title="角色信息" 
                     isOpen={showCharacterInfo} 
@@ -185,8 +190,8 @@ function GameContent() {
                 </SidebarModal>
             )}
             
-            {/* 横屏模式下的背包模态框 */}
-            {isLandscape && (
+            {/* 移动设备横屏模式下的背包模态框 */}
+            {isMobile && isLandscape && (
                 <SidebarModal 
                     title="背包" 
                     isOpen={showInventory} 
