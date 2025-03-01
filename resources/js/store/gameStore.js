@@ -1,0 +1,159 @@
+import { create } from 'zustand';
+
+// 创建游戏状态存储
+const useGameStore = create((set, get) => ({
+    // 状态
+    character: null,
+    currentMap: null,
+    monsters: [],
+    shops: [],
+    otherPlayers: [],
+    npcs: [],
+    teleportPoints: [],
+    mapMarkers: [],
+    inventory: [],
+    messages: [],
+    isAutoAttacking: false,
+    currentAttackingMonsterId: null,
+    isLoading: true,
+    
+    // 引用值（不会触发重新渲染）
+    isLoadingStarted: false,
+    recentMessages: {},
+    characterEnterTimes: {},
+    
+    // 状态更新方法
+    setCharacter: (character) => set({ character }),
+    setCurrentMap: (map) => set({ currentMap: map }),
+    setMonsters: (monsters) => set({ monsters }),
+    setShops: (shops) => set({ shops }),
+    setOtherPlayers: (players) => set({ otherPlayers: players }),
+    setNpcs: (npcs) => set({ npcs }),
+    setTeleportPoints: (points) => set({ teleportPoints: points }),
+    setMapMarkers: (markers) => set({ mapMarkers: markers }),
+    setInventory: (items) => set({ inventory: items }),
+    setLoading: (isLoading) => set({ isLoading }),
+    setLoadingStarted: (started) => set({ isLoadingStarted: started }),
+    
+    // 更新角色位置
+    updateCharacterPosition: (x, y) => set(state => ({
+        character: {
+            ...state.character,
+            x,
+            y,
+            position_x: x,
+            position_y: y
+        }
+    })),
+    
+    // 更新角色属性
+    updateCharacterAttributes: (attributes) => set(state => ({
+        character: {
+            ...state.character,
+            ...attributes
+        }
+    })),
+    
+    // 更新怪物状态
+    updateMonster: (monsterId, updates) => set(state => ({
+        monsters: state.monsters.map(monster => 
+            monster.id === monsterId 
+                ? { ...monster, ...updates } 
+                : monster
+        )
+    })),
+    
+    // 移除怪物
+    removeMonster: (monsterId) => set(state => ({
+        monsters: state.monsters.filter(monster => monster.id !== monsterId)
+    })),
+    
+    // 添加怪物
+    addMonster: (monster) => set(state => ({
+        monsters: [...state.monsters, monster]
+    })),
+    
+    // 添加其他玩家
+    addOtherPlayer: (player) => set(state => ({
+        otherPlayers: [...state.otherPlayers.filter(p => p.id !== player.id), player]
+    })),
+    
+    // 移除其他玩家
+    removeOtherPlayer: (playerId) => set(state => ({
+        otherPlayers: state.otherPlayers.filter(player => player.id !== playerId)
+    })),
+    
+    // 更新其他玩家位置
+    updateOtherPlayerPosition: (playerId, x, y) => set(state => ({
+        otherPlayers: state.otherPlayers.map(player => 
+            player.id === playerId 
+                ? { ...player, x, y } 
+                : player
+        )
+    })),
+    
+    // 添加消息
+    addMessage: (text, type = 'info') => {
+        // 检查是否是重复消息
+        const recentMessages = { ...get().recentMessages };
+        const messageKey = `${text}-${type}`;
+        const now = Date.now();
+        const lastMessageTime = recentMessages[messageKey] || 0;
+        
+        if (now - lastMessageTime < 3000) { // 3秒内的重复消息
+            return;
+        }
+        
+        // 更新最后消息时间
+        recentMessages[messageKey] = now;
+        set({ recentMessages });
+        
+        // 添加新消息
+        const newMessage = {
+            id: Date.now(),
+            text,
+            type,
+            timestamp: new Date().toLocaleTimeString()
+        };
+        
+        set(state => ({
+            messages: [...state.messages.slice(-99), newMessage] // 保留最近的100条消息
+        }));
+    },
+    
+    // 设置自动攻击状态
+    setAutoAttack: (isAttacking, monsterId = null) => set({
+        isAutoAttacking: isAttacking,
+        currentAttackingMonsterId: monsterId
+    }),
+    
+    // 重置地图数据（用于地图切换）
+    resetMapData: () => set({
+        monsters: [],
+        shops: [],
+        otherPlayers: [],
+        npcs: [],
+        teleportPoints: [],
+        mapMarkers: []
+    }),
+    
+    // 更新角色进入时间（防止重复事件）
+    updateCharacterEnterTime: (characterId) => {
+        const characterEnterTimes = { ...get().characterEnterTimes };
+        characterEnterTimes[characterId] = Date.now();
+        set({ characterEnterTimes });
+    },
+    
+    // 设置完整的游戏数据（用于初始化或地图切换）
+    setGameData: (data) => set({
+        currentMap: data.map,
+        monsters: data.monsters || [],
+        shops: data.shops || [],
+        otherPlayers: data.other_players || [],
+        npcs: data.npcs || [],
+        teleportPoints: data.teleport_points || [],
+        mapMarkers: data.map_markers || []
+    })
+}));
+
+export default useGameStore; 

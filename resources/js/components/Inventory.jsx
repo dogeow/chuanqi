@@ -1,8 +1,8 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { useGame } from '../context/GameContext.jsx';
+import useGameStore from '../store/gameStore';
 
-function Inventory() {
-    const { character, inventory, useItem, equipItem, unequipItem, dropItem } = useGame();
+function Inventory({ items, onUseItem, onEquipItem, onUnequipItem, onDropItem }) {
+    const { character } = useGameStore();
     const [activeTooltip, setActiveTooltip] = useState(null);
     const [tooltipPosition, setTooltipPosition] = useState({ top: 0, left: 0 });
     const tooltipRef = useRef(null);
@@ -56,23 +56,24 @@ function Inventory() {
     
     // 处理物品操作
     const handleItemAction = (action, itemId) => {
+        closeTooltip();
+        
         switch (action) {
             case 'use':
-                useItem(itemId);
+                onUseItem(itemId);
                 break;
             case 'equip':
-                equipItem(itemId);
+                onEquipItem(itemId);
                 break;
             case 'unequip':
-                unequipItem(itemId);
+                onUnequipItem(itemId);
                 break;
             case 'drop':
-                dropItem(itemId);
+                onDropItem(itemId);
                 break;
             default:
-                console.error('未知操作:', action);
+                break;
         }
-        closeTooltip();
     };
     
     // 获取物品稀有度颜色类名
@@ -114,29 +115,31 @@ function Inventory() {
         return true;
     };
     
-    if (!inventory || inventory.length === 0) {
-        return <div id="inventory-list" className="inventory-empty">背包为空</div>;
-    }
-    
     return (
-        <div id="inventory-list">
-            {inventory.map(item => (
-                <div 
-                    key={item.id} 
-                    className="item" 
-                    data-item-id={item.id}
-                    onClick={(e) => handleItemClick(item, e)}
-                >
-                    <div className="item-icon">{item && item.item ? (item.item.image || '📦') : '📦'}</div>
-                    {item.quantity > 1 && <span className="item-badge">{item.quantity}</span>}
-                    {item.is_equipped && <span className="item-equipped">已装备</span>}
-                    {!item.is_equipped && item.item && isEquippableItem(item.item) && 
-                        <span className={`item-equippable ${canEquipItem(item.item) ? 'can-equip' : 'cannot-equip'}`}>
-                            {canEquipItem(item.item) ? '可装备' : '不可装备'}
-                        </span>
-                    }
-                </div>
-            ))}
+        <div className="inventory">
+            <div className="inventory-grid">
+                {items && items.length > 0 ? (
+                    items.map(item => (
+                        <div 
+                            key={item.id} 
+                            className="item" 
+                            data-item-id={item.id}
+                            onClick={(e) => handleItemClick(item, e)}
+                        >
+                            <div className="item-icon">{item && item.item ? (item.item.image || '📦') : '📦'}</div>
+                            {item.quantity > 1 && <span className="item-badge">{item.quantity}</span>}
+                            {item.is_equipped && <span className="item-equipped">已装备</span>}
+                            {!item.is_equipped && item.item && isEquippableItem(item.item) && 
+                                <span className={`item-equippable ${canEquipItem(item.item) ? 'can-equip' : 'cannot-equip'}`}>
+                                    {canEquipItem(item.item) ? '可装备' : '不可装备'}
+                                </span>
+                            }
+                        </div>
+                    ))
+                ) : (
+                    <div className="empty-inventory">背包是空的</div>
+                )}
+            </div>
             
             {activeTooltip && (
                 <div 

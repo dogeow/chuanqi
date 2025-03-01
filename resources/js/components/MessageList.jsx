@@ -1,8 +1,6 @@
 import React, { useEffect, useRef } from 'react';
-import { useGame } from '../context/GameContext.jsx';
 
-function MessageList() {
-    const { messages } = useGame();
+function MessageList({ messages }) {
     const messagesEndRef = useRef(null);
     
     // 自动滚动到最新消息

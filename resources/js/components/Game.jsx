@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import '../echo'; // 导入Echo配置
-import { GameProvider, useGame } from '../context/GameContext.jsx';
+import useGame from '../hooks/useGame';
 import GameMap from './GameMap.jsx';
 import CharacterInfo from './CharacterInfo.jsx';
 import MessageList from './MessageList.jsx';
@@ -65,7 +65,7 @@ function SidebarModal({ title, isOpen, onClose, children }) {
     if (!isOpen) return null;
     
     return (
-        <div className="sidebar-modal">
+        <div className={`sidebar-modal ${isOpen ? 'open' : ''}`}>
             <div className="sidebar-modal-content">
                 <div className="sidebar-modal-header">
                     <h3>{title}</h3>
@@ -81,47 +81,89 @@ function SidebarModal({ title, isOpen, onClose, children }) {
 
 // 游戏内容组件
 function GameContent() {
-    const { loadGameData, isLoading } = useGame();
+    // 使用Zustand store
+    const { 
+        character, 
+        currentMap, 
+        monsters, 
+        shops, 
+        otherPlayers, 
+        npcs, 
+        teleportPoints, 
+        mapMarkers, 
+        inventory, 
+        messages, 
+        isAutoAttacking, 
+        currentAttackingMonsterId, 
+        isLoading, 
+        loadGameData, 
+        handleMonsterClick, 
+        handleShopClick, 
+        handleNpcClick, 
+        handleTeleportClick, 
+        moveCharacter, 
+        useItem, 
+        equipItem, 
+        unequipItem, 
+        dropItem, 
+        addMessage 
+    } = useGame();
+    
     const [showHelp, setShowHelp] = useState(false);
     const [showCharacterInfo, setShowCharacterInfo] = useState(false);
     const [showInventory, setShowInventory] = useState(false);
-    const [isLandscape, setIsLandscape] = useState(false);
     const [isMobile, setIsMobile] = useState(false);
+    const [isLandscape, setIsLandscape] = useState(true);
     
-    // 检测设备类型和屏幕方向
+    // 检查设备类型和屏幕方向
+    const checkDeviceAndOrientation = () => {
+        // 更精确地检测移动设备
+        const isMobileDevice = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent) || 
+                              (window.innerWidth < 768);
+        
+        setIsMobile(isMobileDevice);
+        setIsLandscape(window.innerWidth > window.innerHeight);
+        
+        // 如果是电脑端，自动显示角色信息和背包
+        if (!isMobileDevice) {
+            setShowCharacterInfo(true);
+            setShowInventory(true);
+        }
+    };
+    
+    // 初始化游戏数据
     useEffect(() => {
-        const checkDeviceAndOrientation = () => {
-            // 更精确地检测移动设备
-            const isMobileDevice = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent) || 
-                                  (window.innerWidth < 768);
-            
-            setIsMobile(isMobileDevice);
-            setIsLandscape(window.innerWidth > window.innerHeight);
-            
-            // 如果是电脑端，自动显示角色信息和背包
-            if (!isMobileDevice) {
-                setShowCharacterInfo(true);
-                setShowInventory(true);
+        loadGameData();
+        
+        // 添加键盘事件监听器
+        const handleKeyDown = (e) => {
+            if (e.key === 'h' || e.key === 'H') {
+                toggleHelp();
+            } else if (e.key === 'i' || e.key === 'I') {
+                toggleInventory();
             }
         };
         
-        // 初始检测
+        window.addEventListener('keydown', handleKeyDown);
+        window.addEventListener('resize', checkDeviceAndOrientation);
         checkDeviceAndOrientation();
         
-        // 监听屏幕尺寸变化
-        window.addEventListener('resize', checkDeviceAndOrientation);
+        // 自动攻击逻辑
+        let attackInterval = null;
+        if (isAutoAttacking && currentAttackingMonsterId) {
+            attackInterval = setInterval(() => {
+                handleMonsterClick(currentAttackingMonsterId);
+            }, 2000); // 每2秒攻击一次
+        }
         
-        // 清理监听器
         return () => {
+            window.removeEventListener('keydown', handleKeyDown);
             window.removeEventListener('resize', checkDeviceAndOrientation);
+            if (attackInterval) {
+                clearInterval(attackInterval);
+            }
         };
-    }, []);
-    
-    // 加载游戏数据
-    useEffect(() => {
-        console.log('加载游戏数据');
-        loadGameData();
-    }, []);
+    }, [isAutoAttacking, currentAttackingMonsterId]);
     
     // 切换帮助显示
     const toggleHelp = () => {
@@ -138,9 +180,34 @@ function GameContent() {
         setShowInventory(!showInventory);
     };
     
-    // 显示加载中状态
+    // 如果正在加载，显示加载界面
     if (isLoading) {
-        return <div className="loading">加载游戏中...</div>;
+        return (
+            <div className="game-loading">
+                <div className="loading-spinner"></div>
+                <div className="loading-text">加载中...</div>
+            </div>
+        );
+    }
+    
+    // 如果没有角色数据，显示错误信息
+    if (!character || !currentMap) {
+        return (
+            <div className="game-error">
+                <div className="error-message">无法加载游戏数据，请刷新页面重试。</div>
+                <button onClick={() => window.location.reload()} className="reload-btn">刷新页面</button>
+            </div>
+        );
+    }
+    
+    // 如果是移动设备且是竖屏，显示旋转提示
+    if (isMobile && isLandscape) {
+        return (
+            <div className="rotate-device">
+                <div className="rotate-icon">⟳</div>
+                <div className="rotate-text">请旋转设备以竖屏模式游玩</div>
+            </div>
+        );
     }
     
     return (
@@ -153,7 +220,21 @@ function GameContent() {
             
             <div className="game-content">
                 <div className="game-map-container">
-                    <GameMap />
+                    <GameMap 
+                        mapData={currentMap}
+                        character={character}
+                        monsters={monsters}
+                        shops={shops}
+                        otherPlayers={otherPlayers}
+                        npcs={npcs}
+                        teleportPoints={teleportPoints}
+                        mapMarkers={mapMarkers}
+                        onMove={moveCharacter}
+                        onMonsterClick={handleMonsterClick}
+                        onShopClick={handleShopClick}
+                        onNpcClick={handleNpcClick}
+                        onTeleportClick={handleTeleportClick}
+                    />
                     {/* 只在移动设备上显示控制按钮 */}
                     {isMobile && (
                         <GameControls 
@@ -164,7 +245,7 @@ function GameContent() {
                 </div>
                 
                 <div className="messages-container">
-                    <MessageList />
+                    <MessageList messages={messages} />
                 </div>
             </div>
             
@@ -173,7 +254,13 @@ function GameContent() {
                 <div className={`inventory-sidebar ${isMobile && isLandscape ? 'mobile-hidden' : ''}`}>
                     <div className="inventory-section">
                         <h3>背包</h3>
-                        <Inventory />
+                        <Inventory 
+                            items={inventory} 
+                            onUseItem={useItem}
+                            onEquipItem={equipItem}
+                            onUnequipItem={unequipItem}
+                            onDropItem={dropItem}
+                        />
                     </div>
                 </div>
             )}
@@ -184,9 +271,8 @@ function GameContent() {
                     title="角色信息" 
                     isOpen={showCharacterInfo} 
                     onClose={toggleCharacterInfo}
-                    onClick={()=>setShowCharacterInfo(!showCharacterInfo)}
                 >
-                    <CharacterInfo />
+                    <CharacterInfo character={character} />
                 </SidebarModal>
             )}
             
@@ -198,25 +284,25 @@ function GameContent() {
                     onClose={toggleInventory}
                 >
                     <div className="inventory-section">
-                        <Inventory />
+                        <Inventory 
+                            items={inventory} 
+                            onUseItem={useItem}
+                            onEquipItem={equipItem}
+                            onUnequipItem={unequipItem}
+                            onDropItem={dropItem}
+                        />
                     </div>
                 </SidebarModal>
             )}
             
-            {showHelp && <div className="overlay">
-                <GameHelp onClose={toggleHelp} />
-            </div>}
+            {showHelp && <GameHelp onClose={toggleHelp} />}
         </div>
     );
 }
 
 // 游戏主组件
 function Game() {
-    return (
-        <GameProvider>
-            <GameContent />
-        </GameProvider>
-    );
+    return <GameContent />;
 }
 
 export default Game; 

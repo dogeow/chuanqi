@@ -1,8 +1,8 @@
 import React, { useState } from 'react';
-import { useGame } from '../context/GameContext.jsx';
+import useGameStore from '../store/gameStore';
 
-function CharacterInfo() {
-    const { character, inventory } = useGame();
+function CharacterInfo({ character }) {
+    const { inventory } = useGameStore();
     const [showDetails, setShowDetails] = useState(false);
     
     // 如果角色未加载，不显示任何内容
@@ -129,7 +129,7 @@ function CharacterInfo() {
                             </div>
                             <div className="stat">
                                 <span className="stat-label">位置:</span> 
-                                <span className="stat-value">({Math.round(character.position_x || 0)}, {Math.round(character.position_y || 0)})</span>
+                                <span className="stat-value">({Math.round(character.x || character.position_x || 0)}, {Math.round(character.y || character.position_y || 0)})</span>
                             </div>
                         </div>
                     </div>

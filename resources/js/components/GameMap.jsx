@@ -1,5 +1,4 @@
 import React, { useRef, useEffect, useState } from 'react';
-import { useGame } from '../context/GameContext.jsx';
 
 // 添加传送点脉动动画样式
 const teleportPulseStyle = `
@@ -10,23 +9,21 @@ const teleportPulseStyle = `
 }
 `;
 
-function GameMap() {
-    const { 
-        character,
-        currentMap, 
-        monsters, 
-        shops, 
-        otherPlayers,
-        npcs,
-        teleportPoints,
-        mapMarkers,
-        handleMonsterClick, 
-        handleShopClick,
-        handleNpcClick,
-        handleTeleportClick,
-        moveCharacter
-    } = useGame();
-    
+function GameMap({ 
+    mapData, 
+    character, 
+    monsters, 
+    shops, 
+    otherPlayers, 
+    npcs, 
+    teleportPoints, 
+    mapMarkers, 
+    onMove, 
+    onMonsterClick, 
+    onShopClick, 
+    onNpcClick, 
+    onTeleportClick 
+}) {
     const gameMapRef = useRef(null);
     const playerRef = useRef(null);
     const viewportRef = useRef(null);
@@ -34,20 +31,20 @@ function GameMap() {
     
     // 调试信息
     useEffect(() => {
-        console.log('地图数据:', currentMap);
+        console.log('地图数据:', mapData);
         console.log('怪物数据:', monsters);
         console.log('NPC数据:', npcs);
         console.log('传送点数据:', teleportPoints);
         console.log('角色位置:', character?.position_x, character?.position_y);
         
         // 如果地图有自定义尺寸，则使用
-        if (currentMap && (currentMap.width || currentMap.height)) {
+        if (mapData && (mapData.width || mapData.height)) {
             setMapSize({
-                width: currentMap.width || 1000,
-                height: currentMap.height || 1000
+                width: mapData.width || 1000,
+                height: mapData.height || 1000
             });
         }
-    }, [currentMap, monsters, npcs, teleportPoints, character]);
+    }, [mapData, monsters, npcs, teleportPoints, character]);
     
     // 添加视口跟随玩家的逻辑
     useEffect(() => {
@@ -84,14 +81,14 @@ function GameMap() {
         console.log('点击地图位置:', x, y);
         
         // 移动角色到点击位置
-        moveCharacter(x, y);
+        onMove(x, y);
     }
     
     // 如果地图未加载，显示加载中
-    if (!currentMap) return <div className="loading">加载地图中...</div>;
+    if (!mapData) return <div className="loading">加载地图中...</div>;
     
     // 确定背景图片URL
-    const backgroundUrl = currentMap.background || '/images/default-map.jpg';
+    const backgroundUrl = mapData.background || '/images/default-map.jpg';
     
     return (
         <div 
@@ -140,11 +137,11 @@ function GameMap() {
                     borderRadius: '5px',
                     zIndex: 15
                 }}>
-                    {currentMap.name || '未知地图'}
+                    {mapData.name || '未知地图'}
                 </div>
                 
                 {/* 渲染地图边界 */}
-                {currentMap.boundaries && currentMap.boundaries.map((boundary, index) => (
+                {mapData.boundaries && mapData.boundaries.map((boundary, index) => (
                     <div 
                         key={`boundary-${index}`}
                         className="map-boundary"
@@ -197,7 +194,7 @@ function GameMap() {
                         }}
                         onClick={(e) => {
                             e.stopPropagation();
-                            handleTeleportClick(point.id);
+                            onTeleportClick(point.id);
                         }}
                     >
                         <div className="teleport-map-name" style={{
@@ -243,7 +240,7 @@ function GameMap() {
                         }}
                         onClick={(e) => {
                             e.stopPropagation();
-                            handleNpcClick(npc.id);
+                            onNpcClick(npc.id);
                         }}
                     >
                         <div className="npc-name">{npc.name}</div>
@@ -261,8 +258,8 @@ function GameMap() {
                         backgroundColor: '#3366ff',
                         borderRadius: '50%',
                         zIndex: 10,
-                        left: `${character?.position_x || 100}px`,
-                        top: `${character?.position_y || 100}px`,
+                        left: `${character?.x || character?.position_x || 100}px`,
+                        top: `${character?.y || character?.position_y || 100}px`,
                         transform: 'translate(-50%, -50%)',
                         transition: 'left 0.2s ease-out, top 0.2s ease-out',
                         boxShadow: '0 0 10px rgba(51, 102, 255, 0.7)',
@@ -296,13 +293,13 @@ function GameMap() {
                         data-monster-id={monster.id}
                         style={{ 
                             position: 'absolute',
-                            left: `${monster.position_x || 100}px`, 
-                            top: `${monster.position_y || 100}px`,
+                            left: `${monster.x || monster.position_x || 100}px`, 
+                            top: `${monster.y || monster.position_y || 100}px`,
                             zIndex: 5
                         }}
                         onClick={(e) => {
                             e.stopPropagation();
-                            handleMonsterClick(monster.id);
+                            onMonsterClick(monster.id);
                         }}
                         title={`${monster.name} Lv.${monster.level || '?'} (点击攻击)`}
                     >
@@ -326,8 +323,8 @@ function GameMap() {
                         data-shop-id={shop.id}
                         style={{ 
                             position: 'absolute',
-                            left: `${shop.position_x || 200}px`, 
-                            top: `${shop.position_y || 200}px`,
+                            left: `${shop.x || shop.position_x || 200}px`, 
+                            top: `${shop.y || shop.position_y || 200}px`,
                             width: '32px',
                             height: '32px',
                             backgroundColor: 'gold',
@@ -336,7 +333,7 @@ function GameMap() {
                         }}
                         onClick={(e) => {
                             e.stopPropagation();
-                            handleShopClick(shop.id);
+                            onShopClick(shop.id);
                         }}
                     >
                         <div className="shop-name" style={{
@@ -365,8 +362,8 @@ function GameMap() {
                             backgroundColor: 'green',
                             borderRadius: '50%',
                             zIndex: 8,
-                            left: `${player.position_x || 150}px`,
-                            top: `${player.position_y || 150}px`,
+                            left: `${player.x || player.position_x || 150}px`,
+                            top: `${player.y || player.position_y || 150}px`,
                             transform: 'translate(-50%, -50%)',
                             transition: 'left 0.3s ease-out, top 0.3s ease-out'
                         }}
@@ -412,8 +409,8 @@ function GameMap() {
                             height: '6px',
                             backgroundColor: '#3366ff',
                             borderRadius: '50%',
-                            left: `${(character?.position_x / mapSize.width) * 100}%`,
-                            top: `${(character?.position_y / mapSize.height) * 100}%`,
+                            left: `${((character?.x || character?.position_x || 0) / mapSize.width) * 100}%`,
+                            top: `${((character?.y || character?.position_y || 0) / mapSize.height) * 100}%`,
                             transform: 'translate(-50%, -50%)',
                             zIndex: 2
                         }}></div>
@@ -429,8 +426,8 @@ function GameMap() {
                                     height: '4px',
                                     backgroundColor: 'red',
                                     borderRadius: '50%',
-                                    left: `${(monster.position_x / mapSize.width) * 100}%`,
-                                    top: `${(monster.position_y / mapSize.height) * 100}%`,
+                                    left: `${((monster.x || monster.position_x || 0) / mapSize.width) * 100}%`,
+                                    top: `${((monster.y || monster.position_y || 0) / mapSize.height) * 100}%`,
                                     transform: 'translate(-50%, -50%)',
                                     zIndex: 1
                                 }}
