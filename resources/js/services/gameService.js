@@ -693,15 +693,21 @@ class GameService {
             gameStore.updateMonster(monsterId, { current_hp: response.data.monster.current_hp });
             
             // 如果怪物被击杀
-            if (response.data.monster.current_hp <= 0) {
+            if (response.data.monster.current_hp <= 0 || response.data.character_died) {
+                if(response.data.character_died){
+                    gameStore.addMessage('你已经死亡！', 'error');
+
+                    // 传送到新手村
+                    this.handleTeleportClick(1);
+                }
                 // 停止自动攻击
                 this.stopAutoAttack();
+
                 return;
+            } else {
+                // 继续自动攻击
+                this.startAutoAttack(monsterId);
             }
-            
-            // 开始自动攻击
-            this.startAutoAttack(monsterId);
-            
         } catch (error) {
             console.error('攻击怪物失败:', error);
             gameStore.addMessage(`攻击怪物失败: ${error.message}`, 'error');
@@ -880,13 +886,6 @@ class GameService {
                 
                 // 移动到目标点
                 await this.moveCharacter(targetX, targetY);
-            }
-            
-            // 确认传送
-            console.log(teleport);
-            const confirmTeleport = window.confirm(`确定要传送到 ${teleport.name} 吗？`);
-            if (!confirmTeleport) {
-                return;
             }
             
             // 执行传送
