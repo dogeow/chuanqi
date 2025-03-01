@@ -100,7 +100,6 @@ class AuthController extends Controller
                 'name' => $request->name,
                 'email' => $request->email,
                 'password' => Hash::make($request->password),
-                'gold' => 1000, // 初始金币
             ]);
             
             \Log::info('用户创建成功', ['user_id' => $user->id]);
@@ -121,7 +120,7 @@ class AuthController extends Controller
                 'position_y' => 100,
             ]);
             
-            $user->characters()->save($character);
+            $user->character()->save($character);
             \Log::info('角色创建成功', ['character_id' => $character->id]);
             
             \DB::commit();

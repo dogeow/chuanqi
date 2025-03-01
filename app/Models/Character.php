@@ -75,7 +75,7 @@ class Character extends Model
      */
     public function items()
     {
-        return $this->belongsToMany(Item::class, 'inventories')
+        return $this->belongsToMany(\App\Models\Item::class, 'inventories')
             ->withPivot('quantity', 'is_equipped')
             ->withTimestamps();
     }
@@ -164,13 +164,5 @@ class Character extends Model
         $diff = ceil(($rand / 100) * $this->attack);
 
         return $this->attack + $diff;
-    }
-    
-    /**
-     * 获取金币的访问器
-     */
-    public function getGoldAttribute()
-    {
-        return $this->user->gold;
     }
 }
