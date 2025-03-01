@@ -14,16 +14,19 @@ use Illuminate\Support\Facades\DB;
 
 class GameSeeder extends Seeder
 {
+    const WIDTH = 600;
+    const HEIGHT = 600;
+
     public function run(): void
     {
-        // 创建新手村地图
+        // 创建落霞岛地图
         $starterMap = Map::create([
-            'name' => '新手村',
-            'description' => '初始的村庄，这里有友善的NPC和适合新手的怪物。',
+            'name' => '落霞岛',
+            'description' => '桃源世界，这里有友善的NPC和可爱的动物们。',
             'level_required' => 1,
             'type' => 'normal',
-            'width' => 1000,
-            'height' => 600,
+            'width' => self::WIDTH,
+            'height' => self::HEIGHT,
             'background_image' => 'maps/starter.jpg',
             'spawn_points' => json_encode([
                 ['x' => 100, 'y' => 100],
@@ -31,9 +34,9 @@ class GameSeeder extends Seeder
                 ['x' => 300, 'y' => 300],
             ]),
             'teleport_points' => json_encode([
-                ['x' => 950, 'y' => 100, 'target_map_id' => 2, 'target_x' => 50, 'target_y' => 400, 'name' => '幽暗森林'],
-                ['x' => 950, 'y' => 200, 'target_map_id' => 3, 'target_x' => 50, 'target_y' => 200, 'name' => '古老矿洞'],
-                ['x' => 950, 'y' => 300, 'target_map_id' => 4, 'target_x' => 50, 'target_y' => 400, 'name' => '炽热沙漠'],
+                ['x' => 550, 'y' => 100, 'target_map_id' => 2, 'target_x' => 50, 'target_y' => 400, 'name' => '幽暗森林'],
+                ['x' => 550, 'y' => 200, 'target_map_id' => 3, 'target_x' => 50, 'target_y' => 200, 'name' => '古老矿洞'],
+                ['x' => 550, 'y' => 300, 'target_map_id' => 4, 'target_x' => 50, 'target_y' => 400, 'name' => '炽热沙漠'],
             ]),
         ]);
 
@@ -43,17 +46,17 @@ class GameSeeder extends Seeder
             'description' => '茂密的森林，阳光难以穿透树冠，隐藏着各种危险生物。',
             'level_required' => 5,
             'type' => 'normal',
-            'width' => 1000,
-            'height' => 600,
+            'width' => self::WIDTH,
+            'height' => self::HEIGHT,
             'background_image' => 'maps/forest.jpg',
             'spawn_points' => json_encode([
-                ['x' => 150, 'y' => 150],
-                ['x' => 300, 'y' => 250],
-                ['x' => 450, 'y' => 350],
+                ['x' => 100, 'y' => 100],
+                ['x' => 200, 'y' => 200],
+                ['x' => 300, 'y' => 300],
             ]),
             'teleport_points' => json_encode([
-                ['x' => 50, 'y' => 400, 'target_map_id' => 1, 'target_x' => 750, 'target_y' => 400, 'name' => '新手村'],
-                ['x' => 950, 'y' => 400, 'target_map_id' => 3, 'target_x' => 50, 'target_y' => 400, 'name' => '古老矿洞'],
+                ['x' => 50, 'y' => 400, 'target_map_id' => 1, 'target_x' => 750, 'target_y' => 400, 'name' => '落霞岛'],
+                ['x' => 550, 'y' => 400, 'target_map_id' => 3, 'target_x' => 50, 'target_y' => 400, 'name' => '古老矿洞'],
             ]),
         ]);
 
@@ -63,18 +66,18 @@ class GameSeeder extends Seeder
             'description' => '昏暗的地下洞窟，曾经是矮人的矿场，现在被各种生物占据。',
             'level_required' => 10,
             'type' => 'dungeon',
-            'width' => 1000,
-            'height' => 600,
+            'width' => self::WIDTH,
+            'height' => self::HEIGHT,
             'background_image' => 'maps/cave.jpg',
             'spawn_points' => json_encode([
-                ['x' => 100, 'y' => 200],
-                ['x' => 250, 'y' => 300],
-                ['x' => 400, 'y' => 400],
+                ['x' => 100, 'y' => 100],
+                ['x' => 200, 'y' => 200],
+                ['x' => 300, 'y' => 300],
             ]),
             'teleport_points' => json_encode([
-                ['x' => 50, 'y' => 200, 'target_map_id' => 1, 'target_x' => 750, 'target_y' => 200, 'name' => '新手村'],
-                ['x' => 50, 'y' => 400, 'target_map_id' => 2, 'target_x' => 750, 'target_y' => 400, 'name' => '幽暗森林'],
-                ['x' => 950, 'y' => 400, 'target_map_id' => 4, 'target_x' => 750, 'target_y' => 200, 'name' => '炽热沙漠'],
+                ['x' => 50, 'y' => 200, 'target_map_id' => 1, 'target_x' => 100, 'target_y' => 100, 'name' => '落霞岛'],
+                ['x' => 50, 'y' => 400, 'target_map_id' => 2, 'target_x' => 100, 'target_y' => 100, 'name' => '幽暗森林'],
+                ['x' => 550, 'y' => 400, 'target_map_id' => 4, 'target_x' => 100, 'target_y' => 100, 'name' => '炽热沙漠'],
             ]),
         ]);
 
@@ -84,21 +87,21 @@ class GameSeeder extends Seeder
             'description' => '一片荒芜的沙漠，白天烈日炎炎，夜晚寒冷刺骨，隐藏着远古的遗迹。',
             'level_required' => 15,
             'type' => 'normal',
-            'width' => 1000,
-            'height' => 600,
+            'width' => self::WIDTH,
+            'height' => self::HEIGHT,
             'background_image' => 'maps/desert.jpg',
             'spawn_points' => json_encode([
+                ['x' => 100, 'y' => 100],
                 ['x' => 200, 'y' => 200],
-                ['x' => 400, 'y' => 300],
-                ['x' => 600, 'y' => 400],
+                ['x' => 300, 'y' => 300],
             ]),
             'teleport_points' => json_encode([
-                ['x' => 50, 'y' => 400, 'target_map_id' => 1, 'target_x' => 750, 'target_y' => 500, 'name' => '新手村'],
-                ['x' => 950, 'y' => 200, 'target_map_id' => 3, 'target_x' => 750, 'target_y' => 400, 'name' => '古老矿洞'],
+                ['x' => 550, 'y' => 400, 'target_map_id' => 1, 'target_x' => 100, 'target_y' => 100, 'name' => '落霞岛'],
+                ['x' => 550, 'y' => 200, 'target_map_id' => 3, 'target_x' => 100, 'target_y' => 100, 'name' => '古老矿洞'],
             ]),
         ]);
 
-        // 在新手村创建低级怪物
+        // 在落霞岛创建低级怪物
         $rabbit = Monster::create([
             'name' => '野兔',
             'description' => '一只可爱的野兔，看起来人畜无害，适合新手练习。',
@@ -137,7 +140,7 @@ class GameSeeder extends Seeder
         
         $toad = Monster::create([
             'name' => '癞蛤蟆',
-            'description' => '生活在新手村附近的大癞蛤蟆，偶尔会吐出黏液攻击路过的冒险者。',
+            'description' => '生活在落霞岛附近的大癞蛤蟆，偶尔会吐出黏液攻击路过的冒险者。',
             'level' => 2,
             'hp' => 60,
             'current_hp' => 60,
@@ -147,8 +150,8 @@ class GameSeeder extends Seeder
             'gold_reward' => 6,
             'respawn_time' => 35,
             'map_id' => $starterMap->id,
-            'position_x' => 600,
-            'position_y' => 400,
+            'position_x' => 100,
+            'position_y' => 200,
             'image' => 'monsters/toad.png',
             'emoji' => '🐸',
         ]);
@@ -184,7 +187,7 @@ class GameSeeder extends Seeder
             'gold_reward' => 8,
             'respawn_time' => 45,
             'map_id' => $forestMap->id,
-            'position_x' => 600,
+            'position_x' => 100,
             'position_y' => 400,
             'image' => 'monsters/goblin.png',
             'emoji' => '👺',
@@ -202,8 +205,8 @@ class GameSeeder extends Seeder
             'gold_reward' => 12,
             'respawn_time' => 60,
             'map_id' => $forestMap->id,
-            'position_x' => 800,
-            'position_y' => 500,
+            'position_x' => 100,
+            'position_y' => 200,
             'image' => 'monsters/wolf.png',
             'emoji' => '🐺',
         ]);
@@ -239,7 +242,7 @@ class GameSeeder extends Seeder
             'gold_reward' => 30,
             'respawn_time' => 120,
             'map_id' => $forestMap->id,
-            'position_x' => 800,
+            'position_x' => 200,
             'position_y' => 500,
             'image' => 'monsters/bear.png',
             'emoji' => '🐻',
@@ -276,7 +279,7 @@ class GameSeeder extends Seeder
             'gold_reward' => 60,
             'respawn_time' => 180,
             'map_id' => $caveMap->id,
-            'position_x' => 600,
+            'position_x' => 200,
             'position_y' => 400,
             'image' => 'monsters/golem.png',
             'emoji' => '🗿',
@@ -295,7 +298,7 @@ class GameSeeder extends Seeder
             'gold_reward' => 70,
             'respawn_time' => 90,
             'map_id' => $desertMap->id,
-            'position_x' => 400,
+            'position_x' => 200,
             'position_y' => 300,
             'image' => 'monsters/scorpion.png',
             'emoji' => '🦂',
@@ -313,7 +316,7 @@ class GameSeeder extends Seeder
             'gold_reward' => 100,
             'respawn_time' => 240,
             'map_id' => $desertMap->id,
-            'position_x' => 600,
+            'position_x' => 200,
             'position_y' => 400,
             'image' => 'monsters/mummy.png',
         ]);
