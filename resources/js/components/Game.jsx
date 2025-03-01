@@ -214,7 +214,7 @@ function GameContent() {
         <div className="game-layout">
             {!isMobile && (
                 <div className={`vertical-sidebar ${isMobile && isLandscape ? 'mobile-hidden' : ''}`}>
-                    <CharacterInfo />
+                    <CharacterInfo character={character} />
                 </div>
             )}
             

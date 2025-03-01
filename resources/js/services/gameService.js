@@ -27,6 +27,11 @@ class GameService {
             }
             
             const characterData = characterResponse.data.character;
+            // 确保同时设置x和y属性
+            if (characterData.position_x !== undefined && characterData.position_y !== undefined) {
+                characterData.x = characterData.position_x;
+                characterData.y = characterData.position_y;
+            }
             gameStore.setCharacter(characterData);
             
             gameStore.addMessage('正在加载地图数据...', 'info');
