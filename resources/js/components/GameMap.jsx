@@ -395,13 +395,9 @@ function GameMap({
                 >
                     <div className="player-level" style={{
                         position: 'absolute',
-                        top: '-15px',
+                        top: '-100%',
                         left: '50%',
                         transform: 'translateX(-50%)',
-                        backgroundColor: 'rgba(0, 0, 0, 0.7)',
-                        color: 'white',
-                        padding: '1px 4px',
-                        borderRadius: '3px',
                         fontSize: '10px',
                         whiteSpace: 'nowrap'
                     }}>Lv.{character?.level || 1}</div>
