@@ -69,20 +69,7 @@ function GameMap({
                 height: mapData.height || 1000
             });
         }
-        
-        // 初始化怪物和玩家的血量状态
-        if (monsters && monsters.length > 0) {
-            monsters.forEach(monster => {
-                if (monster.lastHp === undefined) {
-                    monster.lastHp = monster.current_hp;
-                }
-            });
-        }
-        
-        if (character && character.lastHp === undefined) {
-            character.lastHp = character.current_hp;
-        }
-    }, [mapData, monsters, npcs, teleportPoints, character]);
+    }, [mapData, monsters, npcs, teleportPoints, character, otherPlayers]);
     
     // 添加视口跟随玩家的逻辑
     useEffect(() => {
@@ -356,15 +343,75 @@ function GameMap({
                         key={`npc-${npc.id}`}
                         className={`npc ${npc.has_quest ? 'has-quest' : ''}`}
                         style={{
+                            position: 'absolute',
                             left: `${npc.position_x || 400}px`,
-                            top: `${npc.position_y || 400}px`
+                            top: `${npc.position_y || 400}px`,
+                            width: '32px',
+                            height: '32px',
+                            backgroundColor: '#ffcc00',
+                            borderRadius: '50%',
+                            zIndex: 6,
+                            display: 'flex',
+                            justifyContent: 'center',
+                            alignItems: 'center',
+                            cursor: 'pointer',
+                            transform: 'translate(-50%, -50%)'
                         }}
                         onClick={(e) => {
                             e.stopPropagation();
                             onNpcClick(npc.id);
                         }}
                     >
-                        <div className="npc-name">{npc.name}</div>
+                        <div className="npc-name" style={{
+                            position: 'absolute',
+                            bottom: '100%',
+                            left: '50%',
+                            transform: 'translateX(-50%)',
+                            whiteSpace: 'nowrap',
+                            backgroundColor: 'rgba(0,0,0,0.7)',
+                            padding: '2px 5px',
+                            borderRadius: '3px',
+                            fontSize: '12px'
+                        }}>{npc.name}</div>
+                        
+                        {/* NPC血条 - 始终显示 */}
+                        <div className="npc-hp-bar-container" style={{
+                            position: 'absolute',
+                            bottom: '-15px',
+                            left: '50%',
+                            transform: 'translateX(-50%)',
+                            width: '40px',
+                            height: '6px',
+                            backgroundColor: 'rgba(0, 0, 0, 0.7)',
+                            borderRadius: '3px',
+                            overflow: 'hidden'
+                        }}>
+                            <div 
+                                className="npc-hp-bar" 
+                                style={{
+                                    width: `${npc?.current_hp && npc?.hp ? (npc.current_hp / npc.hp) * 100 : 100}%`,
+                                    height: '100%',
+                                    backgroundColor: '#ff3333',
+                                    transition: 'width 0.3s ease-out'
+                                }}
+                            ></div>
+                        </div>
+                        
+                        {/* 显示血量数值 */}
+                        <div className="npc-hp-text" style={{
+                            position: 'absolute',
+                            bottom: '-25px',
+                            left: '50%',
+                            transform: 'translateX(-50%)',
+                            fontSize: '10px',
+                            backgroundColor: 'rgba(0,0,0,0.5)',
+                            padding: '1px 3px',
+                            borderRadius: '2px'
+                        }}>{npc?.current_hp || '?'}/{npc?.hp || '?'}</div>
+                        
+                        <div style={{ fontSize: '16px' }}>
+                            {npc.emoji || '👨‍💼'}
+                        </div>
                     </div>
                 )) : null}
                 
@@ -402,31 +449,41 @@ function GameMap({
                         whiteSpace: 'nowrap'
                     }}>Lv.{character?.level || 1}</div>
                     
-                    {/* 玩家血条 */}
-                    {character && character.current_hp !== undefined && character.hp !== undefined && (
-                        <div className="player-hp-bar-container" style={{
-                            position: 'absolute',
-                            bottom: '-15px',
-                            left: '50%',
-                            transform: 'translateX(-50%)',
-                            width: '40px',
-                            height: '6px',
-                            backgroundColor: 'rgba(0, 0, 0, 0.7)',
-                            borderRadius: '3px',
-                            overflow: 'hidden'
-                        }}>
-                            <div 
-                                className="player-hp-bar" 
-                                style={{
-                                    width: `${(character.current_hp / character.hp) * 100}%`,
-                                    height: '100%',
-                                    backgroundColor: '#ff3333',
-                                    transition: 'width 0.3s ease-out',
-                                    animation: character.lastHp !== character.current_hp ? 'hpChange 0.5s' : 'none'
-                                }}
-                            ></div>
-                        </div>
-                    )}
+                    {/* 玩家血条 - 始终显示 */}
+                    <div className="player-hp-bar-container" style={{
+                        position: 'absolute',
+                        bottom: '-15px',
+                        left: '50%',
+                        transform: 'translateX(-50%)',
+                        width: '40px',
+                        height: '6px',
+                        backgroundColor: 'rgba(0, 0, 0, 0.7)',
+                        borderRadius: '3px',
+                        overflow: 'hidden'
+                    }}>
+                        <div 
+                            className="player-hp-bar" 
+                            style={{
+                                width: `${character?.current_hp && character?.hp ? (character.current_hp / character.hp) * 100 : 100}%`,
+                                height: '100%',
+                                backgroundColor: '#ff3333',
+                                transition: 'width 0.3s ease-out',
+                                animation: character?.lastHp !== character?.current_hp ? 'hpChange 0.5s' : 'none'
+                            }}
+                        ></div>
+                    </div>
+                    
+                    {/* 显示血量数值 */}
+                    <div className="player-hp-text" style={{
+                        position: 'absolute',
+                        bottom: '-25px',
+                        left: '50%',
+                        transform: 'translateX(-50%)',
+                        fontSize: '10px',
+                        backgroundColor: 'rgba(0,0,0,0.5)',
+                        padding: '1px 3px',
+                        borderRadius: '2px'
+                    }}>{character?.current_hp || '?'}/{character?.base_hp || '?'}</div>
                     
                     {/* 玩家攻击状态 */}
                     {Object.keys(attackingMonsters).length > 0 && (
@@ -503,7 +560,7 @@ function GameMap({
                             <div 
                                 className="monster-hp-bar" 
                                 style={{
-                                    width: `${monster.hp_percentage || (monster.current_hp / monster.hp) * 100 || 100}%`,
+                                    width: `${monster.hp_percentage || (monster?.current_hp && monster?.hp ? (monster.current_hp / monster.hp) * 100 : 100)}%`,
                                     height: '100%',
                                     backgroundColor: '#ff3333',
                                     transition: 'width 0.3s ease-out',
@@ -623,6 +680,41 @@ function GameMap({
                                     ({Math.round(playerX)}, {Math.round(playerY)})
                                 </div>
                             </div>
+                            
+                            {/* 其他玩家血条 - 始终显示 */}
+                            <div className="player-hp-bar-container" style={{
+                                position: 'absolute',
+                                bottom: '-15px',
+                                left: '50%',
+                                transform: 'translateX(-50%)',
+                                width: '40px',
+                                height: '6px',
+                                backgroundColor: 'rgba(0, 0, 0, 0.7)',
+                                borderRadius: '3px',
+                                overflow: 'hidden'
+                            }}>
+                                <div 
+                                    className="player-hp-bar" 
+                                    style={{
+                                        width: `${player?.current_hp && player?.hp ? (player.current_hp / player.hp) * 100 : 100}%`,
+                                        height: '100%',
+                                        backgroundColor: '#ff3333',
+                                        transition: 'width 0.3s ease-out'
+                                    }}
+                                ></div>
+                            </div>
+                            
+                            {/* 显示血量数值 */}
+                            <div className="player-hp-text" style={{
+                                position: 'absolute',
+                                bottom: '-25px',
+                                left: '50%',
+                                transform: 'translateX(-50%)',
+                                fontSize: '10px',
+                                backgroundColor: 'rgba(0,0,0,0.5)',
+                                padding: '1px 3px',
+                                borderRadius: '2px'
+                            }}>{player?.current_hp || '?'}/{player?.current_hp || '?'}</div>
                         </div>
                     );
                 }) : null}
