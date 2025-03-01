@@ -19,7 +19,6 @@ class GameService {
         try {
             console.log('开始加载游戏数据...');
             gameStore.setLoading(true);
-            gameStore.addMessage('正在加载角色数据...', 'info');
             
             // 获取角色信息
             const characterResponse = await axios.get('/api/character');
@@ -36,7 +35,6 @@ class GameService {
             }
             gameStore.setCharacter(characterData);
             
-            gameStore.addMessage('正在加载地图数据...', 'info');
             
             // 检查角色的地图ID是否存在
             if (!characterData.current_map_id) {
@@ -58,7 +56,6 @@ class GameService {
             gameStore.setGameData(mapResponse.data);
             
             // 获取背包信息
-            gameStore.addMessage('正在加载背包数据...', 'info');
             const inventoryResponse = await axios.get('/api/inventory');
             if (!inventoryResponse.data.success) {
                 throw new Error(inventoryResponse.data.message || '获取背包数据失败');
@@ -874,7 +871,7 @@ class GameService {
         
         try {
             const teleport = gameStore.teleportPoints.find(t => t.target_map_id === teleportId);
-            if (!teleport) {
+            if (!teleport && teleportId != 1) {
                 throw new Error('传送点不存在');
             }
             
@@ -901,7 +898,7 @@ class GameService {
             }
             
             // 执行传送
-            gameStore.addMessage(`正在传送到 ${teleport.target_map_name}...`, 'info');
+            gameStore.addMessage(`正在传送到 ${teleport.name}...`, 'info');
             
             const response = await axios.post('/api/map/change', {
                 map_id: teleportId
