@@ -321,7 +321,7 @@ body {
     display: flex;
     justify-content: center;
     align-items: center;
-    min-height: 0; /* 确保弹性布局正常工作 */
+    min-height: 600px;
 }
 
 .game-map {
@@ -873,8 +873,7 @@ body {
 [title]:hover::after {
     content: attr(title);
     position: absolute;
-    bottom: 100%;
-    left: 50%;
+    right: 50%;
     transform: translateX(-50%);
     background-color: #333;
     color: white;
@@ -889,15 +888,6 @@ body {
 .monster:hover, .shop:hover, .teleport-point:hover {
     transform: translate(-50%, -50%) scale(1.1);
     box-shadow: 0 0 10px rgba(255, 255, 255, 0.5);
-}
-
-/* 游戏控件样式 - 更新为适应侧边栏 */
-.game-controls {
-    display: flex;
-    gap: 8px;
-    flex-wrap: wrap;
-    justify-content: center;
-    margin-top: 5px;
 }
 
 .control-btn {
@@ -1655,10 +1645,8 @@ body {
 /* 游戏控制按钮 */
 .game-controls {
     position: absolute;
-    bottom: 10px;
-    right: 10px;
-    display: flex;
-    gap: 10px;
+    top: 6px;
+    right: 6px;
     z-index: 100;
 }
 
@@ -1684,10 +1672,6 @@ body {
 
 .character-btn {
     background-color: rgba(76, 175, 80, 0.6);
-}
-
-.inventory-btn {
-    background-color: rgba(255, 152, 0, 0.6);
 }
 
 /* 加载状态 */
@@ -1772,27 +1756,6 @@ body {
     .game-content {
         height: 0;
         flex: 1;
-    }
-}
-
-/* 横屏模式特定样式 */
-@media (orientation: landscape) and (max-width: 1024px) {
-    .vertical-sidebar.mobile-hidden, .inventory-sidebar.mobile-hidden {
-        display: none;
-    }
-    
-    .game-content {
-        flex: 1;
-        height: 100vh;
-        flex-direction: row;
-    }
-    
-    .game-controls {
-        display: flex;
-        position: absolute;
-        top: 10px;
-        right: 10px;
-        z-index: 100;
     }
 }
 

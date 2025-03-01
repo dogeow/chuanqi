@@ -7,55 +7,12 @@ import MessageList from './MessageList.jsx';
 import Inventory from './Inventory.jsx'; // 导入背包组件
 import gameService from '../services/gameService';
 
-// 游戏帮助组件
-function GameHelp({ onClose }) {
-    return (
-        <div className="game-help">
-            <div className="help-header">
-                <h3>游戏帮助</h3>
-                <button className="close-btn" onClick={onClose}>×</button>
-            </div>
-            <div className="help-content">
-                <div className="help-section">
-                    <h4>基本操作</h4>
-                    <ul>
-                        <li>点击地图移动角色</li>
-                        <li>点击怪物进行攻击</li>
-                        <li>点击商店进行交易</li>
-                    </ul>
-                </div>
-                <div className="help-section">
-                    <h4>快捷键</h4>
-                    <ul>
-                        <li><kbd>H</kbd> - 显示/隐藏帮助</li>
-                        <li><kbd>I</kbd> - 打开/关闭背包</li>
-                        <li><kbd>M</kbd> - 打开/关闭地图</li>
-                        <li><kbd>ESC</kbd> - 关闭当前窗口</li>
-                    </ul>
-                </div>
-                <div className="help-section">
-                    <h4>游戏提示</h4>
-                    <ul>
-                        <li>升级可以提高角色属性</li>
-                        <li>装备更好的物品可以增强战斗力</li>
-                        <li>完成任务可以获得经验和奖励</li>
-                        <li>与NPC交谈可以获取游戏信息</li>
-                    </ul>
-                </div>
-            </div>
-        </div>
-    );
-}
-
 // 游戏控制按钮组件 - 只在移动设备上显示
-function GameControls({ onToggleCharacterInfo, onToggleInventory }) {
+function GameControls({ onToggleCharacterInfo }) {
     return (
         <div className="game-controls">
             <button className="control-btn character-btn" onClick={onToggleCharacterInfo} title="角色信息">
                 <span>C</span>
-            </button>
-            <button className="control-btn inventory-btn" onClick={onToggleInventory} title="背包">
-                <span>I</span>
             </button>
         </div>
     );
@@ -110,9 +67,7 @@ function GameContent() {
         addMessage 
     } = useGame();
     
-    const [showHelp, setShowHelp] = useState(false);
     const [showCharacterInfo, setShowCharacterInfo] = useState(false);
-    const [showInventory, setShowInventory] = useState(false);
     const [isMobile, setIsMobile] = useState(false);
     const [isLandscape, setIsLandscape] = useState(true);
     
@@ -128,7 +83,6 @@ function GameContent() {
         // 如果是电脑端，自动显示角色信息和背包
         if (!isMobileDevice) {
             setShowCharacterInfo(true);
-            setShowInventory(true);
         }
     };
     
@@ -146,16 +100,6 @@ function GameContent() {
         
         loadGameData();
         
-        // 添加键盘事件监听器
-        const handleKeyDown = (e) => {
-            if (e.key === 'h' || e.key === 'H') {
-                toggleHelp();
-            } else if (e.key === 'i' || e.key === 'I') {
-                toggleInventory();
-            }
-        };
-        
-        window.addEventListener('keydown', handleKeyDown);
         window.addEventListener('resize', checkDeviceAndOrientation);
         checkDeviceAndOrientation();
         
@@ -168,7 +112,6 @@ function GameContent() {
         }
         
         return () => {
-            window.removeEventListener('keydown', handleKeyDown);
             window.removeEventListener('resize', checkDeviceAndOrientation);
             if (attackInterval) {
                 clearInterval(attackInterval);
@@ -184,19 +127,9 @@ function GameContent() {
         }
     }, [character?.id, currentMap?.id]); // 只在角色ID或地图ID变化时重新连接
     
-    // 切换帮助显示
-    const toggleHelp = () => {
-        setShowHelp(!showHelp);
-    };
-    
     // 切换角色信息显示
     const toggleCharacterInfo = () => {
         setShowCharacterInfo(!showCharacterInfo);
-    };
-    
-    // 切换背包显示
-    const toggleInventory = () => {
-        setShowInventory(!showInventory);
     };
     
     // 如果正在加载，显示加载界面
@@ -232,7 +165,7 @@ function GameContent() {
     return (
         <div className="game-layout">
             {!isMobile && (
-                <div className={`vertical-sidebar ${isMobile && isLandscape ? 'mobile-hidden' : ''}`}>
+                <div className={`vertical-sidebar ${isMobile ? 'mobile-hidden' : ''}`}>
                     <CharacterInfo character={character} />
                 </div>
             )}
@@ -258,7 +191,6 @@ function GameContent() {
                     {isMobile && (
                         <GameControls 
                             onToggleCharacterInfo={toggleCharacterInfo}
-                            onToggleInventory={toggleInventory}
                         />
                     )}
                 </div>
@@ -267,25 +199,22 @@ function GameContent() {
                     <MessageList messages={messages} />
                 </div>
             </div>
-            
-            {/* PC端始终显示背包，移动设备根据状态显示 */}
-            {(!isMobile || (isMobile && !isLandscape) || (isMobile && isLandscape && showInventory)) && (
-                <div className={`inventory-sidebar ${isMobile && isLandscape ? 'mobile-hidden' : ''}`}>
-                    <div className="inventory-section">
-                        <h3>背包</h3>
-                        <Inventory 
-                            items={inventory} 
-                            onUseItem={useItem}
-                            onEquipItem={equipItem}
-                            onUnequipItem={unequipItem}
-                            onDropItem={dropItem}
-                        />
-                    </div>
+
+            <div className={`inventory-sidebar ${isMobile ? 'mobile-hidden' : ''}`}>
+                <div className="inventory-section">
+                    <h3>背包</h3>
+                    <Inventory 
+                        items={inventory} 
+                        onUseItem={useItem}
+                        onEquipItem={equipItem}
+                        onUnequipItem={unequipItem}
+                        onDropItem={dropItem}
+                    />
                 </div>
-            )}
+            </div>
             
-            {/* 移动设备横屏模式下的角色信息模态框 */}
-            {isMobile && isLandscape && (
+            {/* 移动设备模式下的角色信息模态框 */}
+            {isMobile && (
                 <SidebarModal 
                     title="角色信息" 
                     isOpen={showCharacterInfo} 
@@ -294,27 +223,6 @@ function GameContent() {
                     <CharacterInfo character={character} />
                 </SidebarModal>
             )}
-            
-            {/* 移动设备横屏模式下的背包模态框 */}
-            {isMobile && isLandscape && (
-                <SidebarModal 
-                    title="背包" 
-                    isOpen={showInventory} 
-                    onClose={toggleInventory}
-                >
-                    <div className="inventory-section">
-                        <Inventory 
-                            items={inventory} 
-                            onUseItem={useItem}
-                            onEquipItem={equipItem}
-                            onUnequipItem={unequipItem}
-                            onDropItem={dropItem}
-                        />
-                    </div>
-                </SidebarModal>
-            )}
-            
-            {showHelp && <GameHelp onClose={toggleHelp} />}
         </div>
     );
 }
