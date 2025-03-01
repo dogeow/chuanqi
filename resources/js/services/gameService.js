@@ -695,7 +695,7 @@ class GameService {
             
             // 更新角色金币
             gameStore.updateCharacterAttributes({
-                gold: response.data.new_gold
+                gold: response.data.new_gold || response.data.current_gold
             });
             
             // 更新背包
@@ -703,7 +703,7 @@ class GameService {
                 gameStore.setInventory(response.data.inventory);
             }
             
-            gameStore.addMessage(response.data.message || '成功购买物品', 'success');
+            gameStore.addMessage(response.data.message || `成功购买物品 x${quantity}`, 'success');
             
         } catch (error) {
             console.error('购买物品失败:', error);
