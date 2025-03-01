@@ -315,7 +315,7 @@ function GameMap({
                         }}
                         onClick={(e) => {
                             e.stopPropagation();
-                            onTeleportClick(point.id);
+                            onTeleportClick(point.target_map_id);
                         }}
                     >
                         <div className="teleport-map-name" style={{

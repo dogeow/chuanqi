@@ -690,7 +690,7 @@ class GameService {
         const gameStore = useGameStore.getState();
         
         try {
-            const teleport = gameStore.teleportPoints.find(t => t.id === teleportId);
+            const teleport = gameStore.teleportPoints.find(t => t.target_map_id === teleportId);
             if (!teleport) {
                 throw new Error('传送点不存在');
             }
@@ -718,7 +718,8 @@ class GameService {
             }
             
             // 确认传送
-            const confirmTeleport = window.confirm(`确定要传送到 ${teleport.target_map_name} 吗？`);
+            console.log(teleport);
+            const confirmTeleport = window.confirm(`确定要传送到 ${teleport.name} 吗？`);
             if (!confirmTeleport) {
                 return;
             }
@@ -726,8 +727,8 @@ class GameService {
             // 执行传送
             gameStore.addMessage(`正在传送到 ${teleport.target_map_name}...`, 'info');
             
-            const response = await axios.post('/api/teleport', {
-                teleport_id: teleportId
+            const response = await axios.post('/api/map/change', {
+                map_id: teleportId
             });
             
             if (!response.data.success) {
@@ -745,11 +746,10 @@ class GameService {
                 y: response.data.new_y,
                 map_id: response.data.new_map_id
             });
-            
             gameStore.setLoading(true);
             
             // 重新加载地图数据
-            const mapResponse = await axios.get(`/api/map/${response.data.new_map_id}`);
+            const mapResponse = await axios.get(`/api/map/${teleportId}`);
             if (!mapResponse.data.success) {
                 throw new Error(mapResponse.data.message || '获取地图数据失败');
             }
