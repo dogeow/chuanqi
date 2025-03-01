@@ -523,8 +523,10 @@ class GameService {
                 throw new Error(response.data.message || '移动失败');
             }
             
-            // 更新角色位置
-            gameStore.updateCharacterPosition(response.data.new_x, response.data.new_y);
+            // 更新角色位置 - 使用服务器返回的位置
+            const newX = response.data.character.position_x;
+            const newY = response.data.character.position_y;
+            gameStore.updateCharacterPosition(newX, newY);
             
             return true;
         } catch (error) {

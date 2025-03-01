@@ -39,8 +39,6 @@ const useGameStore = create((set, get) => ({
     updateCharacterPosition: (x, y) => set(state => ({
         character: {
             ...state.character,
-            x,
-            y,
             position_x: x,
             position_y: y
         }
