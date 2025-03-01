@@ -351,40 +351,50 @@ function GameMap({
                 )) : null}
                 
                 {/* 渲染其他玩家 */}
-                {otherPlayers && otherPlayers.length > 0 ? otherPlayers.map(player => (
-                    <div 
-                        key={`player-${player.id}`}
-                        className="other-player"
-                        style={{
-                            position: 'absolute',
-                            width: '32px',
-                            height: '32px',
-                            backgroundColor: 'green',
-                            borderRadius: '50%',
-                            zIndex: 8,
-                            left: `${player.x || player.position_x || 150}px`,
-                            top: `${player.y || player.position_y || 150}px`,
-                            transform: 'translate(-50%, -50%)',
-                            transition: 'left 0.3s ease-out, top 0.3s ease-out'
-                        }}
-                    >
-                        <div className="player-name-container" style={{
-                            position: 'absolute',
-                            bottom: '100%',
-                            left: '50%',
-                            transform: 'translateX(-50%)',
-                            whiteSpace: 'nowrap',
-                            backgroundColor: 'rgba(0,0,0,0.7)',
-                            padding: '2px 5px',
-                            borderRadius: '3px',
-                            fontSize: '12px',
-                            textAlign: 'center'
-                        }}>
-                            <div className="player-name">{player.name}</div>
-                            <div className="player-level">Lv.{player.level || 1}</div>
+                {otherPlayers && otherPlayers.length > 0 ? otherPlayers.map(player => {
+                    console.log('渲染其他玩家:', player);
+                    // 确保使用正确的位置属性
+                    const playerX = player.position_x !== undefined ? player.position_x : (player.x || 150);
+                    const playerY = player.position_y !== undefined ? player.position_y : (player.y || 150);
+                    
+                    return (
+                        <div 
+                            key={`player-${player.id}`}
+                            className="other-player"
+                            style={{
+                                position: 'absolute',
+                                width: '32px',
+                                height: '32px',
+                                backgroundColor: 'green',
+                                borderRadius: '50%',
+                                zIndex: 8,
+                                left: `${playerX}px`,
+                                top: `${playerY}px`,
+                                transform: 'translate(-50%, -50%)',
+                                transition: 'left 0.3s ease-out, top 0.3s ease-out'
+                            }}
+                        >
+                            <div className="player-name-container" style={{
+                                position: 'absolute',
+                                bottom: '100%',
+                                left: '50%',
+                                transform: 'translateX(-50%)',
+                                whiteSpace: 'nowrap',
+                                backgroundColor: 'rgba(0,0,0,0.7)',
+                                padding: '2px 5px',
+                                borderRadius: '3px',
+                                fontSize: '12px',
+                                textAlign: 'center'
+                            }}>
+                                <div className="player-name">{player.name}</div>
+                                <div className="player-level">Lv.{player.level || 1}</div>
+                                <div className="player-position" style={{ fontSize: '10px', color: '#aaa' }}>
+                                    ({Math.round(playerX)}, {Math.round(playerY)})
+                                </div>
+                            </div>
                         </div>
-                    </div>
-                )) : null}
+                    );
+                }) : null}
                 
                 {/* 添加小地图指示器 */}
                 <div className="mini-map" style={{

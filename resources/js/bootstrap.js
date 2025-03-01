@@ -9,4 +9,6 @@ window.axios.defaults.headers.common['X-Requested-With'] = 'XMLHttpRequest';
  * allow your team to quickly build robust real-time web applications.
  */
 
+console.log('正在初始化Echo...');
 import './echo';
+console.log('Echo初始化完成，window.Echo:', window.Echo);

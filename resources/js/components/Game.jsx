@@ -5,6 +5,7 @@ import GameMap from './GameMap.jsx';
 import CharacterInfo from './CharacterInfo.jsx';
 import MessageList from './MessageList.jsx';
 import Inventory from './Inventory.jsx'; // 导入背包组件
+import gameService from '../services/gameService';
 
 // 游戏帮助组件
 function GameHelp({ onClose }) {
@@ -133,6 +134,16 @@ function GameContent() {
     
     // 初始化游戏数据
     useEffect(() => {
+        console.log('Game组件已挂载，开始加载游戏数据...');
+        
+        // 确保Echo已初始化
+        if (!window.Echo) {
+            console.error('Echo未初始化，无法建立WebSocket连接');
+            addMessage('无法初始化实时通信，部分功能可能不可用', 'error');
+        } else {
+            console.log('Echo已初始化，准备加载游戏数据');
+        }
+        
         loadGameData();
         
         // 添加键盘事件监听器
@@ -164,6 +175,14 @@ function GameContent() {
             }
         };
     }, [isAutoAttacking, currentAttackingMonsterId]);
+    
+    // 当角色或地图数据变化时，确保WebSocket连接已建立
+    useEffect(() => {
+        if (character && character.id && currentMap && currentMap.id) {
+            console.log('角色或地图数据已更新，确保WebSocket连接已建立');
+            gameService.initWebSocketWithData(character, currentMap);
+        }
+    }, [character?.id, currentMap?.id]); // 只在角色ID或地图ID变化时重新连接
     
     // 切换帮助显示
     const toggleHelp = () => {

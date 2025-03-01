@@ -82,13 +82,49 @@ const useGameStore = create((set, get) => ({
     })),
     
     // 更新其他玩家位置
-    updateOtherPlayerPosition: (playerId, x, y) => set(state => ({
-        otherPlayers: state.otherPlayers.map(player => 
-            player.id === playerId 
-                ? { ...player, x, y } 
-                : player
-        )
-    })),
+    updateOtherPlayerPosition: (playerId, x, y, playerName = null) => set(state => {
+        console.log(`gameStore更新玩家 ${playerId}${playerName ? `(${playerName})` : ''} 位置到 (${x}, ${y})`);
+        
+        // 检查玩家是否存在
+        const playerExists = state.otherPlayers.some(player => player.id === playerId);
+        
+        if (playerExists) {
+            // 更新现有玩家位置
+            return {
+                otherPlayers: state.otherPlayers.map(player => 
+                    player.id === playerId 
+                        ? { 
+                            ...player, 
+                            position_x: x, 
+                            position_y: y,
+                            // 同时更新x和y属性以保持兼容性
+                            x: x, 
+                            y: y,
+                            // 如果提供了名称，也更新名称
+                            ...(playerName ? { name: playerName } : {})
+                        } 
+                        : player
+                )
+            };
+        } else {
+            // 如果玩家不在列表中，添加新玩家
+            console.log(`添加新玩家 ${playerId}${playerName ? `(${playerName})` : ''} 到列表`);
+            return {
+                otherPlayers: [
+                    ...state.otherPlayers,
+                    {
+                        id: playerId,
+                        name: playerName || `玩家${playerId}`,
+                        position_x: x,
+                        position_y: y,
+                        x: x,
+                        y: y,
+                        level: 1
+                    }
+                ]
+            };
+        }
+    }),
     
     // 添加消息
     addMessage: (text, type = 'info') => {
