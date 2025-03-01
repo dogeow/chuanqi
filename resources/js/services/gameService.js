@@ -560,7 +560,7 @@ class GameService {
         
         try {
             const response = await axios.post('/api/inventory/use', {
-                item_id: itemId
+                character_item_id: itemId
             });
             
             if (!response.data.success) {

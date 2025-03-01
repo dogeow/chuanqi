@@ -47,10 +47,10 @@ Route::middleware('auth:sanctum')->group(function () {
     
     // 背包相关
     Route::get('/inventory', [InventoryController::class, 'getInventory']);
-    Route::post('/item/use', [InventoryController::class, 'useItem']);
-    Route::post('/item/equip', [InventoryController::class, 'equipItem']);
-    Route::post('/item/unequip', [InventoryController::class, 'unequipItem']);
-    Route::post('/item/drop', [InventoryController::class, 'dropItem']);
+    Route::post('/inventory/use', [InventoryController::class, 'useItem']);
+    Route::post('/inventory/equip', [InventoryController::class, 'equipItem']);
+    Route::post('/inventory/unequip', [InventoryController::class, 'unequipItem']);
+    Route::post('/inventory/drop', [InventoryController::class, 'dropItem']);
     
     // 商店相关
     Route::get('/shop/{shopId}', [ShopController::class, 'getShop']);
