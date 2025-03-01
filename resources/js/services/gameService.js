@@ -236,10 +236,10 @@ class GameService {
         try {
             // 计算角色和怪物之间的距离
             const character = gameStore.character;
-            const characterX = character.x || character.position_x || 0;
-            const characterY = character.y || character.position_y || 0;
-            const monsterX = monster.x || monster.position_x || 0;
-            const monsterY = monster.y || monster.position_y || 0;
+            const characterX = character.position_x || 0;
+            const characterY = character.position_y || 0;
+            const monsterX =monster.position_x || 0;
+            const monsterY = monster.position_y || 0;
             
             const dx = characterX - monsterX;
             const dy = characterY - monsterY;
@@ -299,8 +299,8 @@ class GameService {
             
             // 计算角色和商店之间的距离
             const character = gameStore.character;
-            const characterX = character.x || character.position_x || 0;
-            const characterY = character.y || character.position_y || 0;
+            const characterX = character.position_x || 0;
+            const characterY = character.position_y || 0;
             const shopX = shop.x || shop.position_x || 0;
             const shopY = shop.y || shop.position_y || 0;
             
@@ -441,8 +441,8 @@ class GameService {
             
             // 计算角色和传送点之间的距离
             const character = gameStore.character;
-            const characterX = character.x || character.position_x || 0;
-            const characterY = character.y || character.position_y || 0;
+            const characterX =  character.position_x || 0;
+            const characterY = character.position_y || 0;
             const teleportX = teleport.x || teleport.position_x || 0;
             const teleportY = teleport.y || teleport.position_y || 0;
             
@@ -522,8 +522,8 @@ class GameService {
             const character = gameStore.character;
             
             // 如果目标位置与当前位置相同，不执行移动
-            const currentX = character.x || character.position_x || 0;
-            const currentY = character.y || character.position_y || 0;
+            const currentX = character.position_x || 0;
+            const currentY = character.position_y || 0;
             
             if (currentX === position_x && currentY === position_y) {
                 return;

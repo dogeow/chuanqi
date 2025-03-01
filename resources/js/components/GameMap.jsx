@@ -258,8 +258,8 @@ function GameMap({
                         backgroundColor: '#3366ff',
                         borderRadius: '50%',
                         zIndex: 10,
-                        left: `${character?.x || character?.position_x || 100}px`,
-                        top: `${character?.y || character?.position_y || 100}px`,
+                        left: `${character?.position_x || 100}px`,
+                        top: `${character?.position_y || 100}px`,
                         transform: 'translate(-50%, -50%)',
                         transition: 'left 0.2s ease-out, top 0.2s ease-out',
                         boxShadow: '0 0 10px rgba(51, 102, 255, 0.7)',
@@ -409,8 +409,8 @@ function GameMap({
                             height: '6px',
                             backgroundColor: '#3366ff',
                             borderRadius: '50%',
-                            left: `${((character?.x || character?.position_x || 0) / mapSize.width) * 100}%`,
-                            top: `${((character?.y || character?.position_y || 0) / mapSize.height) * 100}%`,
+                            left: `${((character?.position_x || 0) / mapSize.width) * 100}%`,
+                            top: `${((character?.position_y || 0) / mapSize.height) * 100}%`,
                             transform: 'translate(-50%, -50%)',
                             zIndex: 2
                         }}></div>
