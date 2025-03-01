@@ -126,7 +126,34 @@ function Inventory({ items, onUseItem, onEquipItem, onUnequipItem, onDropItem })
                             data-item-id={item.id}
                             onClick={(e) => handleItemClick(item, e)}
                         >
-                            <div className="item-icon">{item && item.item ? (item.item.image || '📦') : '📦'}</div>
+                            <div className="item-icon">
+                                {item && item.item && item.item.image ? 
+                                    (() => {
+                                        const emojis = Array.from(item.item.image);
+                                        if (emojis.length >= 2) {
+                                            return (
+                                                <span style={{ position: 'relative' }}>
+                                                    <span style={{ 
+                                                        position: 'absolute', 
+                                                        top: '0', 
+                                                        left: '0', 
+                                                        fontSize: '24px', 
+                                                        opacity: '0.3', 
+                                                        zIndex: 1 
+                                                    }}>
+                                                        {emojis[1]}
+                                                    </span>
+                                                    <span style={{ position: 'relative', zIndex: 2 }}>
+                                                        {emojis[0]}
+                                                    </span>
+                                                </span>
+                                            );
+                                        } else {
+                                            return item.item.image;
+                                        }
+                                    })() 
+                                    : '📦'}
+                            </div>
                             {item.quantity > 1 && <span className="item-badge">{item.quantity}</span>}
                             {item.is_equipped && <span className="item-equipped">已装备</span>}
                             {!item.is_equipped && item.item && isEquippableItem(item.item) && 
@@ -154,7 +181,32 @@ function Inventory({ items, onUseItem, onEquipItem, onUnequipItem, onDropItem })
                 >
                     <div className="item-tooltip-header">
                         <div className="item-tooltip-icon">
-                            {activeTooltip.item && activeTooltip.item.image ? activeTooltip.item.image : '📦'}
+                            {activeTooltip.item && activeTooltip.item.image ? 
+                                (() => {
+                                    const emojis = Array.from(activeTooltip.item.image);
+                                    if (emojis.length >= 2) {
+                                        return (
+                                            <span style={{ position: 'relative' }}>
+                                                <span style={{ 
+                                                    position: 'absolute', 
+                                                    top: '0', 
+                                                    left: '0', 
+                                                    fontSize: '24px', 
+                                                    opacity: '0.3', 
+                                                    zIndex: 1 
+                                                }}>
+                                                    {emojis[1]}
+                                                </span>
+                                                <span style={{ position: 'relative', zIndex: 2 }}>
+                                                    {emojis[0]}
+                                                </span>
+                                            </span>
+                                        );
+                                    } else {
+                                        return activeTooltip.item.image;
+                                    }
+                                })() 
+                                : '📦'}
                         </div>
                         <div className="item-tooltip-title">
                             <div className={`item-tooltip-name ${getRarityClass(activeTooltip.item && activeTooltip.item.rarity)}`}>

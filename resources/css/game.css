@@ -1177,16 +1177,13 @@ body {
     position: absolute;
     bottom: -5px;
     right: -5px;
-    background-color: #ff6b6b;
     color: white;
-    border-radius: 50%;
-    width: 18px;
-    height: 18px;
+    width: 12px;
+    height: 12px;
     font-size: 10px;
     display: flex;
     justify-content: center;
     align-items: center;
-    border: 1px solid #333;
 }
 
 .item-equipped {
