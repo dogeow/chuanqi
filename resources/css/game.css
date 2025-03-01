@@ -1794,4 +1794,85 @@ body {
         right: 10px;
         z-index: 100;
     }
+}
+
+/* 伤害和治疗数值显示 */
+.damage-text {
+    position: absolute;
+    font-weight: bold;
+    animation: floatUp 1.5s ease-out forwards;
+    z-index: 100;
+    text-shadow: 0 0 3px #000;
+    pointer-events: none;
+}
+
+.damage-text.damage {
+    color: #ff3333;
+}
+
+.damage-text.heal {
+    color: #33ff33;
+}
+
+@keyframes floatUp {
+    0% {
+        opacity: 0;
+        transform: translateY(0);
+    }
+    20% {
+        opacity: 1;
+    }
+    80% {
+        opacity: 1;
+    }
+    100% {
+        opacity: 0;
+        transform: translateY(-30px);
+    }
+}
+
+/* 攻击动画效果 */
+.attack-effect {
+    position: absolute;
+    font-size: 24px;
+    animation: attackAnim 0.8s ease-out forwards;
+    z-index: 90;
+    pointer-events: none;
+}
+
+@keyframes attackAnim {
+    0% {
+        opacity: 0;
+        transform: scale(0.5);
+    }
+    50% {
+        opacity: 1;
+        transform: scale(1.2);
+    }
+    100% {
+        opacity: 0;
+        transform: scale(1.5);
+    }
+}
+
+/* 血条动画效果 */
+.monster-hp-bar, .player-hp-bar {
+    transition: width 0.3s ease;
+}
+
+/* 攻击状态指示器 */
+.attacking {
+    animation: attacking 0.8s infinite;
+}
+
+@keyframes attacking {
+    0% {
+        box-shadow: 0 0 0 0 rgba(255, 0, 0, 0.4);
+    }
+    70% {
+        box-shadow: 0 0 0 10px rgba(255, 0, 0, 0);
+    }
+    100% {
+        box-shadow: 0 0 0 0 rgba(255, 0, 0, 0);
+    }
 } 
