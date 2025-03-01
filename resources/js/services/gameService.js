@@ -261,7 +261,7 @@ class GameService {
             }
             
             // 如果已经在攻击范围内，直接攻击
-            const response = await axios.post('/api/combat/attack', {
+            const response = await axios.post('/api/monster/attack', {
                 monster_id: monsterId
             });
             
@@ -270,10 +270,10 @@ class GameService {
             }
             
             // 更新怪物血量
-            gameStore.updateMonster(monsterId, { current_hp: response.data.monster_hp });
+            gameStore.updateMonster(monsterId, { current_hp: response.data.monster.current_hp });
             
             // 如果怪物被击杀
-            if (response.data.monster_hp <= 0) {
+            if (response.data.monster.current_hp <= 0) {
                 // handleMonsterKilled 会通过WebSocket事件处理
                 return;
             }
@@ -320,12 +320,12 @@ class GameService {
             }
             
             // 获取商店物品
-            const response = await axios.get(`/api/shops/${shopId}/items`);
+            const response = await axios.get(`/api/shop/${shopId}`);
             if (!response.data.success) {
                 throw new Error(response.data.message || '获取商店物品失败');
             }
             
-            const shopItems = response.data.items;
+            const shopItems = response.data.shop_items;
             
             // 创建商店模态框
             const shopModal = document.createElement('div');
@@ -340,12 +340,20 @@ class GameService {
                         <div class="shop-items">
                             ${shopItems.map(item => `
                                 <div class="shop-item" data-id="${item.id}">
-                                    <img src="${item.image_url || '/images/items/default.png'}" alt="${item.name}">
+                                    <img src="${item.item.image || '/images/items/default.png'}" alt="${item.item.name}">
                                     <div class="shop-item-info">
-                                        <div class="shop-item-name">${item.name}</div>
+                                        <div class="shop-item-name">${item.item.name}</div>
                                         <div class="shop-item-price">${item.price} 金币</div>
                                     </div>
-                                    <button class="buy-btn" data-id="${item.id}" ${item.price > character.gold ? 'disabled' : ''}>购买</button>
+                                    ${item.item.is_consumable ? `
+                                        <div class="buy-quantity-buttons">
+                                            <button class="buy-btn" data-id="${item.id}" data-quantity="1" ${item.price > character.gold ? 'disabled' : ''}>X1</button>
+                                            <button class="buy-btn" data-id="${item.id}" data-quantity="10" ${item.price * 10 > character.gold ? 'disabled' : ''}>X10</button>
+                                            <button class="buy-btn" data-id="${item.id}" data-quantity="100" ${item.price * 100 > character.gold ? 'disabled' : ''}>X100</button>
+                                        </div>
+                                    ` : `
+                                        <button class="buy-btn" data-id="${item.id}" data-quantity="1" ${item.price > character.gold ? 'disabled' : ''}>购买</button>
+                                    `}
                                 </div>
                             `).join('')}
                         </div>
@@ -369,8 +377,9 @@ class GameService {
             buyBtns.forEach(btn => {
                 btn.addEventListener('click', async () => {
                     const itemId = btn.getAttribute('data-id');
+                    const quantity = parseInt(btn.getAttribute('data-quantity') || 1);
                     try {
-                        await this.buyItem(itemId);
+                        await this.buyItem(itemId, quantity);
                         
                         // 更新商品可购买状态
                         this.updateShopItemsAffordability(shopModal, gameStore.character.gold);
@@ -391,11 +400,15 @@ class GameService {
         const buyBtns = shopModal.querySelectorAll('.buy-btn');
         buyBtns.forEach(btn => {
             const itemId = btn.getAttribute('data-id');
+            const quantity = parseInt(btn.getAttribute('data-quantity') || 1);
             const itemElement = shopModal.querySelector(`.shop-item[data-id="${itemId}"]`);
             const priceElement = itemElement.querySelector('.shop-item-price');
-            const price = parseInt(priceElement.textContent);
+            const priceText = priceElement.textContent;
+            const price = parseInt(priceText.match(/\d+/)[0]);
             
-            if (price > currentGold) {
+            const totalPrice = price * quantity;
+            
+            if (totalPrice > currentGold) {
                 btn.disabled = true;
             } else {
                 btn.disabled = false;
@@ -671,7 +684,7 @@ class GameService {
         const gameStore = useGameStore.getState();
         
         try {
-            const response = await axios.post('/api/shops/buy', {
+            const response = await axios.post('/api/shop/buy', {
                 shop_item_id: shopItemId,
                 quantity
             });

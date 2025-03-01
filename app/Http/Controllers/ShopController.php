@@ -48,7 +48,7 @@ class ShopController extends Controller
         // 获取商店物品，确保加载完整的物品信息
         $shopItems = ShopItem::where('shop_id', $shop->id)
             ->with(['item' => function($query) {
-                $query->select('id', 'name', 'description', 'type', 'is_consumable');
+                $query->select('id', 'name', 'description', 'type', 'is_consumable', 'image');
             }])
             ->get()
             ->map(function($shopItem) {
