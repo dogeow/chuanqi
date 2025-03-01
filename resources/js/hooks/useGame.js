@@ -33,7 +33,7 @@ const useGame = () => {
         if (isAutoAttacking && currentAttackingMonsterId) {
             attackInterval = setInterval(() => {
                 gameService.handleMonsterClick(currentAttackingMonsterId);
-            }, 2000); // 每2秒攻击一次
+            }, 1000); // 每1秒攻击一次
         }
         
         return () => {
