@@ -59,7 +59,7 @@ class GameService {
                 throw new Error(inventoryResponse.data.message || '获取背包数据失败');
             }
             
-            gameStore.setInventory(inventoryResponse.data.items || []);
+            gameStore.setInventory(inventoryResponse.data.inventory || []);
             
             // 初始化WebSocket连接
             this.initWebSocketWithData(characterData, mapData);
