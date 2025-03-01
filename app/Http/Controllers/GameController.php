@@ -345,6 +345,20 @@ class GameController extends Controller
             $result['monster_damage'] = $monsterDamage;
             $result['character'] = $character;
             
+            // 广播角色受伤事件
+            event(new GameEvent('character.damaged', [
+                'character_id' => $character->id,
+                'character_name' => $character->name,
+                'attacker_id' => $monster->id,
+                'attacker_name' => $monster->name,
+                'damage' => $monsterDamage,
+                'current_hp' => $character->current_hp,
+                'max_hp' => $character->max_hp,
+                'hp_percentage' => ($character->current_hp / $character->max_hp) * 100,
+                'is_critical' => false,
+                'is_heal' => false
+            ], $character->current_map_id));
+            
             // 检查角色是否死亡
             if ($character->current_hp <= 0) {
                 $result['character_died'] = true;
@@ -359,6 +373,26 @@ class GameController extends Controller
                 
                 $result['character'] = $character;
                 $result['respawn_message'] = '您已被击败，已传送回新手村并恢复少量生命值';
+                
+                // 广播角色死亡和复活事件
+                event(new GameEvent('character.died', [
+                    'character_id' => $character->id,
+                    'character_name' => $character->name,
+                    'killer_id' => $monster->id,
+                    'killer_name' => $monster->name
+                ], $character->current_map_id));
+                
+                // 广播角色复活事件
+                event(new GameEvent('character.respawned', [
+                    'character_id' => $character->id,
+                    'character_name' => $character->name,
+                    'current_hp' => $character->current_hp,
+                    'max_hp' => $character->max_hp,
+                    'hp_percentage' => ($character->current_hp / $character->max_hp) * 100,
+                    'position_x' => $character->position_x,
+                    'position_y' => $character->position_y,
+                    'map_id' => $character->current_map_id
+                ], $character->current_map_id));
             }
         }
 

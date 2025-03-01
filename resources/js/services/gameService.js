@@ -188,6 +188,18 @@ class GameService {
                     } else if (eventData.type === 'monster.killed') {
                         console.log('处理怪物被击杀事件:', eventData);
                         this.handleMonsterKilled(eventData);
+                    } else if (eventData.type === 'character.damaged') {
+                        console.log('处理角色受伤事件:', eventData);
+                        this.handleCharacterDamaged(eventData.data);
+                    } else if (eventData.type === 'character.healed') {
+                        console.log('处理角色治疗事件:', eventData);
+                        this.handleCharacterHealed(eventData.data);
+                    } else if (eventData.type === 'character.died') {
+                        console.log('处理角色死亡事件:', eventData);
+                        this.handleCharacterDied(eventData.data);
+                    } else if (eventData.type === 'character.respawned') {
+                        console.log('处理角色复活事件:', eventData);
+                        this.handleCharacterRespawned(eventData.data);
                     } else {
                         console.log('未处理的game.event类型:', eventData.type, eventData);
                     }
@@ -1142,6 +1154,163 @@ class GameService {
     stopAutoAttack() {
         const gameStore = useGameStore.getState();
         gameStore.setAutoAttack(false, null);
+    }
+    
+    // 处理角色受伤事件
+    handleCharacterDamaged(data) {
+        console.log('处理角色受伤事件:', data);
+        const gameStore = useGameStore.getState();
+        
+        // 如果是当前角色受伤
+        if (data.character_id === gameStore.character?.id) {
+            console.log('当前角色受到伤害:', data.damage);
+            
+            // 更新角色血量
+            const currentHp = gameStore.character.current_hp;
+            const newHp = Math.max(0, currentHp - data.damage);
+            
+            // 强制设置lastHp以触发动画效果
+            const updatedCharacter = {
+                ...gameStore.character,
+                lastHp: currentHp,
+                current_hp: newHp,
+                max_hp: data.max_hp || gameStore.character.max_hp
+            };
+            
+            // 直接设置角色状态
+            gameStore.setCharacter(updatedCharacter);
+            
+            // 显示受伤消息
+            const attackerName = data.attacker_name || '怪物';
+            if (data.is_critical) {
+                gameStore.addMessage(`暴击！${attackerName} 对你造成了 ${data.damage} 点伤害！`, 'error');
+            } else {
+                gameStore.addMessage(`${attackerName} 对你造成了 ${data.damage} 点伤害`, 'warning');
+            }
+            
+            // 手动触发一个自定义事件，通知UI更新
+            window.dispatchEvent(new CustomEvent('character-hp-changed', {
+                detail: { oldHp: currentHp, newHp: newHp }
+            }));
+        } else {
+            // 如果是其他玩家受伤，也可以更新其血量显示
+            const otherPlayers = gameStore.otherPlayers;
+            const playerIndex = otherPlayers.findIndex(p => p.id === data.character_id);
+            
+            if (playerIndex !== -1) {
+                const updatedPlayers = [...otherPlayers];
+                updatedPlayers[playerIndex] = {
+                    ...updatedPlayers[playerIndex],
+                    current_hp: data.current_hp,
+                    max_hp: data.max_hp
+                };
+                
+                gameStore.setOtherPlayers(updatedPlayers);
+            }
+        }
+    }
+    
+    // 处理角色治疗事件
+    handleCharacterHealed(data) {
+        console.log('处理角色治疗事件:', data);
+        const gameStore = useGameStore.getState();
+        
+        // 如果是当前角色被治疗
+        if (data.character_id === gameStore.character?.id) {
+            console.log('当前角色恢复生命值:', data.heal_amount);
+            
+            // 更新角色血量
+            const currentHp = gameStore.character.current_hp;
+            const newHp = Math.min(data.max_hp || gameStore.character.max_hp, currentHp + data.heal_amount);
+            
+            // 强制设置lastHp以触发动画效果
+            const updatedCharacter = {
+                ...gameStore.character,
+                lastHp: currentHp,
+                current_hp: newHp,
+                max_hp: data.max_hp || gameStore.character.max_hp
+            };
+            
+            // 直接设置角色状态
+            gameStore.setCharacter(updatedCharacter);
+            
+            // 显示治疗消息
+            const itemUsed = data.item_used ? `使用 ${data.item_used}` : '';
+            gameStore.addMessage(`${itemUsed} 恢复了 ${data.heal_amount} 点生命值`, 'success');
+            
+            // 手动触发一个自定义事件，通知UI更新
+            window.dispatchEvent(new CustomEvent('character-hp-changed', {
+                detail: { oldHp: currentHp, newHp: newHp }
+            }));
+        } else {
+            // 如果是其他玩家被治疗，也可以更新其血量显示
+            const otherPlayers = gameStore.otherPlayers;
+            const playerIndex = otherPlayers.findIndex(p => p.id === data.character_id);
+            
+            if (playerIndex !== -1) {
+                const updatedPlayers = [...otherPlayers];
+                updatedPlayers[playerIndex] = {
+                    ...updatedPlayers[playerIndex],
+                    current_hp: data.current_hp,
+                    max_hp: data.max_hp
+                };
+                
+                gameStore.setOtherPlayers(updatedPlayers);
+            }
+        }
+    }
+    
+    // 处理角色死亡事件
+    handleCharacterDied(data) {
+        console.log('处理角色死亡事件:', data);
+        const gameStore = useGameStore.getState();
+        
+        // 如果是当前角色死亡
+        if (data.character_id === gameStore.character?.id) {
+            gameStore.addMessage('你已被击败！', 'error');
+            this.stopAutoAttack();
+        } else {
+            // 如果是其他玩家死亡
+            gameStore.addMessage(`玩家 ${data.character_name} 被 ${data.killer_name} 击败了！`, 'info');
+        }
+    }
+    
+    // 处理角色复活事件
+    handleCharacterRespawned(data) {
+        console.log('处理角色复活事件:', data);
+        const gameStore = useGameStore.getState();
+        
+        // 如果是当前角色复活
+        if (data.character_id === gameStore.character?.id) {
+            // 更新角色位置和血量
+            gameStore.updateCharacterAttributes({
+                current_hp: data.current_hp,
+                max_hp: data.max_hp,
+                position_x: data.position_x,
+                position_y: data.position_y,
+                current_map_id: data.map_id
+            });
+            
+            gameStore.addMessage('你已复活！', 'success');
+        } else {
+            // 如果是其他玩家复活
+            const otherPlayers = gameStore.otherPlayers;
+            const playerIndex = otherPlayers.findIndex(p => p.id === data.character_id);
+            
+            if (playerIndex !== -1) {
+                const updatedPlayers = [...otherPlayers];
+                updatedPlayers[playerIndex] = {
+                    ...updatedPlayers[playerIndex],
+                    current_hp: data.current_hp,
+                    max_hp: data.max_hp,
+                    position_x: data.position_x,
+                    position_y: data.position_y
+                };
+                
+                gameStore.setOtherPlayers(updatedPlayers);
+                gameStore.addMessage(`玩家 ${data.character_name} 已复活！`, 'info');
+            }
+        }
     }
     
     // 初始化WebSocket

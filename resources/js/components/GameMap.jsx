@@ -464,7 +464,7 @@ function GameMap({
                         <div 
                             className="player-hp-bar" 
                             style={{
-                                width: `${character?.current_hp && character?.hp ? (character.current_hp / character.hp) * 100 : 100}%`,
+                                width: `${character?.current_hp && character?.max_hp ? (character.current_hp / character.max_hp) * 100 : 100}%`,
                                 height: '100%',
                                 backgroundColor: '#ff3333',
                                 transition: 'width 0.3s ease-out',
@@ -483,7 +483,7 @@ function GameMap({
                         backgroundColor: 'rgba(0,0,0,0.5)',
                         padding: '1px 3px',
                         borderRadius: '2px'
-                    }}>{character?.current_hp || '?'}/{character?.base_hp || '?'}</div>
+                    }}>{character?.current_hp || '?'}/{character?.max_hp || '?'}</div>
                     
                     {/* 玩家攻击状态 */}
                     {Object.keys(attackingMonsters).length > 0 && (
@@ -696,7 +696,7 @@ function GameMap({
                                 <div 
                                     className="player-hp-bar" 
                                     style={{
-                                        width: `${player?.current_hp && player?.hp ? (player.current_hp / player.hp) * 100 : 100}%`,
+                                        width: `${player?.current_hp && player?.max_hp ? (player.current_hp / player.max_hp) * 100 : 100}%`,
                                         height: '100%',
                                         backgroundColor: '#ff3333',
                                         transition: 'width 0.3s ease-out'
@@ -714,7 +714,7 @@ function GameMap({
                                 backgroundColor: 'rgba(0,0,0,0.5)',
                                 padding: '1px 3px',
                                 borderRadius: '2px'
-                            }}>{player?.current_hp || '?'}/{player?.current_hp || '?'}</div>
+                            }}>{player?.current_hp || '?'}/{player?.max_hp || '?'}</div>
                         </div>
                     );
                 }) : null}
