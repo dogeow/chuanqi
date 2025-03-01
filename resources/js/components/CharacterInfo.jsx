@@ -3,15 +3,9 @@ import useGameStore from '../store/gameStore';
 
 function CharacterInfo({ character }) {
     const { inventory } = useGameStore();
-    const [showDetails, setShowDetails] = useState(false);
     
     // 如果角色未加载，不显示任何内容
     if (!character) return null;
-    
-    // 切换详细信息显示
-    const toggleDetails = () => {
-        setShowDetails(!showDetails);
-    };
     
     // 计算HP百分比
     const hpPercentage = character.max_hp ? Math.floor((character.current_hp / character.max_hp) * 100) : 0;
@@ -31,9 +25,6 @@ function CharacterInfo({ character }) {
                 <h3 className="character-name">
                     <span className="character-level">Lv.{character.level}</span> {character.name}
                 </h3>
-                <button className="details-toggle" onClick={toggleDetails}>
-                    {showDetails ? '收起' : '详情'}
-                </button>
             </div>
             
             <div className="character-stats">
@@ -86,54 +77,6 @@ function CharacterInfo({ character }) {
                         <span className="stat-value">{character.gold || 0}</span>
                     </div>
                 </div>
-                
-                {showDetails && (
-                    <div className="detailed-stats">
-                        <div className="stat-group">
-                            <div className="stat">
-                                <span className="stat-label">魔法攻击:</span> 
-                                <span className="stat-value">{character.magic_attack || 0}</span>
-                            </div>
-                            <div className="stat">
-                                <span className="stat-label">魔法防御:</span> 
-                                <span className="stat-value">{character.magic_defense || 0}</span>
-                            </div>
-                        </div>
-                        
-                        <div className="stat-group">
-                            <div className="stat">
-                                <span className="stat-label">速度:</span> 
-                                <span className="stat-value">{character.speed || 0}</span>
-                            </div>
-                            <div className="stat">
-                                <span className="stat-label">暴击率:</span> 
-                                <span className="stat-value">{character.critical_chance || 0}%</span>
-                            </div>
-                        </div>
-                        
-                        <div className="stat-group">
-                            <div className="stat">
-                                <span className="stat-label">闪避率:</span> 
-                                <span className="stat-value">{character.dodge_chance || 0}%</span>
-                            </div>
-                            <div className="stat">
-                                <span className="stat-label">命中率:</span> 
-                                <span className="stat-value">{character.hit_chance || 100}%</span>
-                            </div>
-                        </div>
-                        
-                        <div className="stat-group">
-                            <div className="stat">
-                                <span className="stat-label">当前地图:</span> 
-                                <span className="stat-value">{character.current_map_name || '未知'}</span>
-                            </div>
-                            <div className="stat">
-                                <span className="stat-label">位置:</span> 
-                                <span className="stat-value">({Math.round(character.x || character.position_x || 0)}, {Math.round(character.y || character.position_y || 0)})</span>
-                            </div>
-                        </div>
-                    </div>
-                )}
                 
                 {/* 显示已装备的物品 */}
                 {equippedItems.length > 0 && (
