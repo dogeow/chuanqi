@@ -321,35 +321,6 @@ class GameSeeder extends Seeder
             'image' => 'monsters/mummy.png',
         ]);
 
-        // 创建物品
-        $healthPotion = Item::create([
-            'name' => '初级生命药水',
-            'description' => '恢复30点生命值',
-            'type' => 'potion',
-            'rarity' => 'common',
-            'level_required' => 1,
-            'hp_bonus' => 30,
-            'buy_price' => 50,
-            'sell_price' => 25,
-            'is_tradable' => true,
-            'is_consumable' => true,
-            'image' => 'items/health_potion.png',
-        ]);
-
-        $woodenSword = Item::create([
-            'name' => '木剑',
-            'description' => '新手用的木制剑',
-            'type' => 'weapon',
-            'rarity' => 'common',
-            'level_required' => 1,
-            'attack_bonus' => 5,
-            'buy_price' => 100,
-            'sell_price' => 50,
-            'is_tradable' => true,
-            'is_consumable' => false,
-            'image' => 'items/wooden_sword.png',
-        ]);
-
         // 消耗品
         $consumables = [
             [
@@ -919,23 +890,6 @@ class GameSeeder extends Seeder
             'type' => 'general',
             'image' => 'shops/general.png',
         ]);
-
-
-        ShopItem::create([
-            'shop_id' => $generalShop->id,
-            'item_id' => $woodenSword->id,
-            'price' => $woodenSword->buy_price,
-            'stock' => -1,
-        ]);
-
-        // 添加更多商品到杂货店
-        ShopItem::create([
-            'shop_id' => $generalShop->id,
-            'item_id' => $healthPotion->id,
-            'price' => $healthPotion->buy_price,
-            'stock' => 20,
-        ]);
-
         // 从数据库获取物品ID
         $itemIds = DB::table('items')->pluck('id', 'name');
         
@@ -1098,15 +1052,6 @@ class GameSeeder extends Seeder
             'item_id' => $itemIds['皮革披风'],
             'price' => 160,
             'stock' => 3,
-        ]);
-
-        // 设置掉落率
-        DropRate::create([
-            'monster_id' => $slime->id,
-            'item_id' => $healthPotion->id,
-            'rate' => 20.00,
-            'min_quantity' => 1,
-            'max_quantity' => 1,
         ]);
     }
 } 

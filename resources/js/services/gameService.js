@@ -179,16 +179,17 @@ class GameService {
                     } else if (eventData.type === 'attack') {
                         console.log('处理攻击事件:', eventData);
                         this.handleAttack(eventData);
+                    } else if (eventData.type === 'monster.respawning') {
+                        console.log('处理怪物即将重生事件:', eventData);
+                        this.handleMonsterRespawning(eventData);
+                    } else if (eventData.type === 'monster.respawned') {
+                        console.log('处理怪物重生事件:', eventData);
+                        this.handleMonsterRespawned(eventData);
+                    } else if (eventData.type === 'monster.killed') {
+                        console.log('处理怪物被击杀事件:', eventData);
+                        this.handleMonsterKilled(eventData);
                     } else {
                         console.log('未处理的game.event类型:', eventData.type, eventData);
-                    }
-                })
-                .listen('GameEvent', (event) => {
-                    console.log('收到GameEvent事件:', event);
-                    if (event.type === 'character.move') {
-                        this.handleCharacterMove(event);
-                    } else if (event.type === 'attack') {
-                        this.handleAttack(event);
                     }
                 })
                 .listen('CharacterEntered', (data) => {
@@ -198,15 +199,6 @@ class GameService {
                 .listen('CharacterLeft', (data) => {
                     console.log('收到CharacterLeft事件:', data);
                     this.handleCharacterLeave(data);
-                })
-                .listen('MonsterKilled', (data) => {
-                    this.handleMonsterKilled(data);
-                })
-                .listen('MonsterRespawning', (data) => {
-                    this.handleMonsterRespawning(data);
-                })
-                .listen('MonsterRespawned', (data) => {
-                    this.handleMonsterRespawned(data);
                 })
                 .listen('AttackEvent', (data) => {
                     console.log('收到AttackEvent事件:', data);
@@ -361,49 +353,221 @@ class GameService {
     // 处理怪物被击杀事件
     handleMonsterKilled(data) {
         const gameStore = useGameStore.getState();
+        console.log('处理怪物被击杀事件，数据:', data);
         
-        gameStore.updateMonster(data.monster_id, { is_dead: true, respawn_time: data.respawn_time });
+        // 处理不同格式的数据
+        let monsterId, monsterName, killerId, killerName, respawnTime;
+        let experienceGained, goldGained, newExperience, newGold, newLevel;
+        
+        // 处理GameEvent格式的数据
+        if (data.type === 'monster.killed' && data.data) {
+            const eventData = data.data;
+            monsterId = eventData.monster_id;
+            monsterName = eventData.monster_name;
+            killerId = eventData.killer_id;
+            killerName = eventData.killer_name;
+            respawnTime = eventData.respawn_time;
+            experienceGained = eventData.experience_gained;
+            goldGained = eventData.gold_gained;
+            newExperience = eventData.new_experience;
+            newGold = eventData.new_gold;
+            newLevel = eventData.new_level;
+        } else {
+            // 直接从data中获取数据
+            monsterId = data.monster_id;
+            monsterName = data.monster_name;
+            killerId = data.killer_id;
+            killerName = data.killer_name;
+            respawnTime = data.respawn_time;
+            experienceGained = data.experience_gained;
+            goldGained = data.gold_gained;
+            newExperience = data.new_experience;
+            newGold = data.new_gold;
+            newLevel = data.new_level;
+        }
+        
+        if (!monsterId) {
+            console.error('无法解析怪物被击杀数据:', data);
+            return;
+        }
+        
+        // 防抖处理：检查该怪物是否已经在短时间内被击杀过
+        if (!this.recentKilledMonsters) {
+            this.recentKilledMonsters = {};
+        }
+        
+        const now = Date.now();
+        const lastKillTime = this.recentKilledMonsters[monsterId] || 0;
+        
+        // 如果在2秒内已经处理过该怪物的击杀事件，则忽略
+        if (now - lastKillTime < 2000) {
+            console.log(`忽略重复的怪物击杀事件: ${monsterName}(ID:${monsterId})`);
+            return;
+        }
+        
+        // 记录本次处理时间
+        this.recentKilledMonsters[monsterId] = now;
+        
+        // 更新怪物状态
+        gameStore.updateMonster(monsterId, { 
+            is_dead: true, 
+            current_hp: 0,
+            hp_percentage: 0,
+            respawn_time: respawnTime
+        });
         
         // 如果是当前正在自动攻击的怪物，停止自动攻击
-        if (gameStore.currentAttackingMonsterId === data.monster_id) {
+        if (gameStore.currentAttackingMonsterId === monsterId) {
             this.stopAutoAttack();
         }
         
         // 如果是自己击杀的，更新经验和金币
-        if (data.killer_id === gameStore.character?.id) {
-            gameStore.updateCharacterAttributes({
-                experience: data.new_experience,
-                gold: data.new_gold,
-                level: data.new_level || gameStore.character.level
-            });
+        if (killerId === gameStore.character?.id) {
+            // 只有当有这些数据时才更新
+            const attributesToUpdate = {};
+            if (newExperience !== undefined) attributesToUpdate.experience = newExperience;
+            if (newGold !== undefined) attributesToUpdate.gold = newGold;
+            if (newLevel !== undefined) attributesToUpdate.level = newLevel;
             
-            gameStore.addMessage(`你击杀了 ${data.monster_name}，获得了 ${data.experience_gained} 经验和 ${data.gold_gained} 金币！`, 'success');
+            if (Object.keys(attributesToUpdate).length > 0) {
+                gameStore.updateCharacterAttributes(attributesToUpdate);
+            }
+            
+            // 显示击杀消息
+            if (experienceGained !== undefined && goldGained !== undefined) {
+                gameStore.addMessage(`你击杀了 ${monsterName}，获得了 ${experienceGained} 经验和 ${goldGained} 金币！`, 'success');
+            } else {
+                gameStore.addMessage(`你击杀了 ${monsterName}！`, 'success');
+            }
             
             // 如果升级了
-            if (data.new_level && data.new_level > gameStore.character.level) {
-                gameStore.addMessage(`恭喜！你升级到了 ${data.new_level} 级！`, 'success');
+            if (newLevel !== undefined && newLevel > gameStore.character.level) {
+                gameStore.addMessage(`恭喜！你升级到了 ${newLevel} 级！`, 'success');
             }
+        } else if (killerName) {
+            // 如果是其他玩家击杀的
+            gameStore.addMessage(`${killerName} 击杀了 ${monsterName}`, 'info');
         }
     }
     
     // 处理怪物即将重生事件
     handleMonsterRespawning(data) {
         const gameStore = useGameStore.getState();
-        gameStore.addMessage(`${data.monster_name} 即将在 ${data.respawn_seconds} 秒后重生`, 'info');
+        console.log('处理怪物即将重生事件，数据:', data);
+        
+        // 处理不同格式的数据
+        let monsterId, monsterName, respawnTime;
+        
+        // 处理GameEvent格式的数据
+        if (data.type === 'monster.respawning' && data.data) {
+            const eventData = data.data;
+            monsterId = eventData.monster_id;
+            monsterName = eventData.monster_name;
+            respawnTime = eventData.respawn_time;
+        } else {
+            // 直接从data中获取数据
+            monsterId = data.monster_id;
+            monsterName = data.monster_name;
+            respawnTime = data.respawn_time;
+        }
+        
+        if (!monsterName || respawnTime === undefined) {
+            console.error('无法解析怪物重生数据:', data);
+            return;
+        }
+        
+        // 防抖处理：检查该怪物是否已经在短时间内收到过重生通知
+        if (!this.recentRespawningMonsters) {
+            this.recentRespawningMonsters = {};
+        }
+        
+        const now = Date.now();
+        const lastNotifyTime = this.recentRespawningMonsters[monsterId] || 0;
+        
+        // 如果在5秒内已经处理过该怪物的重生通知，则忽略
+        if (now - lastNotifyTime < 5000) {
+            console.log(`忽略重复的怪物即将重生事件: ${monsterName}(ID:${monsterId})`);
+            return;
+        }
+        
+        // 记录本次处理时间
+        this.recentRespawningMonsters[monsterId] = now;
+        
+        gameStore.addMessage(`${monsterName} 即将在 ${respawnTime} 秒后重生`, 'info');
     }
     
     // 处理怪物重生事件
     handleMonsterRespawned(data) {
         const gameStore = useGameStore.getState();
+        console.log('处理怪物重生事件，数据:', data);
+        
+        // 处理不同格式的数据
+        let monsterId, monsterName, hp, currentHp, positionX, positionY;
+        
+        // 处理GameEvent格式的数据
+        if (data.type === 'monster.respawned' && data.data) {
+            const eventData = data.data;
+            monsterId = eventData.monster_id;
+            monsterName = eventData.monster_name;
+            hp = eventData.hp;
+            currentHp = eventData.current_hp;
+            positionX = eventData.position_x;
+            positionY = eventData.position_y;
+        } 
+        // 直接从data中获取数据
+        else if (data.monster_id) {
+            monsterId = data.monster_id;
+            monsterName = data.monster_name;
+            hp = data.hp;
+            currentHp = data.current_hp;
+            positionX = data.position_x;
+            positionY = data.position_y;
+        }
+        // 从data.monster中获取数据
+        else if (data.monster) {
+            monsterId = data.monster.id || data.monster_id;
+            monsterName = data.monster.name || data.monster_name;
+            hp = data.monster.hp || data.hp;
+            currentHp = data.monster.current_hp || data.current_hp;
+            positionX = data.monster.position_x || data.position_x;
+            positionY = data.monster.position_y || data.position_y;
+        }
+        
+        if (!monsterId) {
+            console.error('无法解析怪物重生数据:', data);
+            return;
+        }
+        
+        // 防抖处理：检查该怪物是否已经在短时间内重生过
+        // 使用一个静态对象来存储最近处理过的怪物重生事件
+        if (!this.recentRespawnedMonsters) {
+            this.recentRespawnedMonsters = {};
+        }
+        
+        const now = Date.now();
+        const lastRespawnTime = this.recentRespawnedMonsters[monsterId] || 0;
+        
+        // 如果在5秒内已经处理过该怪物的重生事件，则忽略
+        if (now - lastRespawnTime < 5000) {
+            console.log(`忽略重复的怪物重生事件: ${monsterName}(ID:${monsterId})`);
+            return;
+        }
+        
+        // 记录本次处理时间
+        this.recentRespawnedMonsters[monsterId] = now;
         
         // 更新怪物状态
-        gameStore.updateMonster(data.monster_id, { 
+        gameStore.updateMonster(monsterId, { 
             is_dead: false, 
-            current_hp: data.monster.hp,
+            current_hp: currentHp || hp,
+            hp: hp,
+            hp_percentage: 100,
+            position_x: positionX,
+            position_y: positionY,
             respawn_time: null
         });
         
-        gameStore.addMessage(`${data.monster.name} 已重生`, 'info');
+        gameStore.addMessage(`${monsterName} 已重生`, 'info');
     }
     
     // 处理攻击事件
@@ -530,7 +694,8 @@ class GameService {
             
             // 如果怪物被击杀
             if (response.data.monster.current_hp <= 0) {
-                // handleMonsterKilled 会通过WebSocket事件处理
+                // 停止自动攻击
+                this.stopAutoAttack();
                 return;
             }
             
