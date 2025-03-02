@@ -201,7 +201,7 @@ class GameSeeder extends Seeder
             'hp' => 60,
             'current_hp' => 60,
             'attack' => 6,
-            'defense' => 6,6
+            'defense' => 6,
             'exp_reward' => 20,
             'gold_reward' => 6,
             'respawn_time' => 60,
