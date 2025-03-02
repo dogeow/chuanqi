@@ -173,7 +173,7 @@ function GameContent() {
         return <ErrorScreen />;
     }
     
-    if (isMobile && !isLandscape) {
+    if (isMobile && isLandscape) {
         return <RotateDeviceScreen />;
     }
     

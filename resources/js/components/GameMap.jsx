@@ -161,15 +161,23 @@ function GameMap({
     function handleMapClick(e) {
         if (!gameMapRef.current || !viewportRef.current) return;
         
-        // 获取点击位置相对于地图的坐标（考虑滚动位置）
-        const rect = gameMapRef.current.getBoundingClientRect();
+        // 获取视口和地图的位置信息
+        const viewportRect = viewportRef.current.getBoundingClientRect();
+        const mapRect = gameMapRef.current.getBoundingClientRect();
+        
+        // 获取视口的滚动位置
         const scrollLeft = viewportRef.current.scrollLeft;
         const scrollTop = viewportRef.current.scrollTop;
         
-        const x = e.clientX - rect.left + scrollLeft;
-        const y = e.clientY - rect.top + scrollTop;
+        // 计算点击位置相对于视口左上角的偏移
+        const clickXRelativeToViewport = e.clientX - viewportRect.left;
+        const clickYRelativeToViewport = e.clientY - viewportRect.top;
         
-        console.log('点击地图位置:', x, y);
+        // 计算实际地图上的位置 = 视口中的相对位置 + 滚动偏移
+        const x = clickXRelativeToViewport + scrollLeft;
+        const y = clickYRelativeToViewport + scrollTop;
+        
+        console.log('点击地图位置:', x, y, '滚动位置:', scrollLeft, scrollTop, '视口位置:', viewportRect.left, viewportRect.top);
         
         // 移动角色到点击位置
         onMove(x, y);
