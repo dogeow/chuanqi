@@ -19,7 +19,6 @@ class GameService {
         try {
             console.log('开始加载游戏数据...');
             gameStore.setLoading(true);
-            gameStore.addMessage('正在加载角色数据...', 'info');
             
             // 获取角色信息
             const characterResponse = await axios.get('/api/character');
@@ -29,14 +28,13 @@ class GameService {
             
             console.log('角色数据加载成功:', characterResponse.data);
             const characterData = characterResponse.data.character;
+            
             // 确保同时设置x和y属性
             if (characterData.position_x !== undefined && characterData.position_y !== undefined) {
                 characterData.x = characterData.position_x;
                 characterData.y = characterData.position_y;
             }
             gameStore.setCharacter(characterData);
-            
-            gameStore.addMessage('正在加载地图数据...', 'info');
             
             // 检查角色的地图ID是否存在
             if (!characterData.current_map_id) {
@@ -58,7 +56,6 @@ class GameService {
             gameStore.setGameData(mapResponse.data);
             
             // 获取背包信息
-            gameStore.addMessage('正在加载背包数据...', 'info');
             const inventoryResponse = await axios.get('/api/inventory');
             if (!inventoryResponse.data.success) {
                 throw new Error(inventoryResponse.data.message || '获取背包数据失败');
@@ -69,22 +66,19 @@ class GameService {
             
             // 初始化WebSocket连接
             console.log('准备初始化WebSocket连接...');
-            console.log('角色数据:', characterData);
-            console.log('地图数据:', mapData);
             
             if (!window.Echo) {
                 console.error('Echo未初始化，无法建立WebSocket连接');
             } else {
                 console.log('Echo已初始化，准备连接到地图频道');
+                this.initWebSocketWithData(characterData, mapData);
             }
             
-            this.initWebSocketWithData(characterData, mapData);
-            
             gameStore.addMessage('游戏数据加载完成！', 'success');
-            gameStore.setLoading(false);
         } catch (error) {
             console.error('加载游戏数据失败:', error);
             gameStore.addMessage(`加载游戏数据失败: ${error.message}`, 'error');
+        } finally {
             gameStore.setLoading(false);
         }
     }
@@ -173,17 +167,24 @@ class GameService {
                     }
                     
                     // 处理不同类型的游戏事件
-                    if (eventData.type === 'character.move') {
-                        console.log('处理角色移动事件:', eventData);
-                        this.handleCharacterMove(eventData);
+                    const eventHandlers = {
+                        'character.move': () => this.handleCharacterMove(eventData),
+                        'attack': () => this.handleAttack(eventData),
+                        'monster.respawning': () => this.handleMonsterRespawning(eventData),
+                        'monster.respawned': () => this.handleMonsterRespawned(eventData),
+                        'monster.killed': () => this.handleMonsterKilled(eventData),
+                        'character.damaged': () => this.handleCharacterDamaged(eventData.data),
+                        'character.healed': () => this.handleCharacterHealed(eventData.data),
+                        'character.died': () => this.handleCharacterDied(eventData.data),
+                        'character.respawned': () => this.handleCharacterRespawned(eventData.data)
+                    };
+                    
+                    const eventType = eventData.type;
+                    if (eventHandlers[eventType]) {
+                        console.log(`处理${eventType}事件:`, eventData);
+                        eventHandlers[eventType]();
                     } else {
-                        console.log('未处理的game.event类型:', eventData.type, eventData);
-                    }
-                })
-                .listen('GameEvent', (event) => {
-                    console.log('收到GameEvent事件:', event);
-                    if (event.type === 'character.move') {
-                        this.handleCharacterMove(event);
+                        console.log('未处理的game.event类型:', eventType, eventData);
                     }
                 })
                 .listen('CharacterEntered', (data) => {
@@ -194,14 +195,9 @@ class GameService {
                     console.log('收到CharacterLeft事件:', data);
                     this.handleCharacterLeave(data);
                 })
-                .listen('MonsterKilled', (data) => {
-                    this.handleMonsterKilled(data);
-                })
-                .listen('MonsterRespawning', (data) => {
-                    this.handleMonsterRespawning(data);
-                })
-                .listen('MonsterRespawned', (data) => {
-                    this.handleMonsterRespawned(data);
+                .listen('AttackEvent', (data) => {
+                    console.log('收到AttackEvent事件:', data);
+                    this.handleAttack(data);
                 })
                 .error((error) => {
                     console.error('WebSocket连接错误:', error);
@@ -209,7 +205,6 @@ class GameService {
                 });
                 
             console.log(`已成功连接到地图频道: map.${mapId}`);
-            gameStore.addMessage(`已连接到地图 ${mapData.name}`, 'info');
             return true;
         } catch (error) {
             console.error('初始化WebSocket连接失败:', error);
@@ -227,21 +222,23 @@ class GameService {
         let characterId, positionX, positionY, characterName;
         
         try {
-            // 处理game.event类型的事件
-            if (data.type === 'character.move' && data.data && data.data.character) {
+            // 提取角色移动数据
+            if (data.type === 'character.move' && data.data?.character) {
                 console.log('处理game.event类型的角色移动事件');
-                characterId = data.data.character.id;
-                positionX = data.data.character.position_x;
-                positionY = data.data.character.position_y;
-                characterName = data.data.character.name;
+                const { id, position_x, position_y, name } = data.data.character;
+                characterId = id;
+                positionX = position_x;
+                positionY = position_y;
+                characterName = name;
             } 
             // 处理CharacterMoved事件
             else if (data.character) {
                 console.log('处理CharacterMoved类型的角色移动事件');
-                characterId = data.character.id;
-                positionX = data.character.position_x;
-                positionY = data.character.position_y;
-                characterName = data.character.name;
+                const { id, position_x, position_y, name } = data.character;
+                characterId = id;
+                positionX = position_x;
+                positionY = position_y;
+                characterName = name;
             }
             // 处理简单格式的事件
             else if (data.character_id) {
@@ -256,11 +253,12 @@ class GameService {
                 console.log('尝试解析字符串格式的事件数据');
                 try {
                     const parsedData = JSON.parse(data);
-                    if (parsedData.type === 'character.move' && parsedData.data && parsedData.data.character) {
-                        characterId = parsedData.data.character.id;
-                        positionX = parsedData.data.character.position_x;
-                        positionY = parsedData.data.character.position_y;
-                        characterName = parsedData.data.character.name;
+                    if (parsedData.type === 'character.move' && parsedData.data?.character) {
+                        const { id, position_x, position_y, name } = parsedData.data.character;
+                        characterId = id;
+                        positionX = position_x;
+                        positionY = position_y;
+                        characterName = name;
                     }
                 } catch (error) {
                     console.error('解析字符串数据失败:', error);
@@ -269,29 +267,28 @@ class GameService {
             // 尝试解析data字段
             else if (data.data) {
                 console.log('尝试解析data字段:', data.data);
-                let parsedData;
+                let parsedData = data.data;
                 
-                if (typeof data.data === 'string') {
+                if (typeof parsedData === 'string') {
                     try {
-                        parsedData = JSON.parse(data.data);
+                        parsedData = JSON.parse(parsedData);
                     } catch (error) {
                         console.error('解析data字段失败:', error);
-                        parsedData = data.data;
                     }
-                } else {
-                    parsedData = data.data;
                 }
                 
-                if (parsedData.type === 'character.move' && parsedData.data && parsedData.data.character) {
-                    characterId = parsedData.data.character.id;
-                    positionX = parsedData.data.character.position_x;
-                    positionY = parsedData.data.character.position_y;
-                    characterName = parsedData.data.character.name;
+                if (parsedData.type === 'character.move' && parsedData.data?.character) {
+                    const { id, position_x, position_y, name } = parsedData.data.character;
+                    characterId = id;
+                    positionX = position_x;
+                    positionY = position_y;
+                    characterName = name;
                 } else if (parsedData.character) {
-                    characterId = parsedData.character.id;
-                    positionX = parsedData.character.position_x;
-                    positionY = parsedData.character.position_y;
-                    characterName = parsedData.character.name;
+                    const { id, position_x, position_y, name } = parsedData.character;
+                    characterId = id;
+                    positionX = position_x;
+                    positionY = position_y;
+                    characterName = name;
                 }
             }
             
@@ -352,46 +349,295 @@ class GameService {
     // 处理怪物被击杀事件
     handleMonsterKilled(data) {
         const gameStore = useGameStore.getState();
+        console.log('处理怪物被击杀事件，数据:', data);
         
-        gameStore.updateMonster(data.monster_id, { is_dead: true, respawn_time: data.respawn_time });
+        // 处理不同格式的数据
+        let monsterId, monsterName, killerId, killerName, respawnTime;
+        let experienceGained, goldGained, newExperience, newGold, newLevel;
+        
+        // 处理GameEvent格式的数据
+        if (data.type === 'monster.killed' && data.data) {
+            const eventData = data.data;
+            monsterId = eventData.monster_id;
+            monsterName = eventData.monster_name;
+            killerId = eventData.killer_id;
+            killerName = eventData.killer_name;
+            respawnTime = eventData.respawn_time;
+            experienceGained = eventData.experience_gained;
+            goldGained = eventData.gold_gained;
+            newExperience = eventData.new_experience;
+            newGold = eventData.new_gold;
+            newLevel = eventData.new_level;
+        } else {
+            // 直接从data中获取数据
+            monsterId = data.monster_id;
+            monsterName = data.monster_name;
+            killerId = data.killer_id;
+            killerName = data.killer_name;
+            respawnTime = data.respawn_time;
+            experienceGained = data.experience_gained;
+            goldGained = data.gold_gained;
+            newExperience = data.new_experience;
+            newGold = data.new_gold;
+            newLevel = data.new_level;
+        }
+        
+        if (!monsterId) {
+            console.error('无法解析怪物被击杀数据:', data);
+            return;
+        }
+        
+        // 防抖处理：检查该怪物是否已经在短时间内被击杀过
+        if (!this.recentKilledMonsters) {
+            this.recentKilledMonsters = {};
+        }
+        
+        const now = Date.now();
+        const lastKillTime = this.recentKilledMonsters[monsterId] || 0;
+        
+        // 如果在2秒内已经处理过该怪物的击杀事件，则忽略
+        if (now - lastKillTime < 2000) {
+            console.log(`忽略重复的怪物击杀事件: ${monsterName}(ID:${monsterId})`);
+            return;
+        }
+        
+        // 记录本次处理时间
+        this.recentKilledMonsters[monsterId] = now;
+        
+        // 更新怪物状态
+        gameStore.updateMonster(monsterId, { 
+            is_dead: true, 
+            current_hp: 0,
+            hp_percentage: 0,
+            respawn_time: respawnTime
+        });
         
         // 如果是当前正在自动攻击的怪物，停止自动攻击
-        if (gameStore.currentAttackingMonsterId === data.monster_id) {
+        if (gameStore.currentAttackingMonsterId === monsterId) {
             this.stopAutoAttack();
         }
         
         // 如果是自己击杀的，更新经验和金币
-        if (data.killer_id === gameStore.character?.id) {
-            gameStore.updateCharacterAttributes({
-                experience: data.new_experience,
-                gold: data.new_gold,
-                level: data.new_level || gameStore.character.level
-            });
+        if (killerId === gameStore.character?.id) {
+            // 只有当有这些数据时才更新
+            const attributesToUpdate = {};
+            if (newExperience !== undefined) attributesToUpdate.experience = newExperience;
+            if (newGold !== undefined) attributesToUpdate.gold = newGold;
+            if (newLevel !== undefined) attributesToUpdate.level = newLevel;
             
-            gameStore.addMessage(`你击杀了 ${data.monster_name}，获得了 ${data.experience_gained} 经验和 ${data.gold_gained} 金币！`, 'success');
+            if (Object.keys(attributesToUpdate).length > 0) {
+                gameStore.updateCharacterAttributes(attributesToUpdate);
+            }
+            
+            // 显示击杀消息
+            if (experienceGained !== undefined && goldGained !== undefined) {
+                gameStore.addMessage(`你击杀了 ${monsterName}，获得了 ${experienceGained} 经验和 ${goldGained} 金币！`, 'success');
+            } else {
+                gameStore.addMessage(`你击杀了 ${monsterName}！`, 'success');
+            }
             
             // 如果升级了
-            if (data.new_level && data.new_level > gameStore.character.level) {
-                gameStore.addMessage(`恭喜！你升级到了 ${data.new_level} 级！`, 'success');
+            if (newLevel !== undefined && newLevel > gameStore.character.level) {
+                gameStore.addMessage(`恭喜！你升级到了 ${newLevel} 级！`, 'success');
             }
+        } else if (killerName) {
+            // 如果是其他玩家击杀的
+            gameStore.addMessage(`${killerName} 击杀了 ${monsterName}`, 'info');
         }
     }
     
     // 处理怪物即将重生事件
     handleMonsterRespawning(data) {
         const gameStore = useGameStore.getState();
-        gameStore.addMessage(`${data.monster_name} 即将在 ${data.respawn_seconds} 秒后重生`, 'info');
+        console.log('处理怪物即将重生事件，数据:', data);
+        
+        // 处理不同格式的数据
+        let monsterId, monsterName, respawnTime;
+        
+        // 处理GameEvent格式的数据
+        if (data.type === 'monster.respawning' && data.data) {
+            const eventData = data.data;
+            monsterId = eventData.monster_id;
+            monsterName = eventData.monster_name;
+            respawnTime = eventData.respawn_time;
+        } else {
+            // 直接从data中获取数据
+            monsterId = data.monster_id;
+            monsterName = data.monster_name;
+            respawnTime = data.respawn_time;
+        }
+        
+        if (!monsterName || respawnTime === undefined) {
+            console.error('无法解析怪物重生数据:', data);
+            return;
+        }
+        
+        // 防抖处理：检查该怪物是否已经在短时间内收到过重生通知
+        if (!this.recentRespawningMonsters) {
+            this.recentRespawningMonsters = {};
+        }
+        
+        const now = Date.now();
+        const lastNotifyTime = this.recentRespawningMonsters[monsterId] || 0;
+        
+        // 如果在5秒内已经处理过该怪物的重生通知，则忽略
+        if (now - lastNotifyTime < 5000) {
+            console.log(`忽略重复的怪物即将重生事件: ${monsterName}(ID:${monsterId})`);
+            return;
+        }
+        
+        // 记录本次处理时间
+        this.recentRespawningMonsters[monsterId] = now;
+        
+        gameStore.addMessage(`${monsterName} 即将在 ${respawnTime} 秒后重生`, 'info');
     }
     
     // 处理怪物重生事件
     handleMonsterRespawned(data) {
         const gameStore = useGameStore.getState();
+        console.log('处理怪物重生事件，数据:', data);
         
-        gameStore.updateMonster(data.monster.id, { 
-            ...data.monster, 
+        // 处理不同格式的数据
+        let monsterId, monsterName, hp, currentHp, positionX, positionY;
+        
+        // 处理GameEvent格式的数据
+        if (data.type === 'monster.respawned' && data.data) {
+            const eventData = data.data;
+            monsterId = eventData.monster_id;
+            monsterName = eventData.monster_name;
+            hp = eventData.hp;
+            currentHp = eventData.current_hp;
+            positionX = eventData.position_x;
+            positionY = eventData.position_y;
+        } 
+        // 直接从data中获取数据
+        else if (data.monster_id) {
+            monsterId = data.monster_id;
+            monsterName = data.monster_name;
+            hp = data.hp;
+            currentHp = data.current_hp;
+            positionX = data.position_x;
+            positionY = data.position_y;
+        }
+        // 从data.monster中获取数据
+        else if (data.monster) {
+            monsterId = data.monster.id || data.monster_id;
+            monsterName = data.monster.name || data.monster_name;
+            hp = data.monster.hp || data.hp;
+            currentHp = data.monster.current_hp || data.current_hp;
+            positionX = data.monster.position_x || data.position_x;
+            positionY = data.monster.position_y || data.position_y;
+        }
+        
+        if (!monsterId) {
+            console.error('无法解析怪物重生数据:', data);
+            return;
+        }
+        
+        // 防抖处理：检查该怪物是否已经在短时间内重生过
+        // 使用一个静态对象来存储最近处理过的怪物重生事件
+        if (!this.recentRespawnedMonsters) {
+            this.recentRespawnedMonsters = {};
+        }
+        
+        const now = Date.now();
+        const lastRespawnTime = this.recentRespawnedMonsters[monsterId] || 0;
+        
+        // 如果在5秒内已经处理过该怪物的重生事件，则忽略
+        if (now - lastRespawnTime < 5000) {
+            console.log(`忽略重复的怪物重生事件: ${monsterName}(ID:${monsterId})`);
+            return;
+        }
+        
+        // 记录本次处理时间
+        this.recentRespawnedMonsters[monsterId] = now;
+        
+        // 更新怪物状态
+        gameStore.updateMonster(monsterId, { 
             is_dead: false, 
-            respawn_time: null 
+            current_hp: currentHp || hp,
+            hp: hp,
+            hp_percentage: 100,
+            position_x: positionX,
+            position_y: positionY,
+            respawn_time: null
         });
+        
+        gameStore.addMessage(`${monsterName} 已重生`, 'info');
+    }
+    
+    // 处理攻击事件
+    handleAttack(data) {
+        console.log('处理攻击事件:', data);
+        const gameStore = useGameStore.getState();
+        
+        try {
+            // 解析攻击数据
+            let attackerId, targetId, damage, isCritical, isHeal;
+            
+            // 处理不同格式的攻击数据
+            if (data.type === 'attack') {
+                attackerId = data.data?.attacker_id || data.attacker_id;
+                targetId = data.data?.target_id || data.target_id;
+                damage = data.data?.damage || data.damage || 0;
+                isCritical = data.data?.is_critical || data.is_critical || false;
+                isHeal = data.data?.is_heal || data.is_heal || false;
+            } else {
+                attackerId = data.attacker_id;
+                targetId = data.target_id;
+                damage = data.damage || 0;
+                isCritical = data.is_critical || false;
+                isHeal = data.is_heal || false;
+            }
+            
+            // 如果是玩家攻击怪物
+            if (attackerId === gameStore.character?.id) {
+                // 找到目标怪物
+                const monster = gameStore.monsters.find(m => m.id === targetId);
+                if (monster) {
+                    // 更新怪物血量
+                    const newHp = Math.max(0, monster.current_hp - damage);
+                    gameStore.updateMonster(targetId, { current_hp: newHp });
+                    
+                    // 显示攻击消息
+                    if (isCritical) {
+                        gameStore.addMessage(`暴击！你对 ${monster.name} 造成了 ${damage} 点伤害！`, 'success');
+                    } else {
+                        gameStore.addMessage(`你对 ${monster.name} 造成了 ${damage} 点伤害`, 'info');
+                    }
+                }
+            } 
+            // 如果是怪物攻击玩家
+            else if (targetId === gameStore.character?.id) {
+                // 更新玩家血量
+                const currentHp = gameStore.character.current_hp;
+                const newHp = isHeal ? Math.min(gameStore.character.hp, currentHp + damage) : Math.max(0, currentHp - damage);
+                
+                gameStore.updateCharacterAttributes({ current_hp: newHp });
+                
+                // 找到攻击者
+                const monster = gameStore.monsters.find(m => m.id === attackerId);
+                const monsterName = monster ? monster.name : '怪物';
+                
+                // 显示攻击消息
+                if (isHeal) {
+                    gameStore.addMessage(`你恢复了 ${damage} 点生命值`, 'success');
+                } else if (isCritical) {
+                    gameStore.addMessage(`暴击！${monsterName} 对你造成了 ${damage} 点伤害！`, 'error');
+                } else {
+                    gameStore.addMessage(`${monsterName} 对你造成了 ${damage} 点伤害`, 'warning');
+                }
+                
+                // 如果玩家死亡
+                if (newHp <= 0) {
+                    gameStore.addMessage('你已经死亡！', 'error');
+                    this.stopAutoAttack();
+                    // 可以在这里添加死亡处理逻辑
+                }
+            }
+        } catch (error) {
+            console.error('处理攻击事件出错:', error, data);
+        }
     }
     
     // 处理怪物点击
@@ -443,14 +689,21 @@ class GameService {
             gameStore.updateMonster(monsterId, { current_hp: response.data.monster.current_hp });
             
             // 如果怪物被击杀
-            if (response.data.monster.current_hp <= 0) {
-                // handleMonsterKilled 会通过WebSocket事件处理
+            if (response.data.monster.current_hp <= 0 || response.data.character_died) {
+                if(response.data.character_died){
+                    gameStore.addMessage('你已经死亡！', 'error');
+
+                    // 传送到新手村
+                    this.handleTeleportClick(1);
+                }
+                // 停止自动攻击
+                this.stopAutoAttack();
+
                 return;
+            } else {
+                // 继续自动攻击
+                this.startAutoAttack(monsterId);
             }
-            
-            // 开始自动攻击
-            this.startAutoAttack(monsterId);
-            
         } catch (error) {
             console.error('攻击怪物失败:', error);
             gameStore.addMessage(`攻击怪物失败: ${error.message}`, 'error');
@@ -497,93 +750,17 @@ class GameService {
             
             const shopItems = response.data.shop_items;
             
-            // 创建商店模态框
-            const shopModal = document.createElement('div');
-            shopModal.className = 'shop-modal';
-            shopModal.innerHTML = `
-                <div class="shop-modal-content">
-                    <div class="shop-modal-header">
-                        <h3>${shop.name}</h3>
-                        <button class="close-btn">×</button>
-                    </div>
-                    <div class="shop-modal-body">
-                        <div class="shop-items">
-                            ${shopItems.map(item => `
-                                <div class="shop-item" data-id="${item.id}">
-                                    <img src="${item.item.image || '/images/items/default.png'}" alt="${item.item.name}">
-                                    <div class="shop-item-info">
-                                        <div class="shop-item-name">${item.item.name}</div>
-                                        <div class="shop-item-price">${item.price} 金币</div>
-                                    </div>
-                                    ${item.item.is_consumable ? `
-                                        <div class="buy-quantity-buttons">
-                                            <button class="buy-btn" data-id="${item.id}" data-quantity="1" ${item.price > character.gold ? 'disabled' : ''}>X1</button>
-                                            <button class="buy-btn" data-id="${item.id}" data-quantity="10" ${item.price * 10 > character.gold ? 'disabled' : ''}>X10</button>
-                                            <button class="buy-btn" data-id="${item.id}" data-quantity="100" ${item.price * 100 > character.gold ? 'disabled' : ''}>X100</button>
-                                        </div>
-                                    ` : `
-                                        <button class="buy-btn" data-id="${item.id}" data-quantity="1" ${item.price > character.gold ? 'disabled' : ''}>购买</button>
-                                    `}
-                                </div>
-                            `).join('')}
-                        </div>
-                    </div>
-                </div>
-            `;
-            
-            document.body.appendChild(shopModal);
-            
-            // 更新商品可购买状态
-            this.updateShopItemsAffordability(shopModal, character.gold);
-            
-            // 添加关闭按钮事件
-            const closeBtn = shopModal.querySelector('.close-btn');
-            closeBtn.addEventListener('click', () => {
-                document.body.removeChild(shopModal);
-            });
-            
-            // 添加购买按钮事件
-            const buyBtns = shopModal.querySelectorAll('.buy-btn');
-            buyBtns.forEach(btn => {
-                btn.addEventListener('click', async () => {
-                    const itemId = btn.getAttribute('data-id');
-                    const quantity = parseInt(btn.getAttribute('data-quantity') || 1);
-                    try {
-                        await this.buyItem(itemId, quantity);
-                        
-                        // 更新商品可购买状态
-                        this.updateShopItemsAffordability(shopModal, gameStore.character.gold);
-                    } catch (error) {
-                        console.error('购买物品失败:', error);
-                    }
-                });
+            // 设置商店数据到状态中，以便React组件可以使用
+            gameStore.setShopModalData({
+                isOpen: true,
+                shop: shop,
+                shopItems: shopItems
             });
             
         } catch (error) {
             console.error('打开商店失败:', error);
             gameStore.addMessage(`打开商店失败: ${error.message}`, 'error');
         }
-    }
-    
-    // 更新商店物品可购买状态
-    updateShopItemsAffordability(shopModal, currentGold) {
-        const buyBtns = shopModal.querySelectorAll('.buy-btn');
-        buyBtns.forEach(btn => {
-            const itemId = btn.getAttribute('data-id');
-            const quantity = parseInt(btn.getAttribute('data-quantity') || 1);
-            const itemElement = shopModal.querySelector(`.shop-item[data-id="${itemId}"]`);
-            const priceElement = itemElement.querySelector('.shop-item-price');
-            const priceText = priceElement.textContent;
-            const price = parseInt(priceText.match(/\d+/)[0]);
-            
-            const totalPrice = price * quantity;
-            
-            if (totalPrice > currentGold) {
-                btn.disabled = true;
-            } else {
-                btn.disabled = false;
-            }
-        });
     }
     
     // 处理NPC点击
@@ -604,8 +781,8 @@ class GameService {
         const gameStore = useGameStore.getState();
         
         try {
-            const teleport = gameStore.teleportPoints.find(t => t.id === teleportId);
-            if (!teleport) {
+            const teleport = gameStore.teleportPoints.find(t => t.target_map_id === teleportId);
+            if (!teleport && teleportId != 1) {
                 throw new Error('传送点不存在');
             }
             
@@ -631,17 +808,11 @@ class GameService {
                 await this.moveCharacter(targetX, targetY);
             }
             
-            // 确认传送
-            const confirmTeleport = window.confirm(`确定要传送到 ${teleport.target_map_name} 吗？`);
-            if (!confirmTeleport) {
-                return;
-            }
-            
             // 执行传送
-            gameStore.addMessage(`正在传送到 ${teleport.target_map_name}...`, 'info');
+            gameStore.addMessage(`正在传送到 ${teleport.name}...`, 'info');
             
-            const response = await axios.post('/api/teleport', {
-                teleport_id: teleportId
+            const response = await axios.post('/api/map/change', {
+                map_id: teleportId
             });
             
             if (!response.data.success) {
@@ -659,11 +830,10 @@ class GameService {
                 y: response.data.new_y,
                 map_id: response.data.new_map_id
             });
-            
             gameStore.setLoading(true);
             
             // 重新加载地图数据
-            const mapResponse = await axios.get(`/api/map/${response.data.new_map_id}`);
+            const mapResponse = await axios.get(`/api/map/${teleportId}`);
             if (!mapResponse.data.success) {
                 throw new Error(mapResponse.data.message || '获取地图数据失败');
             }
@@ -761,7 +931,7 @@ class GameService {
         
         try {
             const response = await axios.post('/api/inventory/equip', {
-                item_id: itemId
+                character_item_id: itemId
             });
             
             if (!response.data.success) {
@@ -782,7 +952,7 @@ class GameService {
             
         } catch (error) {
             console.error('装备物品失败:', error);
-            gameStore.addMessage(`装备物品失败: ${error.message}`, 'error');
+            gameStore.addMessage(error.response.data.message, 'error');
         }
     }
     
@@ -792,7 +962,7 @@ class GameService {
         
         try {
             const response = await axios.post('/api/inventory/unequip', {
-                item_id: itemId
+                character_item_id: itemId
             });
             
             if (!response.data.success) {
@@ -892,6 +1062,163 @@ class GameService {
     stopAutoAttack() {
         const gameStore = useGameStore.getState();
         gameStore.setAutoAttack(false, null);
+    }
+    
+    // 处理角色受伤事件
+    handleCharacterDamaged(data) {
+        console.log('处理角色受伤事件:', data);
+        const gameStore = useGameStore.getState();
+        
+        // 如果是当前角色受伤
+        if (data.character_id === gameStore.character?.id) {
+            console.log('当前角色受到伤害:', data.damage);
+            
+            // 更新角色血量
+            const currentHp = gameStore.character.current_hp;
+            const newHp = Math.max(0, currentHp - data.damage);
+            
+            // 强制设置lastHp以触发动画效果
+            const updatedCharacter = {
+                ...gameStore.character,
+                lastHp: currentHp,
+                current_hp: newHp,
+                max_hp: data.max_hp || gameStore.character.max_hp
+            };
+            
+            // 直接设置角色状态
+            gameStore.setCharacter(updatedCharacter);
+            
+            // 显示受伤消息
+            const attackerName = data.attacker_name || '怪物';
+            if (data.is_critical) {
+                gameStore.addMessage(`暴击！${attackerName} 对你造成了 ${data.damage} 点伤害！`, 'error');
+            } else {
+                gameStore.addMessage(`${attackerName} 对你造成了 ${data.damage} 点伤害`, 'warning');
+            }
+            
+            // 手动触发一个自定义事件，通知UI更新
+            window.dispatchEvent(new CustomEvent('character-hp-changed', {
+                detail: { oldHp: currentHp, newHp: newHp }
+            }));
+        } else {
+            // 如果是其他玩家受伤，也可以更新其血量显示
+            const otherPlayers = gameStore.otherPlayers;
+            const playerIndex = otherPlayers.findIndex(p => p.id === data.character_id);
+            
+            if (playerIndex !== -1) {
+                const updatedPlayers = [...otherPlayers];
+                updatedPlayers[playerIndex] = {
+                    ...updatedPlayers[playerIndex],
+                    current_hp: data.current_hp,
+                    max_hp: data.max_hp
+                };
+                
+                gameStore.setOtherPlayers(updatedPlayers);
+            }
+        }
+    }
+    
+    // 处理角色治疗事件
+    handleCharacterHealed(data) {
+        console.log('处理角色治疗事件:', data);
+        const gameStore = useGameStore.getState();
+        
+        // 如果是当前角色被治疗
+        if (data.character_id === gameStore.character?.id) {
+            console.log('当前角色恢复生命值:', data.heal_amount);
+            
+            // 更新角色血量
+            const currentHp = gameStore.character.current_hp;
+            const newHp = Math.min(data.max_hp || gameStore.character.max_hp, currentHp + data.heal_amount);
+            
+            // 强制设置lastHp以触发动画效果
+            const updatedCharacter = {
+                ...gameStore.character,
+                lastHp: currentHp,
+                current_hp: newHp,
+                max_hp: data.max_hp || gameStore.character.max_hp
+            };
+            
+            // 直接设置角色状态
+            gameStore.setCharacter(updatedCharacter);
+            
+            // 显示治疗消息
+            const itemUsed = data.item_used ? `使用 ${data.item_used}` : '';
+            gameStore.addMessage(`${itemUsed} 恢复了 ${data.heal_amount} 点生命值`, 'success');
+            
+            // 手动触发一个自定义事件，通知UI更新
+            window.dispatchEvent(new CustomEvent('character-hp-changed', {
+                detail: { oldHp: currentHp, newHp: newHp }
+            }));
+        } else {
+            // 如果是其他玩家被治疗，也可以更新其血量显示
+            const otherPlayers = gameStore.otherPlayers;
+            const playerIndex = otherPlayers.findIndex(p => p.id === data.character_id);
+            
+            if (playerIndex !== -1) {
+                const updatedPlayers = [...otherPlayers];
+                updatedPlayers[playerIndex] = {
+                    ...updatedPlayers[playerIndex],
+                    current_hp: data.current_hp,
+                    max_hp: data.max_hp
+                };
+                
+                gameStore.setOtherPlayers(updatedPlayers);
+            }
+        }
+    }
+    
+    // 处理角色死亡事件
+    handleCharacterDied(data) {
+        console.log('处理角色死亡事件:', data);
+        const gameStore = useGameStore.getState();
+        
+        // 如果是当前角色死亡
+        if (data.character_id === gameStore.character?.id) {
+            gameStore.addMessage('你已被击败！', 'error');
+            this.stopAutoAttack();
+        } else {
+            // 如果是其他玩家死亡
+            gameStore.addMessage(`玩家 ${data.character_name} 被 ${data.killer_name} 击败了！`, 'info');
+        }
+    }
+    
+    // 处理角色复活事件
+    handleCharacterRespawned(data) {
+        console.log('处理角色复活事件:', data);
+        const gameStore = useGameStore.getState();
+        
+        // 如果是当前角色复活
+        if (data.character_id === gameStore.character?.id) {
+            // 更新角色位置和血量
+            gameStore.updateCharacterAttributes({
+                current_hp: data.current_hp,
+                max_hp: data.max_hp,
+                position_x: data.position_x,
+                position_y: data.position_y,
+                current_map_id: data.map_id
+            });
+            
+            gameStore.addMessage('你已复活！', 'success');
+        } else {
+            // 如果是其他玩家复活
+            const otherPlayers = gameStore.otherPlayers;
+            const playerIndex = otherPlayers.findIndex(p => p.id === data.character_id);
+            
+            if (playerIndex !== -1) {
+                const updatedPlayers = [...otherPlayers];
+                updatedPlayers[playerIndex] = {
+                    ...updatedPlayers[playerIndex],
+                    current_hp: data.current_hp,
+                    max_hp: data.max_hp,
+                    position_x: data.position_x,
+                    position_y: data.position_y
+                };
+                
+                gameStore.setOtherPlayers(updatedPlayers);
+                gameStore.addMessage(`玩家 ${data.character_name} 已复活！`, 'info');
+            }
+        }
     }
     
     // 初始化WebSocket

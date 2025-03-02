@@ -7,6 +7,29 @@ const teleportPulseStyle = `
     50% { transform: translate(-50%, -50%) scale(1.1); opacity: 1; box-shadow: 0 0 20px rgba(153, 102, 255, 0.9); }
     100% { transform: translate(-50%, -50%) scale(1); opacity: 0.8; box-shadow: 0 0 15px rgba(153, 102, 255, 0.7); }
 }
+
+@keyframes damageFloat {
+    0% { transform: translateY(0); opacity: 1; }
+    100% { transform: translateY(-30px); opacity: 0; }
+}
+
+@keyframes attackPulse {
+    0% { transform: scale(1); }
+    50% { transform: scale(1.2); }
+    100% { transform: scale(1); }
+}
+
+@keyframes hpChange {
+    0% { transform: scale(1); }
+    50% { transform: scale(1.05); }
+    100% { transform: scale(1); }
+}
+
+@keyframes attackEmoji {
+    0% { transform: translateY(0) scale(1); opacity: 1; }
+    50% { transform: translateY(-15px) scale(1.2); opacity: 1; }
+    100% { transform: translateY(-30px) scale(1); opacity: 0; }
+}
 `;
 
 function GameMap({ 
@@ -28,6 +51,8 @@ function GameMap({
     const playerRef = useRef(null);
     const viewportRef = useRef(null);
     const [mapSize, setMapSize] = useState({ width: 1000, height: 1000 });
+    const [damageEffects, setDamageEffects] = useState([]);
+    const [attackingMonsters, setAttackingMonsters] = useState({});
     
     // 调试信息
     useEffect(() => {
@@ -44,7 +69,7 @@ function GameMap({
                 height: mapData.height || 1000
             });
         }
-    }, [mapData, monsters, npcs, teleportPoints, character]);
+    }, [mapData, monsters, npcs, teleportPoints, character, otherPlayers]);
     
     // 添加视口跟随玩家的逻辑
     useEffect(() => {
@@ -66,23 +91,114 @@ function GameMap({
         });
     }, [character?.position_x, character?.position_y]);
     
+    // 监听怪物血量变化，显示伤害效果
+    useEffect(() => {
+        if (!monsters || monsters.length === 0) return;
+        
+        // 检测怪物血量变化
+        monsters.forEach(monster => {
+            if (monster.lastHp !== undefined && monster.lastHp !== monster.current_hp) {
+                const damage = monster.lastHp - monster.current_hp;
+                if (damage > 0) {
+                    // 显示伤害效果
+                    showDamageEffect(monster.id, damage, 'damage');
+                    
+                    // 标记怪物正在被攻击
+                    setAttackingMonsters(prev => ({
+                        ...prev,
+                        [monster.id]: Date.now() + 1000 // 攻击效果持续1秒
+                    }));
+                } else if (damage < 0) {
+                    // 显示治疗效果
+                    showDamageEffect(monster.id, Math.abs(damage), 'heal');
+                }
+            }
+            
+            // 更新怪物上一次的血量
+            monster.lastHp = monster.current_hp;
+        });
+    }, [monsters]);
+    
+    // 监听角色血量变化，显示伤害效果
+    useEffect(() => {
+        if (!character) return;
+        
+        if (character.lastHp !== undefined && character.lastHp !== character.current_hp) {
+            const damage = character.lastHp - character.current_hp;
+            if (damage > 0) {
+                // 显示伤害效果
+                showDamageEffect('player', damage, 'damage');
+            } else if (damage < 0) {
+                // 显示治疗效果
+                showDamageEffect('player', Math.abs(damage), 'heal');
+            }
+        }
+        
+        // 更新角色上一次的血量
+        character.lastHp = character.current_hp;
+    }, [character?.current_hp]);
+    
+    // 显示伤害/治疗效果
+    const showDamageEffect = (targetId, amount, type) => {
+        const newEffect = {
+            id: Date.now() + Math.random(),
+            targetId,
+            amount,
+            type,
+            createdAt: Date.now(),
+            emoji: type === 'damage' ? '💥' : '❤️'
+        };
+        
+        setDamageEffects(prev => [...prev, newEffect]);
+        
+        // 2秒后移除效果
+        setTimeout(() => {
+            setDamageEffects(prev => prev.filter(effect => effect.id !== newEffect.id));
+        }, 2000);
+    };
+    
     // 处理地图点击事件
     function handleMapClick(e) {
         if (!gameMapRef.current || !viewportRef.current) return;
         
-        // 获取点击位置相对于地图的坐标（考虑滚动位置）
-        const rect = gameMapRef.current.getBoundingClientRect();
+        // 获取视口和地图的位置信息
+        const viewportRect = viewportRef.current.getBoundingClientRect();
+        const mapRect = gameMapRef.current.getBoundingClientRect();
+        
+        // 获取视口的滚动位置
         const scrollLeft = viewportRef.current.scrollLeft;
         const scrollTop = viewportRef.current.scrollTop;
         
-        const x = e.clientX - rect.left + scrollLeft;
-        const y = e.clientY - rect.top + scrollTop;
+        // 计算点击位置相对于视口左上角的偏移
+        const clickXRelativeToViewport = e.clientX - viewportRect.left;
+        const clickYRelativeToViewport = e.clientY - viewportRect.top;
         
-        console.log('点击地图位置:', x, y);
+        // 计算实际地图上的位置 = 视口中的相对位置 + 滚动偏移
+        const x = clickXRelativeToViewport + scrollLeft;
+        const y = clickYRelativeToViewport + scrollTop;
+        
+        console.log('点击地图位置:', x, y, '滚动位置:', scrollLeft, scrollTop, '视口位置:', viewportRect.left, viewportRect.top);
         
         // 移动角色到点击位置
         onMove(x, y);
     }
+    
+    // 处理怪物点击，添加攻击效果
+    function handleMonsterClick(monsterId) {
+        // 标记怪物正在被攻击
+        setAttackingMonsters(prev => ({
+            ...prev,
+            [monsterId]: Date.now() + 1000 // 攻击效果持续1秒
+        }));
+        
+        // 调用原有的点击处理函数
+        onMonsterClick(monsterId);
+    }
+    
+    // 检查怪物是否正在被攻击
+    const isMonsterBeingAttacked = (monsterId) => {
+        return attackingMonsters[monsterId] && attackingMonsters[monsterId] > Date.now();
+    };
     
     // 如果地图未加载，显示加载中
     if (!mapData) return <div className="loading">加载地图中...</div>;
@@ -112,7 +228,7 @@ function GameMap({
                     height: `${mapSize.height}px`
                 }}
             >
-                {/* 添加传送点动画样式 */}
+                {/* 添加动画样式 */}
                 <style>{teleportPulseStyle}</style>
                 
                 {/* 渲染地图背景 */}
@@ -194,7 +310,7 @@ function GameMap({
                         }}
                         onClick={(e) => {
                             e.stopPropagation();
-                            onTeleportClick(point.id);
+                            onTeleportClick(point.target_map_id);
                         }}
                     >
                         <div className="teleport-map-name" style={{
@@ -235,15 +351,75 @@ function GameMap({
                         key={`npc-${npc.id}`}
                         className={`npc ${npc.has_quest ? 'has-quest' : ''}`}
                         style={{
+                            position: 'absolute',
                             left: `${npc.position_x || 400}px`,
-                            top: `${npc.position_y || 400}px`
+                            top: `${npc.position_y || 400}px`,
+                            width: '32px',
+                            height: '32px',
+                            backgroundColor: '#ffcc00',
+                            borderRadius: '50%',
+                            zIndex: 6,
+                            display: 'flex',
+                            justifyContent: 'center',
+                            alignItems: 'center',
+                            cursor: 'pointer',
+                            transform: 'translate(-50%, -50%)'
                         }}
                         onClick={(e) => {
                             e.stopPropagation();
                             onNpcClick(npc.id);
                         }}
                     >
-                        <div className="npc-name">{npc.name}</div>
+                        <div className="npc-name" style={{
+                            position: 'absolute',
+                            bottom: '100%',
+                            left: '50%',
+                            transform: 'translateX(-50%)',
+                            whiteSpace: 'nowrap',
+                            backgroundColor: 'rgba(0,0,0,0.7)',
+                            padding: '2px 5px',
+                            borderRadius: '3px',
+                            fontSize: '12px'
+                        }}>{npc.name}</div>
+                        
+                        {/* NPC血条 - 始终显示 */}
+                        <div className="npc-hp-bar-container" style={{
+                            position: 'absolute',
+                            bottom: '-15px',
+                            left: '50%',
+                            transform: 'translateX(-50%)',
+                            width: '40px',
+                            height: '6px',
+                            backgroundColor: 'rgba(0, 0, 0, 0.7)',
+                            borderRadius: '3px',
+                            overflow: 'hidden'
+                        }}>
+                            <div 
+                                className="npc-hp-bar" 
+                                style={{
+                                    width: `${npc?.current_hp && npc?.hp ? (npc.current_hp / npc.hp) * 100 : 100}%`,
+                                    height: '100%',
+                                    backgroundColor: '#ff3333',
+                                    transition: 'width 0.3s ease-out'
+                                }}
+                            ></div>
+                        </div>
+                        
+                        {/* 显示血量数值 */}
+                        <div className="npc-hp-text" style={{
+                            position: 'absolute',
+                            bottom: '-25px',
+                            left: '50%',
+                            transform: 'translateX(-50%)',
+                            fontSize: '10px',
+                            backgroundColor: 'rgba(0,0,0,0.5)',
+                            padding: '1px 3px',
+                            borderRadius: '2px'
+                        }}>{npc?.current_hp || '?'}/{npc?.hp || '?'}</div>
+                        
+                        <div style={{ fontSize: '16px' }}>
+                            {npc.emoji || '👨‍💼'}
+                        </div>
                     </div>
                 )) : null}
                 
@@ -268,21 +444,70 @@ function GameMap({
                         alignItems: 'center',
                         color: 'white',
                         fontSize: '10px',
-                        fontWeight: 'bold'
+                        fontWeight: 'bold',
+                        animation: character?.lastHp !== character?.current_hp && character?.lastHp > character?.current_hp ? 'hpChange 0.5s' : 'none'
                     }}
                 >
                     <div className="player-level" style={{
                         position: 'absolute',
-                        top: '-15px',
+                        top: '-100%',
                         left: '50%',
                         transform: 'translateX(-50%)',
-                        backgroundColor: 'rgba(0, 0, 0, 0.7)',
-                        color: 'white',
-                        padding: '1px 4px',
-                        borderRadius: '3px',
                         fontSize: '10px',
                         whiteSpace: 'nowrap'
                     }}>Lv.{character?.level || 1}</div>
+                    
+                    {/* 玩家血条 - 始终显示 */}
+                    <div className="player-hp-bar-container" style={{
+                        position: 'absolute',
+                        bottom: '-15px',
+                        left: '50%',
+                        transform: 'translateX(-50%)',
+                        width: '40px',
+                        height: '6px',
+                        backgroundColor: 'rgba(0, 0, 0, 0.7)',
+                        borderRadius: '3px',
+                        overflow: 'hidden'
+                    }}>
+                        <div 
+                            className="player-hp-bar" 
+                            style={{
+                                width: `${character?.current_hp && character?.max_hp ? (character.current_hp / character.max_hp) * 100 : 100}%`,
+                                height: '100%',
+                                backgroundColor: '#ff3333',
+                                transition: 'width 0.3s ease-out',
+                                animation: character?.lastHp !== character?.current_hp ? 'hpChange 0.5s' : 'none'
+                            }}
+                        ></div>
+                    </div>
+                    
+                    {/* 显示血量数值 */}
+                    <div className="player-hp-text" style={{
+                        position: 'absolute',
+                        bottom: '-25px',
+                        left: '50%',
+                        transform: 'translateX(-50%)',
+                        fontSize: '10px',
+                        padding: '1px 3px',
+                    }}>{character?.current_hp || '?'}/{character?.max_hp || '?'}</div>
+                    
+                    {/* 玩家攻击状态 */}
+                    {Object.keys(attackingMonsters).length > 0 && (
+                        <div className="player-attack-indicator" style={{
+                            position: 'absolute',
+                            right: '-20px',
+                            top: '0',
+                            fontSize: '16px',
+                            animation: 'attackPulse 0.5s infinite'
+                        }}>
+                            ⚔️
+                        </div>
+                    )}
+                    
+                    {/* 玩家表情 */}
+                    <div style={{ fontSize: '16px' }}>
+                        {character?.lastHp !== character?.current_hp && character?.lastHp > character?.current_hp ? '😣' : '😊'}
+                    </div>
                 </div>
                 
                 {/* 渲染怪物 */}
@@ -295,23 +520,92 @@ function GameMap({
                             position: 'absolute',
                             left: `${monster.x || monster.position_x || 100}px`, 
                             top: `${monster.y || monster.position_y || 100}px`,
-                            zIndex: 5
+                            zIndex: 5,
+                            width: '40px',
+                            height: '40px',
+                            display: 'flex',
+                            justifyContent: 'center',
+                            alignItems: 'center',
+                            cursor: 'pointer',
+                            transition: 'transform 0.2s ease-out',
+                            boxShadow: isMonsterBeingAttacked(monster.id) ? '0 0 10px rgba(255, 0, 0, 0.7)' : 'none'
                         }}
                         onClick={(e) => {
                             e.stopPropagation();
-                            onMonsterClick(monster.id);
+                            handleMonsterClick(monster.id);
                         }}
                         title={`${monster.name} Lv.${monster.level || '?'} (点击攻击)`}
                     >
-                        <div className="monster-name">{monster.name}</div>
-                        <div className="monster-hp-bar-container">
+                        <div className="monster-name" style={{
+                            position: 'absolute',
+                            bottom: '100%',
+                            left: '50%',
+                            transform: 'translateX(-50%)',
+                            whiteSpace: 'nowrap',
+                            backgroundColor: 'rgba(0,0,0,0.7)',
+                            padding: '2px 5px',
+                            borderRadius: '3px',
+                            fontSize: '12px',
+                            textAlign: 'center'
+                        }}>
+                            <div>{monster.name}</div>
+                            <div>Lv.{monster.level || '?'}</div>
+                        </div>
+                        
+                        <div className="monster-hp-bar-container" style={{
+                            position: 'absolute',
+                            bottom: '-15px',
+                            left: '50%',
+                            transform: 'translateX(-50%)',
+                            width: '50px',
+                            height: '6px',
+                            backgroundColor: 'rgba(0, 0, 0, 0.7)',
+                            borderRadius: '3px',
+                            overflow: 'hidden'
+                        }}>
                             <div 
                                 className="monster-hp-bar" 
-                                style={{width: `${monster.hp_percentage || 100}%`}}
+                                style={{
+                                    width: `${monster.hp_percentage || (monster?.current_hp && monster?.hp ? (monster.current_hp / monster.hp) * 100 : 100)}%`,
+                                    height: '100%',
+                                    backgroundColor: '#ff3333',
+                                    transition: 'width 0.3s ease-out',
+                                    animation: monster.lastHp !== monster.current_hp ? 'hpChange 0.5s' : 'none'
+                                }}
                             ></div>
                         </div>
-                        <div className="monster-hp-text">{monster.current_hp || '?'}/{monster.hp || '?'}</div>
-                        <div className="monster-emoji">{monster.emoji || '👾'}</div>
+                        
+                        <div className="monster-hp-text" style={{
+                            position: 'absolute',
+                            bottom: '-25px',
+                            left: '50%',
+                            transform: 'translateX(-50%)',
+                            fontSize: '10px',
+                            backgroundColor: 'rgba(0,0,0,0.5)',
+                            padding: '1px 3px',
+                            borderRadius: '2px'
+                        }}>{monster.current_hp || '?'}/{monster.hp || '?'}</div>
+                        
+                        <div 
+                            className="monster-emoji"
+                            style={{
+                                fontSize: '24px',
+                                transform: isMonsterBeingAttacked(monster.id) ? 'scale(1.2)' : 'scale(1)',
+                                transition: 'transform 0.2s ease-out',
+                                animation: isMonsterBeingAttacked(monster.id) ? 'attackPulse 0.5s infinite' : 'none'
+                            }}
+                        >
+                            {monster.emoji || '👾'}
+                            {isMonsterBeingAttacked(monster.id) && (
+                                <span style={{ 
+                                    position: 'absolute', 
+                                    top: '-10px', 
+                                    right: '-10px', 
+                                    fontSize: '16px',
+                                    animation: 'attackPulse 0.3s infinite'
+                                }}>💥</span>
+                            )}
+                        </div>
                     </div>
                 )) : <div style={{ position: 'absolute', top: '40px', left: '10px', color: 'white' }}>没有怪物</div>}
                 
@@ -392,9 +686,100 @@ function GameMap({
                                     ({Math.round(playerX)}, {Math.round(playerY)})
                                 </div>
                             </div>
+                            
+                            {/* 其他玩家血条 - 始终显示 */}
+                            <div className="player-hp-bar-container" style={{
+                                position: 'absolute',
+                                bottom: '-15px',
+                                left: '50%',
+                                transform: 'translateX(-50%)',
+                                width: '40px',
+                                height: '6px',
+                                backgroundColor: 'rgba(0, 0, 0, 0.7)',
+                                borderRadius: '3px',
+                                overflow: 'hidden'
+                            }}>
+                                <div 
+                                    className="player-hp-bar" 
+                                    style={{
+                                        width: `${player?.current_hp && player?.max_hp ? (player.current_hp / player.max_hp) * 100 : 100}%`,
+                                        height: '100%',
+                                        backgroundColor: '#ff3333',
+                                        transition: 'width 0.3s ease-out'
+                                    }}
+                                ></div>
+                            </div>
+                            
+                            {/* 显示血量数值 */}
+                            <div className="player-hp-text" style={{
+                                position: 'absolute',
+                                bottom: '-25px',
+                                left: '50%',
+                                transform: 'translateX(-50%)',
+                                fontSize: '10px',
+                                padding: '1px 3px',
+                            }}>{player?.current_hp || '?'}/{player?.max_hp || '?'}</div>
                         </div>
                     );
                 }) : null}
+                
+                {/* 渲染伤害/治疗效果 */}
+                {damageEffects.map(effect => {
+                    // 确定目标位置
+                    let targetElement;
+                    let targetX = 0;
+                    let targetY = 0;
+                    
+                    if (effect.targetId === 'player') {
+                        // 玩家位置
+                        targetX = character?.position_x || 100;
+                        targetY = character?.position_y || 100;
+                    } else {
+                        // 怪物位置
+                        const monster = monsters.find(m => m.id === effect.targetId);
+                        if (monster) {
+                            targetX = monster.position_x || monster.x || 100;
+                            targetY = monster.position_y || monster.y || 100;
+                        }
+                    }
+                    
+                    return (
+                        <React.Fragment key={effect.id}>
+                            {/* 伤害/治疗数值 */}
+                            <div 
+                                style={{
+                                    position: 'absolute',
+                                    left: `${targetX}px`,
+                                    top: `${targetY - 20}px`,
+                                    color: effect.type === 'damage' ? '#ff3333' : '#33ff33',
+                                    fontWeight: 'bold',
+                                    fontSize: '16px',
+                                    zIndex: 100,
+                                    textShadow: '0 0 3px black',
+                                    animation: 'damageFloat 2s forwards',
+                                    transform: 'translateX(-50%)'
+                                }}
+                            >
+                                {effect.type === 'damage' ? '-' : '+'}{effect.amount}
+                            </div>
+                            
+                            {/* 攻击表情符号 */}
+                            <div 
+                                style={{
+                                    position: 'absolute',
+                                    left: `${targetX}px`,
+                                    top: `${targetY}px`,
+                                    fontSize: '24px',
+                                    zIndex: 101,
+                                    animation: 'attackEmoji 1s forwards',
+                                    transform: 'translateX(-50%)'
+                                }}
+                            >
+                                {effect.emoji}
+                            </div>
+                        </React.Fragment>
+                    );
+                })}
                 
                 {/* 添加小地图指示器 */}
                 <div className="mini-map" style={{

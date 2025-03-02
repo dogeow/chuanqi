@@ -18,7 +18,8 @@ const useGame = () => {
         messages,
         isAutoAttacking,
         currentAttackingMonsterId,
-        isLoading
+        isLoading,
+        shopModal
     } = useGameStore();
     
     // 初始化游戏数据
@@ -33,7 +34,7 @@ const useGame = () => {
         if (isAutoAttacking && currentAttackingMonsterId) {
             attackInterval = setInterval(() => {
                 gameService.handleMonsterClick(currentAttackingMonsterId);
-            }, 2000); // 每2秒攻击一次
+            }, 1000); // 每1秒攻击一次
         }
         
         return () => {
@@ -59,6 +60,7 @@ const useGame = () => {
         isAutoAttacking,
         currentAttackingMonsterId,
         isLoading,
+        shopModal,
         
         // 方法
         loadGameData: gameService.loadGameData.bind(gameService),

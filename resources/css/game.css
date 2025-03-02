@@ -321,7 +321,7 @@ body {
     display: flex;
     justify-content: center;
     align-items: center;
-    min-height: 0; /* 确保弹性布局正常工作 */
+    min-height: 600px;
 }
 
 .game-map {
@@ -873,8 +873,7 @@ body {
 [title]:hover::after {
     content: attr(title);
     position: absolute;
-    bottom: 100%;
-    left: 50%;
+    right: 50%;
     transform: translateX(-50%);
     background-color: #333;
     color: white;
@@ -889,15 +888,6 @@ body {
 .monster:hover, .shop:hover, .teleport-point:hover {
     transform: translate(-50%, -50%) scale(1.1);
     box-shadow: 0 0 10px rgba(255, 255, 255, 0.5);
-}
-
-/* 游戏控件样式 - 更新为适应侧边栏 */
-.game-controls {
-    display: flex;
-    gap: 8px;
-    flex-wrap: wrap;
-    justify-content: center;
-    margin-top: 5px;
 }
 
 .control-btn {
@@ -1187,16 +1177,13 @@ body {
     position: absolute;
     bottom: -5px;
     right: -5px;
-    background-color: #ff6b6b;
     color: white;
-    border-radius: 50%;
-    width: 18px;
-    height: 18px;
+    width: 12px;
+    height: 12px;
     font-size: 10px;
     display: flex;
     justify-content: center;
     align-items: center;
-    border: 1px solid #333;
 }
 
 .item-equipped {
@@ -1655,10 +1642,8 @@ body {
 /* 游戏控制按钮 */
 .game-controls {
     position: absolute;
-    bottom: 10px;
-    right: 10px;
-    display: flex;
-    gap: 10px;
+    top: 6px;
+    right: 6px;
     z-index: 100;
 }
 
@@ -1684,10 +1669,6 @@ body {
 
 .character-btn {
     background-color: rgba(76, 175, 80, 0.6);
-}
-
-.inventory-btn {
-    background-color: rgba(255, 152, 0, 0.6);
 }
 
 /* 加载状态 */
@@ -1775,23 +1756,83 @@ body {
     }
 }
 
-/* 横屏模式特定样式 */
-@media (orientation: landscape) and (max-width: 1024px) {
-    .vertical-sidebar.mobile-hidden, .inventory-sidebar.mobile-hidden {
-        display: none;
+/* 伤害和治疗数值显示 */
+.damage-text {
+    position: absolute;
+    font-weight: bold;
+    animation: floatUp 1.5s ease-out forwards;
+    z-index: 100;
+    text-shadow: 0 0 3px #000;
+    pointer-events: none;
+}
+
+.damage-text.damage {
+    color: #ff3333;
+}
+
+.damage-text.heal {
+    color: #33ff33;
+}
+
+@keyframes floatUp {
+    0% {
+        opacity: 0;
+        transform: translateY(0);
     }
-    
-    .game-content {
-        flex: 1;
-        height: 100vh;
-        flex-direction: row;
+    20% {
+        opacity: 1;
     }
-    
-    .game-controls {
-        display: flex;
-        position: absolute;
-        top: 10px;
-        right: 10px;
-        z-index: 100;
+    80% {
+        opacity: 1;
+    }
+    100% {
+        opacity: 0;
+        transform: translateY(-30px);
+    }
+}
+
+/* 攻击动画效果 */
+.attack-effect {
+    position: absolute;
+    font-size: 24px;
+    animation: attackAnim 0.8s ease-out forwards;
+    z-index: 90;
+    pointer-events: none;
+}
+
+@keyframes attackAnim {
+    0% {
+        opacity: 0;
+        transform: scale(0.5);
+    }
+    50% {
+        opacity: 1;
+        transform: scale(1.2);
+    }
+    100% {
+        opacity: 0;
+        transform: scale(1.5);
+    }
+}
+
+/* 血条动画效果 */
+.monster-hp-bar, .player-hp-bar {
+    transition: width 0.3s ease;
+}
+
+/* 攻击状态指示器 */
+.attacking {
+    animation: attacking 0.8s infinite;
+}
+
+@keyframes attacking {
+    0% {
+        box-shadow: 0 0 0 0 rgba(255, 0, 0, 0.4);
+    }
+    70% {
+        box-shadow: 0 0 0 10px rgba(255, 0, 0, 0);
+    }
+    100% {
+        box-shadow: 0 0 0 0 rgba(255, 0, 0, 0);
     }
 } 
