@@ -480,9 +480,7 @@ function GameMap({
                         left: '50%',
                         transform: 'translateX(-50%)',
                         fontSize: '10px',
-                        backgroundColor: 'rgba(0,0,0,0.5)',
                         padding: '1px 3px',
-                        borderRadius: '2px'
                     }}>{character?.current_hp || '?'}/{character?.max_hp || '?'}</div>
                     
                     {/* 玩家攻击状态 */}
@@ -711,9 +709,7 @@ function GameMap({
                                 left: '50%',
                                 transform: 'translateX(-50%)',
                                 fontSize: '10px',
-                                backgroundColor: 'rgba(0,0,0,0.5)',
                                 padding: '1px 3px',
-                                borderRadius: '2px'
                             }}>{player?.current_hp || '?'}/{player?.max_hp || '?'}</div>
                         </div>
                     );

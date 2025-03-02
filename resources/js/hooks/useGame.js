@@ -18,7 +18,8 @@ const useGame = () => {
         messages,
         isAutoAttacking,
         currentAttackingMonsterId,
-        isLoading
+        isLoading,
+        shopModal
     } = useGameStore();
     
     // 初始化游戏数据
@@ -59,6 +60,7 @@ const useGame = () => {
         isAutoAttacking,
         currentAttackingMonsterId,
         isLoading,
+        shopModal,
         
         // 方法
         loadGameData: gameService.loadGameData.bind(gameService),

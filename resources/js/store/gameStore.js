@@ -17,6 +17,13 @@ const useGameStore = create((set, get) => ({
     currentAttackingMonsterId: null,
     isLoading: true,
     
+    // 商店模态框状态
+    shopModal: {
+        isOpen: false,
+        shop: null,
+        shopItems: []
+    },
+    
     // 引用值（不会触发重新渲染）
     isLoadingStarted: false,
     recentMessages: {},
@@ -34,6 +41,10 @@ const useGameStore = create((set, get) => ({
     setInventory: (items) => set({ inventory: items }),
     setLoading: (isLoading) => set({ isLoading }),
     setLoadingStarted: (started) => set({ isLoadingStarted: started }),
+    
+    // 商店模态框方法
+    setShopModalData: (data) => set({ shopModal: data }),
+    closeShopModal: () => set({ shopModal: { isOpen: false, shop: null, shopItems: [] } }),
     
     // 更新角色位置
     updateCharacterPosition: (x, y) => set(state => ({

@@ -28,13 +28,13 @@ class GameService {
             
             console.log('角色数据加载成功:', characterResponse.data);
             const characterData = characterResponse.data.character;
+            
             // 确保同时设置x和y属性
             if (characterData.position_x !== undefined && characterData.position_y !== undefined) {
                 characterData.x = characterData.position_x;
                 characterData.y = characterData.position_y;
             }
             gameStore.setCharacter(characterData);
-            
             
             // 检查角色的地图ID是否存在
             if (!characterData.current_map_id) {
@@ -66,22 +66,19 @@ class GameService {
             
             // 初始化WebSocket连接
             console.log('准备初始化WebSocket连接...');
-            console.log('角色数据:', characterData);
-            console.log('地图数据:', mapData);
             
             if (!window.Echo) {
                 console.error('Echo未初始化，无法建立WebSocket连接');
             } else {
                 console.log('Echo已初始化，准备连接到地图频道');
+                this.initWebSocketWithData(characterData, mapData);
             }
             
-            this.initWebSocketWithData(characterData, mapData);
-            
             gameStore.addMessage('游戏数据加载完成！', 'success');
-            gameStore.setLoading(false);
         } catch (error) {
             console.error('加载游戏数据失败:', error);
             gameStore.addMessage(`加载游戏数据失败: ${error.message}`, 'error');
+        } finally {
             gameStore.setLoading(false);
         }
     }
@@ -170,35 +167,24 @@ class GameService {
                     }
                     
                     // 处理不同类型的游戏事件
-                    if (eventData.type === 'character.move') {
-                        console.log('处理角色移动事件:', eventData);
-                        this.handleCharacterMove(eventData);
-                    } else if (eventData.type === 'attack') {
-                        console.log('处理攻击事件:', eventData);
-                        this.handleAttack(eventData);
-                    } else if (eventData.type === 'monster.respawning') {
-                        console.log('处理怪物即将重生事件:', eventData);
-                        this.handleMonsterRespawning(eventData);
-                    } else if (eventData.type === 'monster.respawned') {
-                        console.log('处理怪物重生事件:', eventData);
-                        this.handleMonsterRespawned(eventData);
-                    } else if (eventData.type === 'monster.killed') {
-                        console.log('处理怪物被击杀事件:', eventData);
-                        this.handleMonsterKilled(eventData);
-                    } else if (eventData.type === 'character.damaged') {
-                        console.log('处理角色受伤事件:', eventData);
-                        this.handleCharacterDamaged(eventData.data);
-                    } else if (eventData.type === 'character.healed') {
-                        console.log('处理角色治疗事件:', eventData);
-                        this.handleCharacterHealed(eventData.data);
-                    } else if (eventData.type === 'character.died') {
-                        console.log('处理角色死亡事件:', eventData);
-                        this.handleCharacterDied(eventData.data);
-                    } else if (eventData.type === 'character.respawned') {
-                        console.log('处理角色复活事件:', eventData);
-                        this.handleCharacterRespawned(eventData.data);
+                    const eventHandlers = {
+                        'character.move': () => this.handleCharacterMove(eventData),
+                        'attack': () => this.handleAttack(eventData),
+                        'monster.respawning': () => this.handleMonsterRespawning(eventData),
+                        'monster.respawned': () => this.handleMonsterRespawned(eventData),
+                        'monster.killed': () => this.handleMonsterKilled(eventData),
+                        'character.damaged': () => this.handleCharacterDamaged(eventData.data),
+                        'character.healed': () => this.handleCharacterHealed(eventData.data),
+                        'character.died': () => this.handleCharacterDied(eventData.data),
+                        'character.respawned': () => this.handleCharacterRespawned(eventData.data)
+                    };
+                    
+                    const eventType = eventData.type;
+                    if (eventHandlers[eventType]) {
+                        console.log(`处理${eventType}事件:`, eventData);
+                        eventHandlers[eventType]();
                     } else {
-                        console.log('未处理的game.event类型:', eventData.type, eventData);
+                        console.log('未处理的game.event类型:', eventType, eventData);
                     }
                 })
                 .listen('CharacterEntered', (data) => {
@@ -219,7 +205,6 @@ class GameService {
                 });
                 
             console.log(`已成功连接到地图频道: map.${mapId}`);
-            gameStore.addMessage(`已连接到地图 ${mapData.name}`, 'info');
             return true;
         } catch (error) {
             console.error('初始化WebSocket连接失败:', error);
@@ -237,21 +222,23 @@ class GameService {
         let characterId, positionX, positionY, characterName;
         
         try {
-            // 处理game.event类型的事件
-            if (data.type === 'character.move' && data.data && data.data.character) {
+            // 提取角色移动数据
+            if (data.type === 'character.move' && data.data?.character) {
                 console.log('处理game.event类型的角色移动事件');
-                characterId = data.data.character.id;
-                positionX = data.data.character.position_x;
-                positionY = data.data.character.position_y;
-                characterName = data.data.character.name;
+                const { id, position_x, position_y, name } = data.data.character;
+                characterId = id;
+                positionX = position_x;
+                positionY = position_y;
+                characterName = name;
             } 
             // 处理CharacterMoved事件
             else if (data.character) {
                 console.log('处理CharacterMoved类型的角色移动事件');
-                characterId = data.character.id;
-                positionX = data.character.position_x;
-                positionY = data.character.position_y;
-                characterName = data.character.name;
+                const { id, position_x, position_y, name } = data.character;
+                characterId = id;
+                positionX = position_x;
+                positionY = position_y;
+                characterName = name;
             }
             // 处理简单格式的事件
             else if (data.character_id) {
@@ -266,11 +253,12 @@ class GameService {
                 console.log('尝试解析字符串格式的事件数据');
                 try {
                     const parsedData = JSON.parse(data);
-                    if (parsedData.type === 'character.move' && parsedData.data && parsedData.data.character) {
-                        characterId = parsedData.data.character.id;
-                        positionX = parsedData.data.character.position_x;
-                        positionY = parsedData.data.character.position_y;
-                        characterName = parsedData.data.character.name;
+                    if (parsedData.type === 'character.move' && parsedData.data?.character) {
+                        const { id, position_x, position_y, name } = parsedData.data.character;
+                        characterId = id;
+                        positionX = position_x;
+                        positionY = position_y;
+                        characterName = name;
                     }
                 } catch (error) {
                     console.error('解析字符串数据失败:', error);
@@ -279,29 +267,28 @@ class GameService {
             // 尝试解析data字段
             else if (data.data) {
                 console.log('尝试解析data字段:', data.data);
-                let parsedData;
+                let parsedData = data.data;
                 
-                if (typeof data.data === 'string') {
+                if (typeof parsedData === 'string') {
                     try {
-                        parsedData = JSON.parse(data.data);
+                        parsedData = JSON.parse(parsedData);
                     } catch (error) {
                         console.error('解析data字段失败:', error);
-                        parsedData = data.data;
                     }
-                } else {
-                    parsedData = data.data;
                 }
                 
-                if (parsedData.type === 'character.move' && parsedData.data && parsedData.data.character) {
-                    characterId = parsedData.data.character.id;
-                    positionX = parsedData.data.character.position_x;
-                    positionY = parsedData.data.character.position_y;
-                    characterName = parsedData.data.character.name;
+                if (parsedData.type === 'character.move' && parsedData.data?.character) {
+                    const { id, position_x, position_y, name } = parsedData.data.character;
+                    characterId = id;
+                    positionX = position_x;
+                    positionY = position_y;
+                    characterName = name;
                 } else if (parsedData.character) {
-                    characterId = parsedData.character.id;
-                    positionX = parsedData.character.position_x;
-                    positionY = parsedData.character.position_y;
-                    characterName = parsedData.character.name;
+                    const { id, position_x, position_y, name } = parsedData.character;
+                    characterId = id;
+                    positionX = position_x;
+                    positionY = position_y;
+                    characterName = name;
                 }
             }
             
@@ -763,93 +750,17 @@ class GameService {
             
             const shopItems = response.data.shop_items;
             
-            // 创建商店模态框
-            const shopModal = document.createElement('div');
-            shopModal.className = 'shop-modal';
-            shopModal.innerHTML = `
-                <div class="shop-modal-content">
-                    <div class="shop-modal-header">
-                        <h3>${shop.name}</h3>
-                        <button class="close-btn">×</button>
-                    </div>
-                    <div class="shop-modal-body">
-                        <div class="shop-items">
-                            ${shopItems.map(item => `
-                                <div class="shop-item" data-id="${item.id}">
-                                    <img src="${item.item.image || '/images/items/default.png'}" alt="${item.item.name}">
-                                    <div class="shop-item-info">
-                                        <div class="shop-item-name">${item.item.name}</div>
-                                        <div class="shop-item-price">${item.price} 金币</div>
-                                    </div>
-                                    ${item.item.is_consumable ? `
-                                        <div class="buy-quantity-buttons">
-                                            <button class="buy-btn" data-id="${item.id}" data-quantity="1" ${item.price > character.gold ? 'disabled' : ''}>X1</button>
-                                            <button class="buy-btn" data-id="${item.id}" data-quantity="10" ${item.price * 10 > character.gold ? 'disabled' : ''}>X10</button>
-                                            <button class="buy-btn" data-id="${item.id}" data-quantity="100" ${item.price * 100 > character.gold ? 'disabled' : ''}>X100</button>
-                                        </div>
-                                    ` : `
-                                        <button class="buy-btn" data-id="${item.id}" data-quantity="1" ${item.price > character.gold ? 'disabled' : ''}>购买</button>
-                                    `}
-                                </div>
-                            `).join('')}
-                        </div>
-                    </div>
-                </div>
-            `;
-            
-            document.body.appendChild(shopModal);
-            
-            // 更新商品可购买状态
-            this.updateShopItemsAffordability(shopModal, character.gold);
-            
-            // 添加关闭按钮事件
-            const closeBtn = shopModal.querySelector('.close-btn');
-            closeBtn.addEventListener('click', () => {
-                document.body.removeChild(shopModal);
-            });
-            
-            // 添加购买按钮事件
-            const buyBtns = shopModal.querySelectorAll('.buy-btn');
-            buyBtns.forEach(btn => {
-                btn.addEventListener('click', async () => {
-                    const itemId = btn.getAttribute('data-id');
-                    const quantity = parseInt(btn.getAttribute('data-quantity') || 1);
-                    try {
-                        await this.buyItem(itemId, quantity);
-                        
-                        // 更新商品可购买状态
-                        this.updateShopItemsAffordability(shopModal, gameStore.character.gold);
-                    } catch (error) {
-                        console.error('购买物品失败:', error);
-                    }
-                });
+            // 设置商店数据到状态中，以便React组件可以使用
+            gameStore.setShopModalData({
+                isOpen: true,
+                shop: shop,
+                shopItems: shopItems
             });
             
         } catch (error) {
             console.error('打开商店失败:', error);
             gameStore.addMessage(`打开商店失败: ${error.message}`, 'error');
         }
-    }
-    
-    // 更新商店物品可购买状态
-    updateShopItemsAffordability(shopModal, currentGold) {
-        const buyBtns = shopModal.querySelectorAll('.buy-btn');
-        buyBtns.forEach(btn => {
-            const itemId = btn.getAttribute('data-id');
-            const quantity = parseInt(btn.getAttribute('data-quantity') || 1);
-            const itemElement = shopModal.querySelector(`.shop-item[data-id="${itemId}"]`);
-            const priceElement = itemElement.querySelector('.shop-item-price');
-            const priceText = priceElement.textContent;
-            const price = parseInt(priceText.match(/\d+/)[0]);
-            
-            const totalPrice = price * quantity;
-            
-            if (totalPrice > currentGold) {
-                btn.disabled = true;
-            } else {
-                btn.disabled = false;
-            }
-        });
     }
     
     // 处理NPC点击
