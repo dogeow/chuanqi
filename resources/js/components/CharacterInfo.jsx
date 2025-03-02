@@ -42,7 +42,6 @@ const EquippedItemsList = ({ items }) => {
                         </div>
                         <div className="equipped-item-info">
                             <div className="equipped-item-name">{inventoryItem.item.name}</div>
-                            <div className="equipped-item-type">{inventoryItem.item.type}</div>
                         </div>
                     </div>
                 ))}

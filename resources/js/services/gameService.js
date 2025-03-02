@@ -931,7 +931,7 @@ class GameService {
         
         try {
             const response = await axios.post('/api/inventory/equip', {
-                item_id: itemId
+                character_item_id: itemId
             });
             
             if (!response.data.success) {
@@ -952,7 +952,7 @@ class GameService {
             
         } catch (error) {
             console.error('装备物品失败:', error);
-            gameStore.addMessage(`装备物品失败: ${error.message}`, 'error');
+            gameStore.addMessage(error.response.data.message, 'error');
         }
     }
     
@@ -962,7 +962,7 @@ class GameService {
         
         try {
             const response = await axios.post('/api/inventory/unequip', {
-                item_id: itemId
+                character_item_id: itemId
             });
             
             if (!response.data.success) {

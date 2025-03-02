@@ -117,13 +117,10 @@ function Inventory({ items, onUseItem, onEquipItem, onUnequipItem, onDropItem })
         if (!item) return '';
         
         const attributeMap = {
-            attack: '攻击力',
-            defense: '防御力',
-            hp: '生命值',
-            mp: '魔法值',
-            speed: '速度',
-            critical_chance: '暴击率',
-            dodge_chance: '闪避率'
+            attack_bonus: '攻击力',
+            defense_bonus: '防御力',
+            hp_bonus: '生命值',
+            mp_bonus: '魔法值',
         };
         
         const attributes = Object.entries(attributeMap)
@@ -141,7 +138,7 @@ function Inventory({ items, onUseItem, onEquipItem, onUnequipItem, onDropItem })
     
     // 判断物品是否可装备
     const isEquippableItem = useCallback((item) => {
-        return item && item.type && ['weapon', 'armor', 'accessory'].includes(item.type);
+        return item && item.is_equippable == 1;
     }, []);
     
     // 判断角色是否可以装备该物品
@@ -221,12 +218,6 @@ function Inventory({ items, onUseItem, onEquipItem, onUnequipItem, onDropItem })
                     
                     {activeTooltip.is_equipped && (
                         <div className="item-tooltip-equipped">已装备</div>
-                    )}
-                    
-                    {!activeTooltip.is_equipped && activeTooltip.item && isEquippableItem(activeTooltip.item) && (
-                        <div className={`item-tooltip-equippable ${canEquipItem(activeTooltip.item) ? 'can-equip' : 'cannot-equip'}`}>
-                            {canEquipItem(activeTooltip.item) ? '可装备此物品' : '不满足装备条件'}
-                        </div>
                     )}
                     
                     <div className="item-tooltip-actions">
