@@ -634,22 +634,6 @@
     cursor: pointer;
 }
 
-/* 刷新按钮样式 */
-.refresh-button {
-    background: none;
-    border: none;
-    color: #fff;
-    font-size: 16px;
-    cursor: pointer;
-    padding: 4px 8px;
-    border-radius: 4px;
-    transition: background-color 0.2s;
-}
-
-.refresh-button:hover {
-    background-color: rgba(255, 255, 255, 0.1);
-}
-
 /* 调整聊天头部布局 */
 .inventory-sidebar .chat-header {
     display: flex;

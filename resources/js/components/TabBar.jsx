@@ -9,10 +9,10 @@ import React from 'react';
 function TabBar({ activeTab, onTabChange }) {
     // 定义标签项
     const tabs = [
+        { id: 'character', label: '角色', icon: '👤' },
+        { id: 'inventory', label: '背包', icon: '🎒' },
         { id: 'messages', label: '消息', icon: '📜' },
         { id: 'chat', label: '聊天', icon: '💬' },
-        { id: 'inventory', label: '背包', icon: '🎒' },
-        { id: 'character', label: '角色', icon: '👤' },
         { id: 'system', label: '系统', icon: '⚙️' }
     ];
     

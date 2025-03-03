@@ -6,7 +6,8 @@ const chatState = {
     messages: [],
     scrollPosition: 0,
     lastFetchTime: 0,
-    initialized: false
+    initialized: false,
+    previousMessageCount: 0 // 添加一个变量来跟踪上一次的消息数量
 };
 
 const Chat = () => {
@@ -17,6 +18,7 @@ const Chat = () => {
     const [loading, setLoading] = useState(false);
     const messagesEndRef = useRef(null);
     const chatMessagesRef = useRef(null);
+    const [shouldScrollToBottom, setShouldScrollToBottom] = useState(false);
 
     const scrollToBottom = () => {
         messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
@@ -59,8 +61,11 @@ const Chat = () => {
             chatState.messages = newMessages;
             chatState.lastFetchTime = now;
             chatState.initialized = true;
+            chatState.previousMessageCount = newMessages.length;
             
             setMessages(newMessages);
+            // 首次加载完成后滚动到底部
+            setShouldScrollToBottom(true);
         } catch (error) {
             console.error('获取消息失败:', error);
             alert('获取消息失败');
@@ -87,7 +92,10 @@ const Chat = () => {
             if (event.message.type === type) {
                 const newMessages = [...chatState.messages, event.message];
                 chatState.messages = newMessages;
+                chatState.previousMessageCount = chatState.messages.length;
                 setMessages(newMessages);
+                // 收到新消息时滚动到底部
+                setShouldScrollToBottom(true);
             }
         });
 
@@ -118,13 +126,13 @@ const Chat = () => {
         };
     }, [type]);
 
+    // 处理滚动到底部
     useEffect(() => {
-        // 只有在新消息到达且是最新消息时才滚动到底部
-        const isNewMessageAdded = messages.length > chatState.messages.length;
-        if (isNewMessageAdded) {
+        if (shouldScrollToBottom) {
             scrollToBottom();
+            setShouldScrollToBottom(false);
         }
-    }, [messages]);
+    }, [shouldScrollToBottom]);
     
     // 监听滚动事件，实时保存滚动位置
     useEffect(() => {
@@ -160,6 +168,8 @@ const Chat = () => {
             
             await axios.post('/api/chat/send', data);
             setContent('');
+            // 发送消息后滚动到底部
+            setShouldScrollToBottom(true);
         } catch (error) {
             console.error('发送消息失败:', error);
             alert('发送消息失败');
