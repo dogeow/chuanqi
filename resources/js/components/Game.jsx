@@ -7,19 +7,10 @@ import MessageList from './MessageList.jsx';
 import Inventory from './Inventory.jsx'; // 导入背包组件
 import ShopModal from './ShopModal.jsx'; // 导入商店模态框组件
 import Chat from './Chat.jsx'; // 导入聊天组件
+import TabBar from './TabBar.jsx'; // 导入底部标签栏组件
+import SystemMenu from './SystemMenu.jsx'; // 导入系统菜单组件
 import gameService from '../services/gameService';
 import useGameStore from '../store/gameStore';
-
-// 游戏控制按钮组件 - 只在移动设备上显示
-const GameControls = memo(({ onToggleCharacterInfo }) => {
-    return (
-        <div className="game-controls">
-            <button className="control-btn character-btn" onClick={onToggleCharacterInfo} title="角色信息">
-                <span>C</span>
-            </button>
-        </div>
-    );
-});
 
 // 侧边栏模态框组件
 const SidebarModal = memo(({ title, isOpen, onClose, children }) => {
@@ -103,6 +94,9 @@ function GameContent() {
     const [isMobile, setIsMobile] = useState(false);
     const [isLandscape, setIsLandscape] = useState(window.innerWidth > window.innerHeight);
     
+    // 添加底部标签状态
+    const [activeTab, setActiveTab] = useState('messages');
+    
     // 检查设备类型和屏幕方向 - 使用useCallback优化
     const checkDeviceAndOrientation = useCallback(() => {
         // 更精确地检测移动设备
@@ -121,6 +115,16 @@ function GameContent() {
     // 切换角色信息显示 - 使用useCallback优化
     const toggleCharacterInfo = useCallback(() => {
         setShowCharacterInfo(prev => !prev);
+    }, []);
+    
+    // 处理标签切换
+    const handleTabChange = useCallback((tabId) => {
+        setActiveTab(tabId);
+        
+        // 如果切换到角色标签，显示角色信息
+        if (tabId === 'character') {
+            setShowCharacterInfo(true);
+        }
     }, []);
     
     // 初始化游戏数据
@@ -178,6 +182,35 @@ function GameContent() {
         return <RotateDeviceScreen />;
     }
     
+    // 渲染当前激活的标签内容
+    const renderActiveTabContent = () => {
+        switch (activeTab) {
+            case 'messages':
+                return <MessageList messages={messages} />;
+            case 'chat':
+                return <Chat />;
+            case 'inventory':
+                return (
+                    <div className="inventory-section">
+                        <h3>背包</h3>
+                        <Inventory 
+                            items={inventory} 
+                            onUseItem={useItem}
+                            onEquipItem={equipItem}
+                            onUnequipItem={unequipItem}
+                            onDropItem={dropItem}
+                        />
+                    </div>
+                );
+            case 'character':
+                return <CharacterInfo character={character} />;
+            case 'system':
+                return <SystemMenu />;
+            default:
+                return <MessageList messages={messages} />;
+        }
+    };
+    
     return (
         <div className="game-layout">
             {!isMobile && (
@@ -203,32 +236,49 @@ function GameContent() {
                         onNpcClick={handleNpcClick}
                         onTeleportClick={handleTeleportClick}
                     />
-                    {isMobile && <GameControls onToggleCharacterInfo={toggleCharacterInfo} />}
-                </div>
+                   </div>
                 
-                <div className="messages-container">
-                    <MessageList messages={messages} />
-                </div>
+                {/* 在非移动设备上显示消息容器 */}
+                {!isMobile && (
+                    <div className="messages-container">
+                        <MessageList messages={messages} />
+                    </div>
+                )}
             </div>
 
-            <div className={`inventory-sidebar ${isMobile ? 'mobile-hidden' : ''}`}>
-                <div className="inventory-section">
-                    <h3>背包</h3>
-                    <Inventory 
-                        items={inventory} 
-                        onUseItem={useItem}
-                        onEquipItem={equipItem}
-                        onUnequipItem={unequipItem}
-                        onDropItem={dropItem}
-                    />
+            {!isMobile && (
+                <div className="inventory-sidebar">
+                    <div className="inventory-section">
+                        <h3>背包</h3>
+                        <Inventory 
+                            items={inventory} 
+                            onUseItem={useItem}
+                            onEquipItem={equipItem}
+                            onUnequipItem={unequipItem}
+                            onDropItem={dropItem}
+                        />
+                    </div>
+                    
+                    {/* PC端聊天界面放在背包下面 */}
+                    <div className="chat-section">
+                        <h3>聊天</h3>
+                        <Chat />
+                    </div>
                 </div>
-            </div>
+            )}
             
-            {/* 聊天组件 */}
-            <Chat />
+            {/* 移动设备模式下的底部标签栏和内容 */}
+            {isMobile && (
+                <>
+                    <div className="mobile-tab-content">
+                        {renderActiveTabContent()}
+                    </div>
+                    <TabBar activeTab={activeTab} onTabChange={handleTabChange} />
+                </>
+            )}
             
             {/* 移动设备模式下的角色信息模态框 */}
-            {isMobile && (
+            {isMobile && activeTab !== 'character' && (
                 <SidebarModal 
                     title="角色信息" 
                     isOpen={showCharacterInfo} 

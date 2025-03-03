@@ -136,18 +136,12 @@
 
 /* 聊天系统样式 */
 .chat-container {
-    background: rgba(255, 255, 255, 0.95);
-    border-radius: 8px;
-    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
-    margin-top: 10px;
-    height: 300px;
     display: flex;
     flex-direction: column;
-    position: fixed;
-    bottom: 10px;
-    right: 10px;
-    width: 350px;
-    z-index: 100;
+    height: 100%;
+    background-color: rgba(0, 0, 0, 0.8);
+    color: #fff;
+    border-radius: 8px;
 }
 
 .chat-header {
@@ -330,4 +324,312 @@
         height: 28px;
         font-size: 12px;
     }
+}
+
+/* 底部标签栏样式 */
+.tab-bar {
+    position: fixed;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    height: 60px;
+    background-color: rgba(0, 0, 0, 0.8);
+    display: flex;
+    justify-content: space-around;
+    align-items: center;
+    z-index: 1000;
+    border-top: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.tab-item {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    width: 20%;
+    height: 100%;
+    color: #ccc;
+    transition: all 0.2s ease;
+    cursor: pointer;
+}
+
+.tab-item.active {
+    color: #fff;
+    background-color: rgba(255, 255, 255, 0.1);
+}
+
+.tab-icon {
+    font-size: 24px;
+    margin-bottom: 2px;
+}
+
+.tab-label {
+    font-size: 12px;
+}
+
+/* 移动设备标签内容区域 */
+.mobile-tab-content {
+    position: fixed;
+    bottom: 60px;
+    left: 0;
+    right: 0;
+    background-color: rgba(0, 0, 0, 0.8);
+    max-height: 40vh;
+    overflow-y: auto;
+    z-index: 999;
+    border-top: 1px solid rgba(255, 255, 255, 0.1);
+    padding: 10px;
+}
+
+/* 消息列表在移动设备上的样式 */
+.mobile-tab-content .message-list {
+    max-height: 38vh;
+    overflow-y: auto;
+    padding: 5px;
+}
+
+/* 系统菜单样式 */
+.system-menu {
+    color: #fff;
+    padding: 10px;
+}
+
+.system-menu-title {
+    text-align: center;
+    margin-bottom: 15px;
+    font-size: 18px;
+}
+
+.menu-items {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+}
+
+.menu-item {
+    display: flex;
+    align-items: center;
+    padding: 10px;
+    background-color: rgba(255, 255, 255, 0.1);
+    border-radius: 5px;
+    cursor: pointer;
+    transition: background-color 0.2s ease;
+}
+
+.menu-item:hover {
+    background-color: rgba(255, 255, 255, 0.2);
+}
+
+.menu-item-icon {
+    font-size: 20px;
+    margin-right: 10px;
+}
+
+.menu-item-label {
+    font-size: 16px;
+}
+
+/* 调整游戏地图容器，确保在移动设备上不被底部标签栏遮挡 */
+@media (max-width: 768px) {
+    .game-map-container {
+        height: calc(100vh - 60px - 40vh);
+    }
+    
+    /* 移动设备上不再需要固定的消息容器 */
+    .messages-container {
+        display: none;
+    }
+    
+    /* 确保聊天组件在移动设备上的样式正确 */
+    .mobile-tab-content .chat-container {
+        max-height: 38vh;
+        border-radius: 0;
+        box-shadow: none;
+    }
+    
+    .mobile-tab-content .chat-messages {
+        max-height: 25vh;
+    }
+}
+
+/* PC端聊天部分样式 */
+.chat-section {
+    margin-top: 20px;
+    border-top: 1px solid rgba(255, 255, 255, 0.1);
+    padding-top: 15px;
+    width: 100%;
+}
+
+.chat-section h3 {
+    margin-bottom: 10px;
+    font-size: 18px;
+    color: #fff;
+}
+
+/* 调整PC端聊天容器样式，使其适应侧边栏 */
+.inventory-sidebar .chat-container {
+    width: 100%;
+    height: 300px;
+    max-height: 300px;
+    border-radius: 8px;
+    background-color: rgba(0, 0, 0, 0.8);
+    box-shadow: none;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+}
+
+.inventory-sidebar .chat-header {
+    background-color: rgba(255, 255, 255, 0.1);
+    border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+    padding: 8px;
+}
+
+.inventory-sidebar .chat-messages {
+    max-height: 200px;
+    background-color: rgba(0, 0, 0, 0.5);
+    padding: 8px;
+}
+
+.inventory-sidebar .chat-input {
+    margin-top: auto;
+    background-color: rgba(0, 0, 0, 0.7);
+    border-top: 1px solid rgba(255, 255, 255, 0.1);
+    padding: 8px;
+}
+
+.inventory-sidebar .chat-input-field {
+    background-color: rgba(255, 255, 255, 0.1);
+    color: #fff;
+    border: 1px solid rgba(255, 255, 255, 0.2);
+}
+
+.inventory-sidebar .send-button {
+    background-color: rgba(255, 255, 255, 0.2);
+    color: #fff;
+}
+
+/* 游戏布局样式 */
+.game-layout {
+    display: flex;
+    height: 100vh;
+    background-color: #1a1a1a;
+    color: #fff;
+}
+
+/* 侧边栏样式 */
+.vertical-sidebar, .inventory-sidebar {
+    width: 300px;
+    background-color: rgba(0, 0, 0, 0.8);
+    padding: 15px;
+    overflow-y: auto;
+    display: flex;
+    flex-direction: column;
+}
+
+/* 背包部分样式 */
+.inventory-section {
+    margin-bottom: 20px;
+}
+
+.inventory-section h3, .chat-section h3 {
+    margin-bottom: 10px;
+    font-size: 18px;
+    color: #fff;
+    text-align: center;
+}
+
+/* PC端聊天部分样式 */
+.chat-section {
+    margin-top: 20px;
+    border-top: 1px solid rgba(255, 255, 255, 0.1);
+    padding-top: 15px;
+    width: 100%; /* 确保宽度与父容器一致 */
+}
+
+/* 调整PC端聊天容器样式，使其适应侧边栏 */
+.inventory-sidebar .chat-container {
+    width: 100%; /* 确保宽度与背包一致 */
+    height: 300px;
+    max-height: 300px;
+    border-radius: 8px;
+    background-color: rgba(0, 0, 0, 0.8); /* 与背包背景色一致 */
+    box-shadow: none; /* 移除阴影，与背包风格一致 */
+    display: flex;
+    flex-direction: column;
+    overflow: hidden; /* 防止内容溢出 */
+}
+
+.inventory-sidebar .chat-header {
+    background-color: rgba(255, 255, 255, 0.1); /* 与背包风格一致 */
+    border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+    padding: 8px;
+}
+
+.inventory-sidebar .chat-type-select {
+    background-color: rgba(0, 0, 0, 0.5);
+    border: 1px solid rgba(255, 255, 255, 0.2);
+    color: #fff;
+}
+
+.inventory-sidebar .chat-messages {
+    max-height: 200px;
+    background-color: rgba(0, 0, 0, 0.5); /* 与背包风格一致 */
+    padding: 8px;
+    overflow-y: auto;
+}
+
+.inventory-sidebar .chat-message {
+    margin-bottom: 8px;
+    display: flex;
+    align-items: flex-start;
+}
+
+.inventory-sidebar .message-avatar {
+    background-color: rgba(255, 255, 255, 0.1);
+    color: #fff;
+}
+
+.inventory-sidebar .message-content {
+    background-color: rgba(255, 255, 255, 0.1);
+    color: #fff;
+}
+
+.inventory-sidebar .message-sender {
+    color: #fff;
+}
+
+.inventory-sidebar .message-text {
+    color: #ddd;
+}
+
+.inventory-sidebar .chat-input {
+    margin-top: auto;
+    background-color: rgba(0, 0, 0, 0.7); /* 与背包风格一致 */
+    border-top: 1px solid rgba(255, 255, 255, 0.1);
+    padding: 8px;
+}
+
+.inventory-sidebar .input-container {
+    display: flex;
+    width: 100%;
+}
+
+.inventory-sidebar .chat-input-field {
+    flex: 1;
+    background-color: rgba(255, 255, 255, 0.1);
+    color: #fff;
+    border: 1px solid rgba(255, 255, 255, 0.2);
+    padding: 6px 10px;
+    border-radius: 4px;
+    margin-right: 5px;
+}
+
+.inventory-sidebar .send-button {
+    background-color: rgba(255, 255, 255, 0.2);
+    color: #fff;
+    border: none;
+    padding: 6px 12px;
+    border-radius: 4px;
+    cursor: pointer;
 }

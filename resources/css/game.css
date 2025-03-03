@@ -1639,38 +1639,6 @@ body {
     }
 }
 
-/* 游戏控制按钮 */
-.game-controls {
-    position: absolute;
-    top: 6px;
-    right: 6px;
-    z-index: 100;
-}
-
-.control-btn {
-    width: 40px;
-    height: 40px;
-    border-radius: 50%;
-    background-color: rgba(0, 0, 0, 0.6);
-    border: 2px solid #555;
-    color: #fff;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    cursor: pointer;
-    font-weight: bold;
-    transition: all 0.2s;
-}
-
-.control-btn:hover {
-    background-color: rgba(0, 0, 0, 0.8);
-    border-color: #777;
-}
-
-.character-btn {
-    background-color: rgba(76, 175, 80, 0.6);
-}
-
 /* 加载状态 */
 .loading {
     display: flex;
