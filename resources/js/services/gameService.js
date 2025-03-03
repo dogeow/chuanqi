@@ -988,11 +988,11 @@ class GameService {
         
         // 如果是当前角色受伤
         if (data.character_id === gameStore.character?.id) {
-            console.log('当前角色受到伤害:', data.damage);
+            console.log('当前角色受到伤害:', data.monster_damage);
             
             // 更新角色血量
             const currentHp = gameStore.character.current_hp;
-            const newHp = Math.max(0, currentHp - data.damage);
+            const newHp = Math.max(0, currentHp - data.monster_damage);
             
             // 强制设置lastHp以触发动画效果
             const updatedCharacter = {

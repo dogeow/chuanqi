@@ -489,7 +489,7 @@ function GameMap({
                         transform: 'translateX(-50%)',
                         fontSize: '10px',
                         padding: '1px 3px',
-                    }}>{character?.current_hp || '?'}/{character?.max_hp || '?'}</div>
+                    }}>{character?.current_hp || '???'}/{character?.max_hp || '?'}</div>
                     
                     {/* 玩家攻击状态 */}
                     {Object.keys(attackingMonsters).length > 0 && (
@@ -718,7 +718,7 @@ function GameMap({
                                 transform: 'translateX(-50%)',
                                 fontSize: '10px',
                                 padding: '1px 3px',
-                            }}>{player?.current_hp || '?'}/{player?.max_hp || '?'}</div>
+                            }}>{player?.current_hp || '??'}/{player?.max_hp || '?'}</div>
                         </div>
                     );
                 }) : null}
