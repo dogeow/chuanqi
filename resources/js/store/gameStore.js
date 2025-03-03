@@ -17,6 +17,16 @@ const useGameStore = create((set, get) => ({
     currentAttackingMonsterId: null,
     isLoading: true,
     
+    // 碰撞状态
+    collisions: {
+        monsters: [],
+        players: [],
+        npcs: []
+    },
+    
+    // 路径调整状态
+    pathAdjustment: null,
+    
     // 商店模态框状态
     shopModal: {
         isOpen: false,
@@ -41,6 +51,48 @@ const useGameStore = create((set, get) => ({
     setInventory: (items) => set({ inventory: items }),
     setLoading: (isLoading) => set({ isLoading }),
     setLoadingStarted: (started) => set({ isLoadingStarted: started }),
+    
+    // 碰撞状态更新方法
+    setCollisions: (collisions) => set({ collisions }),
+    
+    // 路径调整状态更新方法
+    setPathAdjustment: (adjustment) => set({ pathAdjustment: adjustment }),
+    clearPathAdjustment: () => set({ pathAdjustment: null }),
+    
+    // 添加碰撞
+    addCollision: (type, object) => set(state => {
+        // 确保不重复添加相同的碰撞对象
+        const existingCollisions = state.collisions[type] || [];
+        const exists = existingCollisions.some(item => item.id === object.id);
+        
+        if (!exists) {
+            return {
+                collisions: {
+                    ...state.collisions,
+                    [type]: [...existingCollisions, object]
+                }
+            };
+        }
+        
+        return state;
+    }),
+    
+    // 移除碰撞
+    removeCollision: (type, objectId) => set(state => ({
+        collisions: {
+            ...state.collisions,
+            [type]: (state.collisions[type] || []).filter(item => item.id !== objectId)
+        }
+    })),
+    
+    // 清除所有碰撞
+    clearCollisions: () => set({
+        collisions: {
+            monsters: [],
+            players: [],
+            npcs: []
+        }
+    }),
     
     // 商店模态框方法
     setShopModalData: (data) => set({ shopModal: data }),

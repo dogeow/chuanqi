@@ -1,5 +1,6 @@
 import axios from 'axios';
 import useGameStore from '../store/gameStore';
+import CollisionService from './collisionService';
 
 // 游戏服务 - 处理游戏相关的API调用和业务逻辑
 class GameService {
@@ -571,7 +572,7 @@ class GameService {
             const character = gameStore.character;
             const characterX = character.position_x || 0;
             const characterY = character.position_y || 0;
-            const monsterX =monster.position_x || 0;
+            const monsterX = monster.position_x || 0;
             const monsterY = monster.position_y || 0;
             
             const dx = characterX - monsterX;
@@ -585,15 +586,19 @@ class GameService {
                 const targetX = monsterX + Math.round(Math.cos(angle));
                 const targetY = monsterY + Math.round(Math.sin(angle));
                 
-                // 移动到目标点
-                await this.moveCharacter(targetX, targetY);
-                
-                // 开始自动攻击
-                this.startAutoAttack(monsterId);
-                return;
+                try {
+                    // 尝试移动到目标点
+                    const moveResult = await this.moveCharacter(targetX, targetY);
+                    
+                    // 即使移动失败，也尝试攻击
+                    // 如果距离仍然太远，会在攻击API中处理
+                } catch (moveError) {
+                    console.error('移动到怪物附近失败:', moveError);
+                    // 继续尝试攻击
+                }
             }
             
-            // 如果已经在攻击范围内，直接攻击
+            // 无论移动是否成功，都尝试攻击怪物
             const response = await axios.post('/api/monster/attack', {
                 monster_id: monsterId
             });
@@ -783,7 +788,7 @@ class GameService {
             const currentY = character.position_y || 0;
             
             if (currentX === position_x && currentY === position_y) {
-                return;
+                return true;
             }
             
             // 停止自动攻击
@@ -791,8 +796,58 @@ class GameService {
                 this.stopAutoAttack();
             }
             
-            // 发送移动请求
-            const response = await axios.post('/api/character/move', { position_x, position_y });
+            // 合并所有可能的障碍物
+            const obstacles = [
+                ...gameStore.monsters.filter(m => !m.is_dead && m.current_hp > 0),
+                ...gameStore.otherPlayers,
+                ...gameStore.npcs
+            ];
+            
+            // 检查目标位置是否会发生碰撞
+            const isColliding = CollisionService.isPositionColliding(
+                character,
+                position_x,
+                position_y,
+                obstacles
+            );
+            
+            // 如果会发生碰撞，计算最近的非碰撞位置
+            let finalX = position_x;
+            let finalY = position_y;
+            
+            if (isColliding) {
+                console.log('目标位置将发生碰撞，计算最近的非碰撞位置');
+                
+                // 计算最近的非碰撞位置
+                const nearestPosition = CollisionService.findNearestNonCollidingPosition(
+                    character,
+                    position_x,
+                    position_y,
+                    obstacles
+                );
+                
+                finalX = nearestPosition.x;
+                finalY = nearestPosition.y;
+                
+                // 如果计算出的位置与当前位置相同，说明无法移动
+                if (Math.abs(finalX - currentX) < 1 && Math.abs(finalY - currentY) < 1) {
+                    gameStore.addMessage('无法移动，路径被阻挡', 'warning');
+                    // 抛出错误，以便调用者可以捕获并处理
+                    throw new Error('无法移动，路径被阻挡');
+                }
+                
+                // 如果计算出的位置与目标位置不同，显示提示
+                if (Math.abs(finalX - position_x) > 1 || Math.abs(finalY - position_y) > 1) {
+                    gameStore.addMessage('移动路径被阻挡，已调整到最近可达位置', 'info');
+                    console.log('调整后的位置:', { x: finalX, y: finalY });
+                }
+            }
+            
+            // 发送移动请求，使用调整后的位置
+            const response = await axios.post('/api/character/move', { 
+                position_x: finalX, 
+                position_y: finalY 
+            });
             
             if (!response.data.success) {
                 throw new Error(response.data.message || '移动失败');
@@ -807,7 +862,7 @@ class GameService {
         } catch (error) {
             console.error('移动角色失败:', error);
             gameStore.addMessage(`移动失败: ${error.message}`, 'error');
-            return false;
+            throw error; // 重新抛出错误，让调用者处理
         }
     }
     
