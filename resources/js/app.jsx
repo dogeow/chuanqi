@@ -24,6 +24,22 @@ if (authToken) {
     console.error('认证令牌未找到，API请求可能会失败');
 }
 
+// 添加响应拦截器，处理401错误
+window.axios.interceptors.response.use(
+    response => response,
+    error => {
+        // 如果响应状态码是401（未授权），跳转到登录页面
+        if (error.response && error.response.status === 401) {
+            console.log('用户未授权，正在跳转到登录页面...');
+            // 清除本地存储的认证令牌
+            localStorage.removeItem('game_token');
+            // 跳转到登录页面
+            window.location.href = '/login';
+        }
+        return Promise.reject(error);
+    }
+);
+
 // 渲染React应用
 const gameContainer = document.getElementById('game-container');
 if (gameContainer) {

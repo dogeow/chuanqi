@@ -1,10 +1,14 @@
-import React from 'react';
+import React, { useState } from 'react';
 import axios from 'axios';
+import Rankings from './Rankings';
 
 /**
  * 系统菜单组件
  */
 function SystemMenu() {
+    // 添加一个状态来控制是否显示排行榜
+    const [showRankings, setShowRankings] = useState(false);
+    
     // 退出登录
     const handleLogout = async () => {
         try {
@@ -19,11 +23,27 @@ function SystemMenu() {
     
     // 系统菜单项
     const menuItems = [
+        { id: 'rankings', label: '排行榜', icon: '🏆', onClick: () => setShowRankings(true) },
         { id: 'settings', label: '游戏设置', icon: '⚙️', onClick: () => alert('游戏设置功能尚未实现') },
         { id: 'help', label: '游戏帮助', icon: '❓', onClick: () => alert('游戏帮助功能尚未实现') },
         { id: 'about', label: '关于游戏', icon: 'ℹ️', onClick: () => alert('关于游戏功能尚未实现') },
         { id: 'logout', label: '退出登录', icon: '🚪', onClick: handleLogout }
     ];
+    
+    // 关闭排行榜
+    const handleCloseRankings = () => {
+        setShowRankings(false);
+    };
+    
+    // 如果显示排行榜，则渲染排行榜组件
+    if (showRankings) {
+        return (
+            <div className="rankings-page">
+                <button className="back-button" onClick={handleCloseRankings}>返回</button>
+                <Rankings />
+            </div>
+        );
+    }
     
     return (
         <div className="system-menu">
@@ -45,4 +65,4 @@ function SystemMenu() {
     );
 }
 
-export default SystemMenu; 
+export default SystemMenu;

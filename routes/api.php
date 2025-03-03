@@ -8,6 +8,7 @@ use App\Http\Controllers\InventoryController;
 use App\Http\Controllers\ShopController;
 use App\Http\Controllers\TestController;
 use App\Http\Controllers\ChatController;
+use App\Http\Controllers\RankingController;
 
 /*
 |--------------------------------------------------------------------------
@@ -62,6 +63,11 @@ Route::middleware('auth:sanctum')->group(function () {
     // 聊天系统路由
     Route::get('/chat/messages', [ChatController::class, 'getMessages']);
     Route::post('/chat/send', [ChatController::class, 'sendMessage']);
+    
+    // 排名系统路由
+    Route::get('/rankings', [RankingController::class, 'getRankings']);
+    Route::get('/rankings/user', [RankingController::class, 'getUserRanking']);
+    
 });
 
 // 测试路由

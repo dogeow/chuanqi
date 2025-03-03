@@ -178,11 +178,6 @@ const Chat = () => {
         }
     };
 
-    // 添加手动刷新功能
-    const handleRefresh = () => {
-        fetchMessages(true);
-    };
-
     return (
         <div className="chat-container">
             <div className="chat-header">
@@ -194,9 +189,6 @@ const Chat = () => {
                     <option value="world">世界聊天</option>
                     <option value="private">私聊（尚未开发）</option>
                 </select>
-                <button onClick={handleRefresh} className="refresh-button" title="刷新消息">
-                    🔄
-                </button>
             </div>
             
             <div className="chat-messages" ref={chatMessagesRef}>

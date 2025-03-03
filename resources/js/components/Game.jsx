@@ -22,9 +22,9 @@ const LoadingScreen = memo(() => (
 
 // 错误状态组件
 const ErrorScreen = memo(() => (
-    <div className="game-error">
-        <div className="error-message">无法加载游戏数据，请刷新页面重试。</div>
-        <button onClick={() => window.location.reload()} className="reload-btn">刷新页面</button>
+    <div>
+        <div>无法加载游戏数据，请刷新页面重试。</div>
+        <button onClick={() => window.location.reload()}>刷新页面</button>
     </div>
 ));
 

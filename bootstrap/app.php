@@ -16,6 +16,9 @@ return Application::configure(basePath: dirname(__DIR__))
 
     })
     ->withBroadcasting(__DIR__.'/../routes/channels.php')
+    ->withSchedule(function (\Illuminate\Console\Scheduling\Schedule $schedule) {
+        $schedule->command('rankings:update')->everyFiveMinutes();
+    })
     ->withExceptions(function (Exceptions $exceptions) {
         //
     })->create();
