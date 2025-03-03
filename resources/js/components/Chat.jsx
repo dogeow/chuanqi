@@ -1,13 +1,16 @@
 import React, { useState, useEffect, useRef } from 'react';
 import axios from 'axios';
 
-// 创建一个全局变量来存储滚动位置
-const chatScrollPosition = {
-    position: 0
+// 创建全局变量来存储聊天状态
+const chatState = {
+    messages: [],
+    scrollPosition: 0,
+    lastFetchTime: 0,
+    initialized: false
 };
 
 const Chat = () => {
-    const [messages, setMessages] = useState([]);
+    const [messages, setMessages] = useState(chatState.messages);
     const [content, setContent] = useState('');
     const [type, setType] = useState('world');
     const [receiverId, setReceiverId] = useState(null);
@@ -22,19 +25,50 @@ const Chat = () => {
     // 保存滚动位置
     const saveScrollPosition = () => {
         if (chatMessagesRef.current) {
-            chatScrollPosition.position = chatMessagesRef.current.scrollTop;
+            chatState.scrollPosition = chatMessagesRef.current.scrollTop;
         }
     };
     
     // 恢复滚动位置
     const restoreScrollPosition = () => {
-        if (chatMessagesRef.current && chatScrollPosition.position) {
-            chatMessagesRef.current.scrollTop = chatScrollPosition.position;
+        if (chatMessagesRef.current && chatState.scrollPosition) {
+            chatMessagesRef.current.scrollTop = chatState.scrollPosition;
+        }
+    };
+
+    // 只在首次加载或超过一定时间后才请求API
+    const fetchMessages = async (force = false) => {
+        // 如果已经初始化且不是强制刷新，则不重新请求
+        if (chatState.initialized && !force) {
+            setMessages(chatState.messages);
+            return;
+        }
+        
+        // 如果距离上次请求不到5分钟，且不是强制刷新，则不重新请求
+        const now = Date.now();
+        if (!force && chatState.lastFetchTime && (now - chatState.lastFetchTime < 5 * 60 * 1000)) {
+            setMessages(chatState.messages);
+            return;
+        }
+        
+        try {
+            const response = await axios.get(`/api/chat/messages?type=${type}`);
+            const newMessages = response.data.data;
+            
+            // 更新全局状态
+            chatState.messages = newMessages;
+            chatState.lastFetchTime = now;
+            chatState.initialized = true;
+            
+            setMessages(newMessages);
+        } catch (error) {
+            console.error('获取消息失败:', error);
+            alert('获取消息失败');
         }
     };
 
     useEffect(() => {
-        // 首次加载消息
+        // 加载消息，但避免不必要的API请求
         fetchMessages();
 
         // 检查 Echo 是否已初始化
@@ -51,7 +85,9 @@ const Chat = () => {
             console.log('收到消息:', event);
             // 根据消息类型过滤
             if (event.message.type === type) {
-                setMessages(prevMessages => [...prevMessages, event.message]);
+                const newMessages = [...chatState.messages, event.message];
+                chatState.messages = newMessages;
+                setMessages(newMessages);
             }
         });
 
@@ -66,7 +102,7 @@ const Chat = () => {
         });
         
         // 组件挂载后恢复滚动位置
-        restoreScrollPosition();
+        setTimeout(restoreScrollPosition, 100);
 
         // 清理函数
         return () => {
@@ -83,8 +119,9 @@ const Chat = () => {
     }, [type]);
 
     useEffect(() => {
-        // 只有在新消息到达时才滚动到底部
-        if (messages.length > 0) {
+        // 只有在新消息到达且是最新消息时才滚动到底部
+        const isNewMessageAdded = messages.length > chatState.messages.length;
+        if (isNewMessageAdded) {
             scrollToBottom();
         }
     }, [messages]);
@@ -104,16 +141,6 @@ const Chat = () => {
             };
         }
     }, []);
-
-    const fetchMessages = async () => {
-        try {
-            const response = await axios.get(`/api/chat/messages?type=${type}`);
-            setMessages(response.data.data);
-        } catch (error) {
-            console.error('获取消息失败:', error);
-            alert('获取消息失败');
-        }
-    };
 
     const handleSend = async () => {
         if (!content.trim()) {
@@ -141,6 +168,11 @@ const Chat = () => {
         }
     };
 
+    // 添加手动刷新功能
+    const handleRefresh = () => {
+        fetchMessages(true);
+    };
+
     return (
         <div className="chat-container">
             <div className="chat-header">
@@ -152,6 +184,9 @@ const Chat = () => {
                     <option value="world">世界聊天</option>
                     <option value="private">私聊（尚未开发）</option>
                 </select>
+                <button onClick={handleRefresh} className="refresh-button" title="刷新消息">
+                    🔄
+                </button>
             </div>
             
             <div className="chat-messages" ref={chatMessagesRef}>
