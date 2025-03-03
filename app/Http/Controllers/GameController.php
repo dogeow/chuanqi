@@ -467,7 +467,9 @@ class GameController extends Controller
                 'monster_id' => $monster->id,
                 'monster_name' => $monster->name,
                 'killer_id' => $character->id,
-                'killer_name' => $character->name
+                'killer_name' => $character->name,
+                'exp_gained' => $expGained,
+                'gold_gained' => $goldGained
             ], $character->current_map_id));
             
             // 怪物重生逻辑

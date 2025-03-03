@@ -353,29 +353,14 @@ class GameService {
         
         // 处理GameEvent格式的数据
         if (data.type === 'monster.killed' && data.data) {
+            console.log(data);
             const eventData = data.data;
             monsterId = eventData.monster_id;
             monsterName = eventData.monster_name;
             killerId = eventData.killer_id;
             killerName = eventData.killer_name;
-            respawnTime = eventData.respawn_time;
-            experienceGained = eventData.experience_gained;
+            experienceGained = eventData.exp_gained;
             goldGained = eventData.gold_gained;
-            newExperience = eventData.new_experience;
-            newGold = eventData.new_gold;
-            newLevel = eventData.new_level;
-        } else {
-            // 直接从data中获取数据
-            monsterId = data.monster_id;
-            monsterName = data.monster_name;
-            killerId = data.killer_id;
-            killerName = data.killer_name;
-            respawnTime = data.respawn_time;
-            experienceGained = data.experience_gained;
-            goldGained = data.gold_gained;
-            newExperience = data.new_experience;
-            newGold = data.new_gold;
-            newLevel = data.new_level;
         }
         
         if (!monsterId) {
@@ -426,11 +411,8 @@ class GameService {
             }
             
             // 显示击杀消息
-            if (experienceGained !== undefined && goldGained !== undefined) {
-                gameStore.addMessage(`你击杀了 ${monsterName}，获得了 ${experienceGained} 经验和 ${goldGained} 金币！`, 'success');
-            } else {
-                gameStore.addMessage(`你击杀了 ${monsterName}！`, 'success');
-            }
+
+            gameStore.addMessage(`你击杀了 ${monsterName}，获得了 ${experienceGained} 经验和 ${goldGained} 金币！`, 'success');
             
             // 如果升级了
             if (newLevel !== undefined && newLevel > gameStore.character.level) {
