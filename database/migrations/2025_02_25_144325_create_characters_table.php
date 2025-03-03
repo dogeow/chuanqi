@@ -24,6 +24,7 @@ return new class extends Migration
             $table->integer('base_mp')->default(50);
             $table->integer('max_mp')->default(50);
             $table->integer('current_mp')->default(50);
+            $table->integer('base_attack')->default(10);
             $table->integer('attack')->default(10);
             $table->integer('base_defense')->default(0);
             $table->integer('defense')->default(5);

@@ -834,12 +834,6 @@ class GameService {
                     // 抛出错误，以便调用者可以捕获并处理
                     throw new Error('无法移动，路径被阻挡');
                 }
-                
-                // 如果计算出的位置与目标位置不同，显示提示
-                if (Math.abs(finalX - position_x) > 1 || Math.abs(finalY - position_y) > 1) {
-                    gameStore.addMessage('移动路径被阻挡，已调整到最近可达位置', 'info');
-                    console.log('调整后的位置:', { x: finalX, y: finalY });
-                }
             }
             
             // 发送移动请求，使用调整后的位置
@@ -859,8 +853,6 @@ class GameService {
             
             return true;
         } catch (error) {
-            console.error('移动角色失败:', error);
-            gameStore.addMessage(`移动失败: ${error.message}`, 'error');
             throw error; // 重新抛出错误，让调用者处理
         }
     }

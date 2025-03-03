@@ -374,7 +374,7 @@
     left: 0;
     right: 0;
     background-color: rgba(0, 0, 0, 0.8);
-    max-height: 40vh;
+    max-height: 100%;
     overflow-y: auto;
     z-index: 999;
     border-top: 1px solid rgba(255, 255, 255, 0.1);
@@ -383,7 +383,7 @@
 
 /* 消息列表在移动设备上的样式 */
 .mobile-tab-content .message-list {
-    max-height: 38vh;
+    max-height: 150px;
     overflow-y: auto;
     padding: 5px;
 }

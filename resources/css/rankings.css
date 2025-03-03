@@ -1,1 +1,211 @@
  
+.rankings-container {
+    width: 100%;
+    max-width: 800px;
+    margin: 0 auto;
+}
+
+.rankings-card {
+    background-color: #222;
+    border-radius: 8px;
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.3);
+    overflow: hidden;
+}
+
+.rankings-header {
+    background-color: #333;
+    padding: 15px 20px;
+    border-bottom: 1px solid #444;
+}
+
+.rankings-header h4 {
+    margin: 0;
+    color: #fff;
+    font-size: 18px;
+}
+
+.rankings-body {
+    padding: 15px;
+}
+
+/* 排行榜标签页样式 */
+.rankings-tabs {
+    display: flex;
+    border-bottom: 1px solid #444;
+    margin-bottom: 15px;
+}
+
+.rankings-tab {
+    padding: 10px 15px;
+    cursor: pointer;
+    color: #aaa;
+    transition: all 0.3s ease;
+    border-bottom: 2px solid transparent;
+}
+
+.rankings-tab:hover {
+    color: #fff;
+    background-color: rgba(255, 255, 255, 0.05);
+}
+
+.rankings-tab.active {
+    color: #fff;
+    border-bottom: 2px solid #f0ad4e;
+}
+
+/* 排行榜表格样式 */
+.rankings-content {
+    margin-bottom: 20px;
+}
+
+.rankings-table {
+    width: 100%;
+    border-collapse: collapse;
+    color: #ddd;
+}
+
+.rankings-table th {
+    background-color: #333;
+    padding: 10px;
+    text-align: left;
+    font-weight: bold;
+    color: #fff;
+}
+
+.rankings-table td {
+    padding: 10px;
+    border-bottom: 1px solid #444;
+}
+
+.rankings-table tr:last-child td {
+    border-bottom: none;
+}
+
+.rankings-table tr:hover td {
+    background-color: rgba(255, 255, 255, 0.05);
+}
+
+/* 排名徽章样式 */
+.rank-badge {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 24px;
+    height: 24px;
+    border-radius: 50%;
+    font-weight: bold;
+    color: #000;
+}
+
+.rank-1 {
+    background-color: gold;
+}
+
+.rank-2 {
+    background-color: silver;
+}
+
+.rank-3 {
+    background-color: #cd7f32; /* 铜色 */
+}
+
+/* 高亮当前用户行 */
+.highlight-row {
+    background-color: rgba(240, 173, 78, 0.1);
+}
+
+.highlight-row:hover td {
+    background-color: rgba(240, 173, 78, 0.2);
+}
+
+/* 用户排名卡片样式 */
+.user-ranking-card {
+    background-color: #333;
+    border-radius: 8px;
+    overflow: hidden;
+    margin-top: 20px;
+}
+
+.user-ranking-header {
+    background-color: #444;
+    padding: 10px 15px;
+    color: #fff;
+    font-weight: bold;
+}
+
+.user-ranking-body {
+    padding: 15px;
+}
+
+.user-ranking-stats {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 10px;
+}
+
+.user-ranking-stat {
+    padding: 8px;
+    background-color: #222;
+    border-radius: 4px;
+    font-size: 14px;
+}
+
+/* 加载动画样式 */
+.loading-container {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: 30px;
+}
+
+.loading-spinner {
+    width: 40px;
+    height: 40px;
+    border: 4px solid rgba(255, 255, 255, 0.1);
+    border-radius: 50%;
+    border-top: 4px solid #f0ad4e;
+    animation: spin 1s linear infinite;
+    margin-bottom: 15px;
+}
+
+@keyframes spin {
+    0% { transform: rotate(0deg); }
+    100% { transform: rotate(360deg); }
+}
+
+/* 返回按钮样式 */
+.back-button {
+    background-color: #333;
+    color: #fff;
+    border: none;
+    padding: 8px 16px;
+    border-radius: 4px;
+    cursor: pointer;
+    margin-bottom: 15px;
+    transition: background-color 0.3s;
+}
+
+.back-button:hover {
+    background-color: #444;
+}
+
+/* 响应式样式 */
+@media (max-width: 768px) {
+    .rankings-tab {
+        text-align: center;
+    }
+    
+    .user-ranking-stats {
+        grid-template-columns: 1fr;
+    }
+}
+@media (max-width: 768px) {
+    .rankings-tab {
+        text-align: center;
+    }
+    
+    .user-ranking-stats {
+        grid-template-columns: 1fr;
+    }
+}

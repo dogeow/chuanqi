@@ -169,25 +169,25 @@ const Rankings = () => {
                             className={`rankings-tab ${activeTab === 'level' ? 'active' : ''}`}
                             onClick={() => handleTabChange('level')}
                         >
-                            等级排行
+                            等级
                         </div>
                         <div 
                             className={`rankings-tab ${activeTab === 'gold' ? 'active' : ''}`}
                             onClick={() => handleTabChange('gold')}
                         >
-                            金币排行
+                            金币
                         </div>
                         <div 
                             className={`rankings-tab ${activeTab === 'attack' ? 'active' : ''}`}
                             onClick={() => handleTabChange('attack')}
                         >
-                            攻击排行
+                            攻击
                         </div>
                         <div 
                             className={`rankings-tab ${activeTab === 'defense' ? 'active' : ''}`}
                             onClick={() => handleTabChange('defense')}
                         >
-                            防御排行
+                            防御
                         </div>
                     </div>
                     <div className="rankings-content">
