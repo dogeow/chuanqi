@@ -58,14 +58,31 @@ function Inventory({ items, onUseItem, onEquipItem, onUnequipItem, onDropItem })
         
         // 计算提示框位置
         const rect = e.currentTarget.getBoundingClientRect();
-        const position = {
-            left: rect.right + 10, // 在物品右侧显示
-            top: rect.top
-        };
+        const isMobile = window.innerWidth < 768;
         
-        // 检查是否会超出屏幕右侧
-        if (position.left + 250 > window.innerWidth) { // 假设提示框宽度为250px
-            position.left = rect.left - 260; // 在物品左侧显示
+        // 设置提示框位置
+        let position;
+        
+        // 移动端固定在屏幕中间显示
+        if (isMobile) {
+            const tooltipWidth = 250; // 提示框宽度
+            const tooltipHeight = 50; // 估计的提示框高度
+            
+            position = {
+                left: (window.innerWidth - tooltipWidth) / 2, // 水平居中
+                top: (window.innerHeight - tooltipHeight) / 2 // 垂直居中
+            };
+        } else {
+            // PC端在物品右侧显示
+            position = {
+                left: rect.right + 10,
+                top: rect.top
+            };
+            
+            // 检查是否会超出屏幕右侧
+            if (position.left + 250 > window.innerWidth) {
+                position.left = rect.left - 260; // 在物品左侧显示
+            }
         }
         
         setTooltipPosition(position);
@@ -75,7 +92,9 @@ function Inventory({ items, onUseItem, onEquipItem, onUnequipItem, onDropItem })
         setTimeout(() => {
             if (tooltipRef.current) {
                 const tooltipHeight = tooltipRef.current.offsetHeight;
-                if (position.top + tooltipHeight > window.innerHeight) {
+                
+                // 非移动端才需要调整垂直位置
+                if (!isMobile && position.top + tooltipHeight > window.innerHeight) {
                     setTooltipPosition(prev => ({
                         ...prev,
                         top: window.innerHeight - tooltipHeight - 10
