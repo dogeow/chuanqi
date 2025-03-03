@@ -831,7 +831,6 @@ class GameService {
                 
                 // 如果计算出的位置与当前位置相同，说明无法移动
                 if (Math.abs(finalX - currentX) < 1 && Math.abs(finalY - currentY) < 1) {
-                    gameStore.addMessage('无法移动，路径被阻挡', 'warning');
                     // 抛出错误，以便调用者可以捕获并处理
                     throw new Error('无法移动，路径被阻挡');
                 }

@@ -12,25 +12,6 @@ import SystemMenu from './SystemMenu.jsx'; // 导入系统菜单组件
 import gameService from '../services/gameService';
 import useGameStore from '../store/gameStore';
 
-// 侧边栏模态框组件
-const SidebarModal = memo(({ title, isOpen, onClose, children }) => {
-    if (!isOpen) return null;
-    
-    return (
-        <div className={`sidebar-modal ${isOpen ? 'open' : ''}`}>
-            <div className="sidebar-modal-content">
-                <div className="sidebar-modal-header">
-                    <h3>{title}</h3>
-                    <button className="close-btn" onClick={onClose}>×</button>
-                </div>
-                <div className="sidebar-modal-body">
-                    {children}
-                </div>
-            </div>
-        </div>
-    );
-});
-
 // 加载状态组件
 const LoadingScreen = memo(() => (
     <div className="game-loading">
