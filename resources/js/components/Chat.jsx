@@ -1,6 +1,11 @@
 import React, { useState, useEffect, useRef } from 'react';
 import axios from 'axios';
 
+// 创建一个全局变量来存储滚动位置
+const chatScrollPosition = {
+    position: 0
+};
+
 const Chat = () => {
     const [messages, setMessages] = useState([]);
     const [content, setContent] = useState('');
@@ -8,9 +13,24 @@ const Chat = () => {
     const [receiverId, setReceiverId] = useState(null);
     const [loading, setLoading] = useState(false);
     const messagesEndRef = useRef(null);
+    const chatMessagesRef = useRef(null);
 
     const scrollToBottom = () => {
         messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
+    };
+    
+    // 保存滚动位置
+    const saveScrollPosition = () => {
+        if (chatMessagesRef.current) {
+            chatScrollPosition.position = chatMessagesRef.current.scrollTop;
+        }
+    };
+    
+    // 恢复滚动位置
+    const restoreScrollPosition = () => {
+        if (chatMessagesRef.current && chatScrollPosition.position) {
+            chatMessagesRef.current.scrollTop = chatScrollPosition.position;
+        }
     };
 
     useEffect(() => {
@@ -44,9 +64,15 @@ const Chat = () => {
         window.Echo.connector.pusher.connection.bind('error', (error) => {
             console.error('WebSocket 连接错误:', error);
         });
+        
+        // 组件挂载后恢复滚动位置
+        restoreScrollPosition();
 
         // 清理函数
         return () => {
+            // 组件卸载前保存滚动位置
+            saveScrollPosition();
+            
             channel.stopListening('.MessageSent');
             // 移除连接状态监听
             if (window.Echo.connector.pusher.connection) {
@@ -57,8 +83,27 @@ const Chat = () => {
     }, [type]);
 
     useEffect(() => {
-        scrollToBottom();
+        // 只有在新消息到达时才滚动到底部
+        if (messages.length > 0) {
+            scrollToBottom();
+        }
     }, [messages]);
+    
+    // 监听滚动事件，实时保存滚动位置
+    useEffect(() => {
+        const handleScroll = () => {
+            saveScrollPosition();
+        };
+        
+        const chatMessagesElement = chatMessagesRef.current;
+        if (chatMessagesElement) {
+            chatMessagesElement.addEventListener('scroll', handleScroll);
+            
+            return () => {
+                chatMessagesElement.removeEventListener('scroll', handleScroll);
+            };
+        }
+    }, []);
 
     const fetchMessages = async () => {
         try {
@@ -109,7 +154,7 @@ const Chat = () => {
                 </select>
             </div>
             
-            <div className="chat-messages">
+            <div className="chat-messages" ref={chatMessagesRef}>
                 {messages.map((item) => (
                     <div key={item.id} className="chat-message">
                         <div className="message-avatar">

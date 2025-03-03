@@ -277,17 +277,6 @@ function GameContent() {
                 </>
             )}
             
-            {/* 移动设备模式下的角色信息模态框 */}
-            {isMobile && activeTab !== 'character' && (
-                <SidebarModal 
-                    title="角色信息" 
-                    isOpen={showCharacterInfo} 
-                    onClose={toggleCharacterInfo}
-                >
-                    <CharacterInfo character={character} />
-                </SidebarModal>
-            )}
-            
             {/* 商店模态框 */}
             {shopModal.isOpen && shopModal.shop && (
                 <ShopModal 
