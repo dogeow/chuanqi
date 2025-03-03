@@ -169,7 +169,6 @@ class GameService {
                     // 处理不同类型的游戏事件
                     const eventHandlers = {
                         'character.move': () => this.handleCharacterMove(eventData),
-                        'attack': () => this.handleAttack(eventData),
                         'monster.respawning': () => this.handleMonsterRespawning(eventData),
                         'monster.respawned': () => this.handleMonsterRespawned(eventData),
                         'monster.killed': () => this.handleMonsterKilled(eventData),
@@ -194,10 +193,6 @@ class GameService {
                 .listen('CharacterLeft', (data) => {
                     console.log('收到CharacterLeft事件:', data);
                     this.handleCharacterLeave(data);
-                })
-                .listen('AttackEvent', (data) => {
-                    console.log('收到AttackEvent事件:', data);
-                    this.handleAttack(data);
                 })
                 .error((error) => {
                     console.error('WebSocket连接错误:', error);
@@ -488,8 +483,6 @@ class GameService {
         
         // 记录本次处理时间
         this.recentRespawningMonsters[monsterId] = now;
-        
-        gameStore.addMessage(`${monsterName} 即将在 ${respawnTime} 秒后重生`, 'info');
     }
     
     // 处理怪物重生事件
@@ -562,82 +555,6 @@ class GameService {
             position_y: positionY,
             respawn_time: null
         });
-        
-        gameStore.addMessage(`${monsterName} 已重生`, 'info');
-    }
-    
-    // 处理攻击事件
-    handleAttack(data) {
-        console.log('处理攻击事件:', data);
-        const gameStore = useGameStore.getState();
-        
-        try {
-            // 解析攻击数据
-            let attackerId, targetId, damage, isCritical, isHeal;
-            
-            // 处理不同格式的攻击数据
-            if (data.type === 'attack') {
-                attackerId = data.data?.attacker_id || data.attacker_id;
-                targetId = data.data?.target_id || data.target_id;
-                damage = data.data?.damage || data.damage || 0;
-                isCritical = data.data?.is_critical || data.is_critical || false;
-                isHeal = data.data?.is_heal || data.is_heal || false;
-            } else {
-                attackerId = data.attacker_id;
-                targetId = data.target_id;
-                damage = data.damage || 0;
-                isCritical = data.is_critical || false;
-                isHeal = data.is_heal || false;
-            }
-            
-            // 如果是玩家攻击怪物
-            if (attackerId === gameStore.character?.id) {
-                // 找到目标怪物
-                const monster = gameStore.monsters.find(m => m.id === targetId);
-                if (monster) {
-                    // 更新怪物血量
-                    const newHp = Math.max(0, monster.current_hp - damage);
-                    gameStore.updateMonster(targetId, { current_hp: newHp });
-                    
-                    // 显示攻击消息
-                    if (isCritical) {
-                        gameStore.addMessage(`暴击！你对 ${monster.name} 造成了 ${damage} 点伤害！`, 'success');
-                    } else {
-                        gameStore.addMessage(`你对 ${monster.name} 造成了 ${damage} 点伤害`, 'info');
-                    }
-                }
-            } 
-            // 如果是怪物攻击玩家
-            else if (targetId === gameStore.character?.id) {
-                // 更新玩家血量
-                const currentHp = gameStore.character.current_hp;
-                const newHp = isHeal ? Math.min(gameStore.character.hp, currentHp + damage) : Math.max(0, currentHp - damage);
-                
-                gameStore.updateCharacterAttributes({ current_hp: newHp });
-                
-                // 找到攻击者
-                const monster = gameStore.monsters.find(m => m.id === attackerId);
-                const monsterName = monster ? monster.name : '怪物';
-                
-                // 显示攻击消息
-                if (isHeal) {
-                    gameStore.addMessage(`你恢复了 ${damage} 点生命值`, 'success');
-                } else if (isCritical) {
-                    gameStore.addMessage(`暴击！${monsterName} 对你造成了 ${damage} 点伤害！`, 'error');
-                } else {
-                    gameStore.addMessage(`${monsterName} 对你造成了 ${damage} 点伤害`, 'warning');
-                }
-                
-                // 如果玩家死亡
-                if (newHp <= 0) {
-                    gameStore.addMessage('你已经死亡！', 'error');
-                    this.stopAutoAttack();
-                    // 可以在这里添加死亡处理逻辑
-                }
-            }
-        } catch (error) {
-            console.error('处理攻击事件出错:', error, data);
-        }
     }
     
     // 处理怪物点击
@@ -1093,7 +1010,7 @@ class GameService {
             if (data.is_critical) {
                 gameStore.addMessage(`暴击！${attackerName} 对你造成了 ${data.damage} 点伤害！`, 'error');
             } else {
-                gameStore.addMessage(`${attackerName} 对你造成了 ${data.damage} 点伤害`, 'warning');
+                gameStore.addMessage(`${attackerName}-${data.character_damage}, 你-${data.monster_damage}`, 'warning');
             }
             
             // 手动触发一个自定义事件，通知UI更新
