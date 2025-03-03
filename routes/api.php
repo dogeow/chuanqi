@@ -7,6 +7,7 @@ use App\Http\Controllers\SkillController;
 use App\Http\Controllers\InventoryController;
 use App\Http\Controllers\ShopController;
 use App\Http\Controllers\TestController;
+use App\Http\Controllers\ChatController;
 
 /*
 |--------------------------------------------------------------------------
@@ -57,6 +58,10 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::get('/shops/map/{mapId}', [ShopController::class, 'getShopsByMap']);
     Route::post('/shop/buy', [ShopController::class, 'buy']);
     Route::post('/shop/sell', [ShopController::class, 'sellItem']);
+
+    // 聊天系统路由
+    Route::get('/chat/messages', [ChatController::class, 'getMessages']);
+    Route::post('/chat/send', [ChatController::class, 'sendMessage']);
 });
 
 // 测试路由

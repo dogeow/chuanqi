@@ -27,3 +27,13 @@ Broadcast::channel('map.{mapId}', function ($user, $mapId) {
         'position_y' => $character->position_y,
     ];
 });
+
+// 聊天频道，所有人都可以访问
+Broadcast::channel('chat', function () {
+    return true;
+});
+
+// 私聊频道，只有发送者和接收者可以访问
+Broadcast::channel('chat.private.{userId}', function ($user, $userId) {
+    return (int) $user->id === (int) $userId;
+});

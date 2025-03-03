@@ -6,6 +6,7 @@ import CharacterInfo from './CharacterInfo.jsx';
 import MessageList from './MessageList.jsx';
 import Inventory from './Inventory.jsx'; // 导入背包组件
 import ShopModal from './ShopModal.jsx'; // 导入商店模态框组件
+import Chat from './Chat.jsx'; // 导入聊天组件
 import gameService from '../services/gameService';
 import useGameStore from '../store/gameStore';
 
@@ -222,6 +223,9 @@ function GameContent() {
                     />
                 </div>
             </div>
+            
+            {/* 聊天组件 */}
+            <Chat />
             
             {/* 移动设备模式下的角色信息模态框 */}
             {isMobile && (
