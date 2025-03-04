@@ -38,6 +38,38 @@ const ShopModal = ({ shop, shopItems, onClose, onBuyItem }) => {
     return character.gold >= price * quantity;
   };
 
+  // 提取物品图标组件
+  const ItemIcon = ({ image }) => {
+    if (!image) return '📦';
+    
+    // 检查是否为emoji（通常emoji是字符而不是图片URL）
+    if (!image.startsWith('/') && !image.startsWith('http')) {
+        const emojis = Array.from(image);
+        if (emojis.length < 2) return image;
+        
+        return (
+            <span style={{ position: 'relative' }}>
+                <span style={{ 
+                    position: 'absolute', 
+                    top: '0', 
+                    left: '0', 
+                    fontSize: '24px', 
+                    opacity: '0.3', 
+                    zIndex: 1 
+                }}>
+                    {emojis[1]}
+                </span>
+                <span style={{ position: 'relative', zIndex: 2 }}>
+                    {emojis[0]}
+                </span>
+            </span>
+        );
+    }
+    
+    // 如果是图片URL，则使用img标签
+    return <img src={image} alt="物品" style={{ width: '100%', height: '100%' }} />;
+  };
+
   return (
     <div className="shop-modal">
       <div className="shop-modal-content">
@@ -63,7 +95,7 @@ const ShopModal = ({ shop, shopItems, onClose, onBuyItem }) => {
                   >
                     <div className="shop-item-header">
                       <div className="shop-item-icon">
-                        <img src={itemImage} alt={itemName} />
+                        <ItemIcon image={itemImage} />
                       </div>
                       <div className="shop-item-title">
                         <div className="shop-item-name">{itemName}</div>
