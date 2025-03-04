@@ -431,9 +431,6 @@ class GameService {
             if (newLevel !== undefined && newLevel > gameStore.character.level) {
                 gameStore.addMessage(`恭喜！你升级到了 ${newLevel} 级！`, 'success');
             }
-        } else if (killerName) {
-            // 如果是其他玩家击杀的
-            gameStore.addMessage(`${killerName} 击杀了 ${monsterName}`, 'info');
         }
     }
     
