@@ -67,15 +67,20 @@ class GameService {
     }
     
     // 处理传送点点击
-    async handleTeleportClick(teleportId) {
+    async handleTeleportClick(teleportId, teleportPosition) {
         const mapService = await import('./mapService');
-        return mapService.default.handleTeleportClick(teleportId);
+        return mapService.default.handleTeleportClick(teleportId, teleportPosition);
     }
     
     // 移动角色
-    async moveCharacter(position_x, position_y) {
+    async moveCharacter(position_x, position_y, options = {}) {
         const characterService = await import('./characterService');
-        return characterService.default.moveCharacter(position_x, position_y);
+        return characterService.default.moveCharacter(position_x, position_y, {
+            ...options,
+            // 默认情况下，地图点击移动会检查传送点，但不会自动传送
+            skipTeleportCheck: options.skipTeleportCheck || false,
+            autoTeleport: options.autoTeleport || false
+        });
     }
     
     // 使用物品

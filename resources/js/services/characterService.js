@@ -35,7 +35,7 @@ class CharacterService {
     }
     
     // 移动角色
-    async moveCharacter(position_x, position_y) {
+    async moveCharacter(position_x, position_y, options = {}) {
         const gameStore = useGameStore.getState();
         
         try {
@@ -100,6 +100,69 @@ class CharacterService {
 
             // 使用gameStore的动画逻辑更新位置
             gameStore.updateCharacterPosition(finalX, finalY);
+            
+            // 如果不是由传送点触发的移动，检查是否有传送点在附近
+            if (!options.isFromTeleport && !options.skipTeleportCheck) {
+                // 检查是否有传送点在附近
+                const nearbyTeleport = gameStore.teleportPoints.find(teleport => {
+                    const teleportX = teleport.x || teleport.position_x || 0;
+                    const teleportY = teleport.y || teleport.position_y || 0;
+                    
+                    const dx = finalX - teleportX;
+                    const dy = finalY - teleportY;
+                    const distance = Math.sqrt(dx * dx + dy * dy);
+                    
+                    return distance <= 2; // 如果距离小于等于2格，认为在传送点附近
+                });
+                
+                // 如果有传送点在附近，并且设置了自动传送，则触发传送
+                if (nearbyTeleport && options.autoTeleport) {
+                    // 等待一小段时间，确保移动动画完成
+                    await new Promise(resolve => setTimeout(resolve, 300));
+                    
+                    // 导入并调用mapService的handleTeleportClick方法
+                    const mapService = await import('./mapService');
+                    await mapService.default.handleTeleportClick(nearbyTeleport.target_map_id, {
+                        x: nearbyTeleport.x || nearbyTeleport.position_x,
+                        y: nearbyTeleport.y || nearbyTeleport.position_y
+                    }, { isAutoTeleport: true });
+                }
+            } else if (options.isFromTeleport && options.autoTeleport) {
+                // 如果是由传送点触发的移动，并且设置了自动传送
+                // 等待一小段时间，确保移动动画完成
+                await new Promise(resolve => setTimeout(resolve, 300));
+                
+                // 查找最近的传送点
+                const nearbyTeleport = gameStore.teleportPoints.find(teleport => {
+                    const teleportX = teleport.x || teleport.position_x || 0;
+                    const teleportY = teleport.y || teleport.position_y || 0;
+                    
+                    const dx = finalX - teleportX;
+                    const dy = finalY - teleportY;
+                    const distance = Math.sqrt(dx * dx + dy * dy);
+                    
+                    return distance <= 2; // 如果距离小于等于2格，认为在传送点附近
+                });
+                
+                if (nearbyTeleport) {
+                    // 导入并调用mapService的handleTeleportClick方法
+                    const mapService = await import('./mapService');
+                    await mapService.default.handleTeleportClick(nearbyTeleport.target_map_id, {
+                        x: nearbyTeleport.x || nearbyTeleport.position_x,
+                        y: nearbyTeleport.y || nearbyTeleport.position_y
+                    }, { isAutoTeleport: true });
+                }
+            }
+            
+            // 处理商店自动打开逻辑
+            if (options.isFromShop && options.autoOpenShop && options.shopId) {
+                // 等待一小段时间，确保移动动画完成
+                await new Promise(resolve => setTimeout(resolve, 300));
+                
+                // 导入并调用npcService的handleShopClick方法
+                const npcService = await import('./npcService');
+                await npcService.default.handleShopClick(options.shopId);
+            }
             
             return true;
         } catch (error) {

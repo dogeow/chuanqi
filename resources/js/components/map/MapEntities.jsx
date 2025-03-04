@@ -275,7 +275,11 @@ export const TeleportPoint = ({ point, onTeleportClick }) => {
             y={point.y || 300}
             onClick={(e) => {
                 e.stopPropagation();
-                onTeleportClick(point.target_map_id);
+                // 传递目标地图ID和当前传送点的位置信息
+                onTeleportClick(point.target_map_id, {
+                    x: point.x || 300,
+                    y: point.y || 300
+                });
             }}
         >
             <TeleportMapName>

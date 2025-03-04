@@ -213,6 +213,9 @@ class GameController extends Controller
             'map_id' => 'required|exists:maps,id',
             'target_x' => 'nullable|numeric',
             'target_y' => 'nullable|numeric',
+            'from_map_id' => 'nullable|numeric',
+            'from_teleport_x' => 'nullable|numeric',
+            'from_teleport_y' => 'nullable|numeric',
         ]);
 
         $user = Auth::user();
@@ -235,17 +238,44 @@ class GameController extends Controller
             $character->position_x = $request->target_x;
             $character->position_y = $request->target_y;
         } else {
-            // 否则使用地图的默认出生点
-            $spawnPoints = $map->spawn_points;
-            if (is_array($spawnPoints) && count($spawnPoints) > 0) {
-                // 随机选择一个出生点
-                $spawnPoint = $spawnPoints[array_rand($spawnPoints)];
-                $character->position_x = $spawnPoint['x'];
-                $character->position_y = $spawnPoint['y'];
-            } else {
-                // 如果没有出生点，则使用默认位置
-                $character->position_x = 100;
-                $character->position_y = 100;
+            // 查找目标地图中是否有对应的传送点（从当前地图指向的传送点）
+            $foundTargetTeleport = false;
+            
+            if ($request->has('from_map_id') && $request->has('from_teleport_x') && $request->has('from_teleport_y')) {
+                $teleportPoints = $map->teleport_points;
+                
+                // 确保传送点数据是数组
+                if (is_string($teleportPoints)) {
+                    $teleportPoints = json_decode($teleportPoints, true);
+                }
+                
+                if (is_array($teleportPoints)) {
+                    // 查找指向来源地图的传送点
+                    foreach ($teleportPoints as $teleport) {
+                        if (isset($teleport['target_map_id']) && $teleport['target_map_id'] == $request->from_map_id) {
+                            // 找到了对应的传送点，将角色放在传送点附近
+                            $character->position_x = $teleport['x'];
+                            $character->position_y = $teleport['y'];
+                            $foundTargetTeleport = true;
+                            break;
+                        }
+                    }
+                }
+            }
+            
+            // 如果没有找到对应的传送点，则使用地图的默认出生点
+            if (!$foundTargetTeleport) {
+                $spawnPoints = $map->spawn_points;
+                if (is_array($spawnPoints) && count($spawnPoints) > 0) {
+                    // 随机选择一个出生点
+                    $spawnPoint = $spawnPoints[array_rand($spawnPoints)];
+                    $character->position_x = $spawnPoint['x'];
+                    $character->position_y = $spawnPoint['y'];
+                } else {
+                    // 如果没有出生点，则使用默认位置
+                    $character->position_x = 100;
+                    $character->position_y = 100;
+                }
             }
         }
 
@@ -419,8 +449,11 @@ class GameController extends Controller
     {
         $request->validate([
             'map_id' => 'required|exists:maps,id',
-            'position_x' => 'required|numeric',
-            'position_y' => 'required|numeric',
+            'position_x' => 'nullable|numeric',
+            'position_y' => 'nullable|numeric',
+            'from_map_id' => 'nullable|numeric',
+            'from_teleport_x' => 'nullable|numeric',
+            'from_teleport_y' => 'nullable|numeric',
         ]);
 
         $user = Auth::user();
@@ -444,14 +477,61 @@ class GameController extends Controller
             ], 404);
         }
         
+        // 设置角色在新地图的位置
+        if ($request->has('position_x') && $request->has('position_y')) {
+            // 如果请求中指定了目标位置，则使用指定位置
+            $character->position_x = $request->position_x;
+            $character->position_y = $request->position_y;
+        } else {
+            // 查找目标地图中是否有对应的传送点（从当前地图指向的传送点）
+            $foundTargetTeleport = false;
+            
+            if ($request->has('from_map_id') && $request->has('from_teleport_x') && $request->has('from_teleport_y')) {
+                $teleportPoints = $targetMap->teleport_points;
+                
+                // 确保传送点数据是数组
+                if (is_string($teleportPoints)) {
+                    $teleportPoints = json_decode($teleportPoints, true);
+                }
+                
+                if (is_array($teleportPoints)) {
+                    // 查找指向来源地图的传送点
+                    foreach ($teleportPoints as $teleport) {
+                        if (isset($teleport['target_map_id']) && $teleport['target_map_id'] == $request->from_map_id) {
+                            // 找到了对应的传送点，将角色放在传送点附近
+                            $character->position_x = $teleport['x'];
+                            $character->position_y = $teleport['y'];
+                            $foundTargetTeleport = true;
+                            break;
+                        }
+                    }
+                }
+            }
+            
+            // 如果没有找到对应的传送点，则使用地图的默认出生点
+            if (!$foundTargetTeleport) {
+                $spawnPoints = $targetMap->spawn_points;
+                if (is_array($spawnPoints) && count($spawnPoints) > 0) {
+                    // 随机选择一个出生点
+                    $spawnPoint = $spawnPoints[array_rand($spawnPoints)];
+                    $character->position_x = $spawnPoint['x'];
+                    $character->position_y = $spawnPoint['y'];
+                } else {
+                    // 如果没有出生点，则使用默认位置
+                    $character->position_x = 100;
+                    $character->position_y = 100;
+                }
+            }
+        }
+        
         // 记录传送日志
         \Log::info('角色传送', [
             'character_id' => $character->id,
             'name' => $character->name,
             'from_map' => $oldMapId,
             'to_map' => $request->map_id,
-            'position_x' => $request->position_x,
-            'position_y' => $request->position_y
+            'position_x' => $character->position_x,
+            'position_y' => $character->position_y
         ]);
         
         // 广播角色离开旧地图事件
@@ -468,8 +548,6 @@ class GameController extends Controller
 
         // 更新角色位置和地图
         $character->current_map_id = $request->map_id;
-        $character->position_x = $request->position_x;
-        $character->position_y = $request->position_y;
         $character->save();
 
         // 广播角色进入新地图事件

@@ -21,8 +21,15 @@ class NpcService {
         const gameStore = useGameStore.getState();
         
         try {
+            // 防止重复处理
+            if (this._isProcessingShopClick) {
+                return;
+            }
+            this._isProcessingShopClick = true;
+            
             const shop = gameStore.shops.find(s => s.id === shopId);
             if (!shop) {
+                this._isProcessingShopClick = false;
                 throw new Error('商店不存在');
             }
             
@@ -38,20 +45,49 @@ class NpcService {
             const distance = Math.sqrt(dx * dx + dy * dy);
             
             // 如果距离太远，先移动到商店附近
+            if (distance > 120) {
+                gameStore.addMessage('距离商店太远，请先靠近商店', 'warning');
+                
+                // 计算移动目标点（商店附近1格）
+                const angle = Math.atan2(dy, dx);
+                const targetX = shopX + Math.round(Math.cos(angle));
+                const targetY = shopY + Math.round(Math.sin(angle));
+                
+                // 移动到目标点，并设置自动打开商店选项
+                const characterService = await import('./characterService');
+                await characterService.default.moveCharacter(targetX, targetY, {
+                    isFromShop: true,
+                    autoOpenShop: true,
+                    shopId: shopId
+                });
+                
+                this._isProcessingShopClick = false;
+                return;
+            }
+            
+            // 如果距离适中但不够近，先移动到商店附近
             if (distance > 2) {
                 // 计算移动目标点（商店附近1格）
                 const angle = Math.atan2(dy, dx);
                 const targetX = shopX + Math.round(Math.cos(angle));
                 const targetY = shopY + Math.round(Math.sin(angle));
                 
-                // 移动到目标点
+                // 移动到目标点，并设置自动打开商店选项
                 const characterService = await import('./characterService');
-                await characterService.default.moveCharacter(targetX, targetY);
+                await characterService.default.moveCharacter(targetX, targetY, {
+                    isFromShop: true,
+                    autoOpenShop: true,
+                    shopId: shopId
+                });
+                
+                this._isProcessingShopClick = false;
+                return;
             }
             
             // 获取商店物品
             const response = await axios.get(`/api/shop/${shopId}`);
             if (!response.data.success) {
+                this._isProcessingShopClick = false;
                 throw new Error(response.data.message || '获取商店物品失败');
             }
             
@@ -64,9 +100,11 @@ class NpcService {
                 shopItems: shopItems
             });
             
+            this._isProcessingShopClick = false;
         } catch (error) {
             console.error('打开商店失败:', error);
             gameStore.addMessage(`打开商店失败: ${error.message}`, 'error');
+            this._isProcessingShopClick = false;
         }
     }
 }

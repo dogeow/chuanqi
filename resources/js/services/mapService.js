@@ -30,12 +30,21 @@ class MapService {
     }
     
     // 处理传送点点击
-    async handleTeleportClick(teleportId) {
+    async handleTeleportClick(teleportId, teleportPosition, options = {}) {
         const gameStore = useGameStore.getState();
         
         try {
+            // 如果是自动传送调用，并且已经在处理中，则直接返回
+            if (options.isAutoTeleport && this._isProcessingTeleport) {
+                return;
+            }
+            
+            // 设置处理标志
+            this._isProcessingTeleport = true;
+            
             const teleport = gameStore.teleportPoints.find(t => t.target_map_id === teleportId);
             if (!teleport && teleportId != 1) {
+                this._isProcessingTeleport = false;
                 throw new Error('传送点不存在');
             }
             
@@ -51,22 +60,62 @@ class MapService {
             const distance = Math.sqrt(dx * dx + dy * dy);
             
             // 如果距离太远，先移动到传送点附近
-            if (distance > 2 && teleportId != 1) {
+            if (distance > 120) {
+                gameStore.addMessage('距离传送点太远，请先靠近传送点', 'warning');
+                
                 // 计算移动目标点（传送点附近1格）
                 const angle = Math.atan2(dy, dx);
                 const targetX = teleportX + Math.round(Math.cos(angle));
                 const targetY = teleportY + Math.round(Math.sin(angle));
                 
-                // 移动到目标点
+                // 移动到目标点，并设置自动传送选项
                 const characterService = await import('./characterService');
-                await characterService.default.moveCharacter(targetX, targetY);
+                await characterService.default.moveCharacter(targetX, targetY, {
+                    isFromTeleport: true,
+                    autoTeleport: true
+                });
+                
+                // 重置处理标志
+                this._isProcessingTeleport = false;
+                
+                // 直接返回，移动完成后会自动触发传送
+                return;
             }
             
+            // 如果距离适中但不够近，先移动到传送点附近
+            if (distance > 2) {
+                // 计算移动目标点（传送点附近1格）
+                const angle = Math.atan2(dy, dx);
+                const targetX = teleportX + Math.round(Math.cos(angle));
+                const targetY = teleportY + Math.round(Math.sin(angle));
+                
+                // 移动到目标点，并设置自动传送选项
+                const characterService = await import('./characterService');
+                await characterService.default.moveCharacter(targetX, targetY, {
+                    isFromTeleport: true,
+                    autoTeleport: true
+                });
+                
+                // 重置处理标志
+                this._isProcessingTeleport = false;
+                
+                // 直接返回，移动完成后会自动触发传送
+                return;
+            }
+            
+            // 查找目标地图中对应的传送点（从当前地图传送到目标地图的传送点）
+            const currentMapId = gameStore.currentMap.id;
+            
+            // 发送地图切换请求，并传递当前传送点信息
             const response = await axios.post('/api/map/change', {
-                map_id: teleportId
+                map_id: teleportId,
+                from_map_id: currentMapId,
+                from_teleport_x: teleportX,
+                from_teleport_y: teleportY
             });
             
             if (!response.data.success) {
+                this._isProcessingTeleport = false;
                 throw new Error(response.data.message || '传送失败');
             }
             
@@ -111,10 +160,14 @@ class MapService {
                 });
             }
             
+            // 重置处理标志
+            this._isProcessingTeleport = false;
+            
         } catch (error) {
             console.error('传送失败:', error);
             gameStore.addMessage(`传送失败: ${error.message}`, 'error');
             gameStore.setLoading(false);
+            this._isProcessingTeleport = false;
         }
     }
 }
