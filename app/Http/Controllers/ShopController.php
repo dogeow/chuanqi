@@ -50,21 +50,7 @@ class ShopController extends Controller
             ->with(['item' => function($query) {
                 $query->select('id', 'name', 'description', 'type', 'is_consumable', 'image');
             }])
-            ->get()
-            ->map(function($shopItem) {
-                // 确保每个商店物品都有关联的物品信息
-                if (!$shopItem->item) {
-                    // 如果物品不存在，创建一个Item模型实例而不是数组
-                    $shopItem->item = new Item([
-                        'id' => $shopItem->item_id,
-                        'name' => '未知物品',
-                        'description' => '物品信息不可用',
-                        'type' => '未知类型',
-                        'is_consumable' => false
-                    ]);
-                }
-                return $shopItem;
-            });
+            ->get();
 
         return response()->json([
             'success' => true,

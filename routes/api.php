@@ -69,6 +69,3 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::get('/rankings/user', [RankingController::class, 'getUserRanking']);
     
 });
-
-// 测试路由
-Route::post('/test/log', [TestController::class, 'logRequest']); 

@@ -13,7 +13,6 @@ function SystemMenu() {
     const handleLogout = async () => {
         try {
             await axios.post('/logout');
-            // 使用普通的重定向方式，而不是 react-router-dom 的 navigate
             window.location.href = '/login';
         } catch (error) {
             console.error('退出登录失败:', error);

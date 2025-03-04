@@ -471,7 +471,7 @@ class GameService {
         let monsterId, monsterName, hp, currentHp, positionX, positionY;
         
         // 处理GameEvent格式的数据
-        if (data.type === 'monster.respawned' && data.data) {
+        if (data.type === 'monster.respawned') {
             const eventData = data.data;
             monsterId = eventData.monster_id;
             monsterName = eventData.monster_name;
@@ -480,32 +480,8 @@ class GameService {
             positionX = eventData.position_x;
             positionY = eventData.position_y;
         } 
-        // 直接从data中获取数据
-        else if (data.monster_id) {
-            monsterId = data.monster_id;
-            monsterName = data.monster_name;
-            hp = data.hp;
-            currentHp = data.current_hp;
-            positionX = data.position_x;
-            positionY = data.position_y;
-        }
-        // 从data.monster中获取数据
-        else if (data.monster) {
-            monsterId = data.monster.id || data.monster_id;
-            monsterName = data.monster.name || data.monster_name;
-            hp = data.monster.hp || data.hp;
-            currentHp = data.monster.current_hp || data.current_hp;
-            positionX = data.monster.position_x || data.position_x;
-            positionY = data.monster.position_y || data.position_y;
-        }
-        
-        if (!monsterId) {
-            console.error('无法解析怪物重生数据:', data);
-            return;
-        }
         
         // 防抖处理：检查该怪物是否已经在短时间内重生过
-        // 使用一个静态对象来存储最近处理过的怪物重生事件
         if (!this.recentRespawnedMonsters) {
             this.recentRespawnedMonsters = {};
         }
@@ -562,16 +538,7 @@ class GameService {
                 const targetX = monsterX + Math.round(Math.cos(angle));
                 const targetY = monsterY + Math.round(Math.sin(angle));
                 
-                try {
-                    // 尝试移动到目标点
-                    const moveResult = await this.moveCharacter(targetX, targetY);
-                    
-                    // 即使移动失败，也尝试攻击
-                    // 如果距离仍然太远，会在攻击API中处理
-                } catch (moveError) {
-                    console.error('移动到怪物附近失败:', moveError);
-                    // 继续尝试攻击
-                }
+                await this.moveCharacter(targetX, targetY);
             }
             
             // 无论移动是否成功，都尝试攻击怪物
