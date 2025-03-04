@@ -156,12 +156,17 @@ class CharacterService {
             
             // 处理商店自动打开逻辑
             if (options.isFromShop && options.autoOpenShop && options.shopId) {
-                // 等待一小段时间，确保移动动画完成
-                await new Promise(resolve => setTimeout(resolve, 300));
-                
-                // 导入并调用npcService的handleShopClick方法
-                const npcService = await import('./npcService');
-                await npcService.default.handleShopClick(options.shopId);
+                try {
+                    // 等待一小段时间，确保移动动画完成
+                    await new Promise(resolve => setTimeout(resolve, 300));
+                    
+                    // 导入并调用npcService的handleShopClick方法
+                    const { default: npcService } = await import('./npcService');
+                    await npcService.handleShopClick(options.shopId, { isAutoOpen: true });
+                } catch (error) {
+                    console.error('自动打开商店失败:', error);
+                    gameStore.addMessage('自动打开商店失败', 'error');
+                }
             }
             
             return true;

@@ -3,6 +3,10 @@ import useGameStore from '../store/gameStore';
 
 // NPC服务 - 处理NPC、商店和传送点相关的API调用和业务逻辑
 class NpcService {
+    constructor() {
+        this._isProcessingShopClick = false;
+    }
+    
     // 处理NPC点击
     handleNpcClick(npcId) {
         const gameStore = useGameStore.getState();
@@ -17,18 +21,22 @@ class NpcService {
     }
     
     // 处理商店点击
-    async handleShopClick(shopId) {
+    async handleShopClick(shopId, options = {}) {
         const gameStore = useGameStore.getState();
         
         try {
             // 防止重复处理
             if (this._isProcessingShopClick) {
+                console.log('已经在处理商店点击，忽略重复调用');
                 return;
             }
+            
+            console.log('开始处理商店点击:', shopId, options);
             this._isProcessingShopClick = true;
             
             const shop = gameStore.shops.find(s => s.id === shopId);
             if (!shop) {
+                console.error('商店不存在:', shopId);
                 this._isProcessingShopClick = false;
                 throw new Error('商店不存在');
             }
@@ -44,6 +52,31 @@ class NpcService {
             const dy = characterY - shopY;
             const distance = Math.sqrt(dx * dx + dy * dy);
             
+            console.log('角色与商店距离:', distance);
+            
+            // 如果是自动打开商店，跳过距离检查
+            if (options.isAutoOpen) {
+                console.log('自动打开商店，跳过距离检查');
+                // 获取商店物品
+                const response = await axios.get(`/api/shop/${shopId}`);
+                if (!response.data.success) {
+                    this._isProcessingShopClick = false;
+                    throw new Error(response.data.message || '获取商店物品失败');
+                }
+                
+                const shopItems = response.data.shop_items;
+                
+                // 设置商店数据到状态中，以便React组件可以使用
+                gameStore.setShopModalData({
+                    isOpen: true,
+                    shop: shop,
+                    shopItems: shopItems
+                });
+                
+                this._isProcessingShopClick = false;
+                return;
+            }
+            
             // 如果距离太远，先移动到商店附近
             if (distance > 120) {
                 gameStore.addMessage('距离商店太远，请先靠近商店', 'warning');
@@ -55,13 +88,13 @@ class NpcService {
                 
                 // 移动到目标点，并设置自动打开商店选项
                 const characterService = await import('./characterService');
+                this._isProcessingShopClick = false; // 先重置标志，避免死锁
                 await characterService.default.moveCharacter(targetX, targetY, {
                     isFromShop: true,
                     autoOpenShop: true,
                     shopId: shopId
                 });
                 
-                this._isProcessingShopClick = false;
                 return;
             }
             
@@ -74,13 +107,13 @@ class NpcService {
                 
                 // 移动到目标点，并设置自动打开商店选项
                 const characterService = await import('./characterService');
+                this._isProcessingShopClick = false; // 先重置标志，避免死锁
                 await characterService.default.moveCharacter(targetX, targetY, {
                     isFromShop: true,
                     autoOpenShop: true,
                     shopId: shopId
                 });
                 
-                this._isProcessingShopClick = false;
                 return;
             }
             
