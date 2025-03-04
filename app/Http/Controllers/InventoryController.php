@@ -6,6 +6,10 @@ use App\Events\GameEvent;
 use App\Models\Character;
 use App\Models\Inventory;
 use App\Models\Item;
+use App\Http\Requests\Item\UseItemRequest;
+use App\Http\Requests\Item\EquipItemRequest;
+use App\Http\Requests\Item\UnequipItemRequest;
+use App\Http\Requests\Item\DropItemRequest;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Log;
@@ -41,12 +45,8 @@ class InventoryController extends Controller
     /**
      * 使用物品
      */
-    public function useItem(Request $request)
+    public function useItem(UseItemRequest $request)
     {
-        $request->validate([
-            'character_item_id' => 'required|exists:inventories,id',
-        ]);
-
         $user = Auth::user();
         $character = Character::where('user_id', $user->id)->first();
 
@@ -152,12 +152,8 @@ class InventoryController extends Controller
     /**
      * 装备物品
      */
-    public function equipItem(Request $request)
+    public function equipItem(EquipItemRequest $request)
     {
-        $request->validate([
-            'character_item_id' => 'required|exists:inventories,id',
-        ]);
-
         $user = Auth::user();
         $character = Character::where('user_id', $user->id)->first();
 
@@ -244,12 +240,8 @@ class InventoryController extends Controller
     /**
      * 卸下物品
      */
-    public function unequipItem(Request $request)
+    public function unequipItem(UnequipItemRequest $request)
     {
-        $request->validate([
-            'character_item_id' => 'required|exists:inventories,id',
-        ]);
-
         $user = Auth::user();
         $character = Character::where('user_id', $user->id)->first();
 
@@ -300,13 +292,8 @@ class InventoryController extends Controller
     /**
      * 丢弃物品
      */
-    public function dropItem(Request $request)
+    public function dropItem(DropItemRequest $request)
     {
-        $request->validate([
-            'character_item_id' => 'required|exists:inventories,id',
-            'quantity' => 'required|integer|min:1',
-        ]);
-
         $user = Auth::user();
         $character = Character::where('user_id', $user->id)->first();
 
