@@ -1089,10 +1089,6 @@ class GameService {
             // 直接设置角色状态
             gameStore.setCharacter(updatedCharacter);
             
-            // 显示战斗消息
-            const monsterName = data.monster_name || '怪物';
-            gameStore.addMessage(`${monsterName}-${data.character_damage}, 你-${data.monster_damage}`, 'warning');
-            
             // 手动触发一个自定义事件，通知UI更新
             window.dispatchEvent(new CustomEvent('character-hp-changed', {
                 detail: { oldHp: currentHp, newHp: newHp }
