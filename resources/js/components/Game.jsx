@@ -1,4 +1,4 @@
-import React, { useEffect, useState, useCallback, memo } from 'react';
+import React, { useEffect, useState, useCallback, memo, Fragment } from 'react';
 import '../echo'; // 导入Echo配置
 import useGame from '../hooks/useGame';
 import GameMap from './GameMap.jsx';
@@ -193,72 +193,74 @@ function GameContent() {
     };
     
     return (
-        <div className="game-layout">
-            {!isMobile && (
-                <div className="vertical-sidebar">
-                    <CharacterInfo character={character} />
-                </div>
-            )}
-            
-            <div className="game-content">
-                <div className="game-map-container">
-                    <GameMap 
-                        mapData={currentMap}
-                        character={character}
-                        monsters={monsters}
-                        shops={shops}
-                        otherPlayers={otherPlayers}
-                        npcs={npcs}
-                        teleportPoints={teleportPoints}
-                        mapMarkers={mapMarkers}
-                        onMove={moveCharacter}
-                        onMonsterClick={handleMonsterClick}
-                        onShopClick={handleShopClick}
-                        onNpcClick={handleNpcClick}
-                        onTeleportClick={handleTeleportClick}
-                    />
-                   </div>
-                
-                {/* 在非移动设备上显示消息容器 */}
+        <Fragment>
+            <div className="game-layout">
                 {!isMobile && (
-                    <div className="messages-container">
-                        <MessageList messages={messages} />
+                    <div className="vertical-sidebar">
+                        <CharacterInfo character={character} />
                     </div>
                 )}
-            </div>
-
-            {!isMobile && (
-                <div className="inventory-sidebar">
-                    <div className="inventory-section">
-                        <h3>背包</h3>
-                        <Inventory 
-                            items={inventory} 
-                            onUseItem={useItem}
-                            onEquipItem={equipItem}
-                            onUnequipItem={unequipItem}
-                            onDropItem={dropItem}
+                
+                <div className="game-content">
+                    <div className="game-map-container">
+                        <GameMap 
+                            mapData={currentMap}
+                            character={character}
+                            monsters={monsters}
+                            shops={shops}
+                            otherPlayers={otherPlayers}
+                            npcs={npcs}
+                            teleportPoints={teleportPoints}
+                            mapMarkers={mapMarkers}
+                            onMove={moveCharacter}
+                            onMonsterClick={handleMonsterClick}
+                            onShopClick={handleShopClick}
+                            onNpcClick={handleNpcClick}
+                            onTeleportClick={handleTeleportClick}
                         />
                     </div>
                     
-                    {/* PC端聊天界面放在背包下面 */}
-                    <div className="chat-section">
-                        <h3>聊天</h3>
-                        <Chat />
-                    </div>
+                    {/* 在非移动设备上显示消息容器 */}
+                    {!isMobile && (
+                        <div className="messages-container">
+                            <MessageList messages={messages} />
+                        </div>
+                    )}
                 </div>
-            )}
-            
-            {/* 移动设备模式下的底部标签栏和内容 */}
-            {isMobile && (
-                <>
-                    <div className="mobile-tab-content">
-                        {renderActiveTabContent()}
+
+                {!isMobile && (
+                    <div className="inventory-sidebar">
+                        <div className="inventory-section">
+                            <h3>背包</h3>
+                            <Inventory 
+                                items={inventory} 
+                                onUseItem={useItem}
+                                onEquipItem={equipItem}
+                                onUnequipItem={unequipItem}
+                                onDropItem={dropItem}
+                            />
+                        </div>
+                        
+                        {/* PC端聊天界面放在背包下面 */}
+                        <div className="chat-section">
+                            <h3>聊天</h3>
+                            <Chat />
+                        </div>
                     </div>
-                    <TabBar activeTab={activeTab} onTabChange={handleTabChange} />
-                </>
-            )}
+                )}
+                
+                {/* 移动设备模式下的底部标签栏和内容 */}
+                {isMobile && (
+                    <>
+                        <div className="mobile-tab-content">
+                            {renderActiveTabContent()}
+                        </div>
+                        <TabBar activeTab={activeTab} onTabChange={handleTabChange} />
+                    </>
+                )}
+            </div>
             
-            {/* 商店模态框 */}
+            {/* 商店模态框 - 移到外部 */}
             {shopModal.isOpen && shopModal.shop && (
                 <ShopModal 
                     shop={shopModal.shop}
@@ -267,7 +269,7 @@ function GameContent() {
                     onBuyItem={buyItem}
                 />
             )}
-        </div>
+        </Fragment>
     );
 }
 
