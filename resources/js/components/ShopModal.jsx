@@ -115,7 +115,6 @@ const ShopItem = styled.div`
     border: 1px solid #444;
     border-radius: 8px;
     margin: 5px;
-    height: 100%;
   }
 `;
 
@@ -227,7 +226,7 @@ const QuantityButtons = styled.div`
 `;
 
 const QuantityButton = styled.button`
-  padding: 10px 0;
+  padding: 5px 0;
   background-color: ${props => props.selected ? '#4a90e2' : '#666'};
   color: white;
   border: none;
@@ -246,7 +245,7 @@ const QuantityButton = styled.button`
 `;
 
 const BuyButton = styled.button`
-  padding: 10px 0;
+  padding: 5px 0;
   background-color: #27ae60;
   color: white;
   border: none;

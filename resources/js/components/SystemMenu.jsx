@@ -44,10 +44,14 @@ function SystemMenu() {
             </div>
         );
     }
+
+     // 更精确地检测移动设备
+     const isMobileDevice = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent) || 
+     (window.innerWidth < 768);
     
     return (
         <div className="system-menu">
-            <h3 className="system-menu-title">系统菜单</h3>
+            {!isMobileDevice && <h3 className="system-menu-title">系统菜单</h3>}
             
             <div className="menu-items">
                 {menuItems.map(item => (

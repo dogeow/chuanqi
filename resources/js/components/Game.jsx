@@ -231,7 +231,6 @@ function GameContent() {
                 {!isMobile && (
                     <div className="inventory-sidebar">
                         <div className="inventory-section">
-                            <h3>背包</h3>
                             <Inventory 
                                 items={inventory} 
                                 onUseItem={useItem}
