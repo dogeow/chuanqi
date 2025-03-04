@@ -9,7 +9,6 @@ const ZoomControls = styled.div`
     top: 6px;
     right: 6px;
     display: flex;
-    flex-direction: column;
     gap: 10px;
     z-index: 1000;
 `;
@@ -311,6 +310,25 @@ function GameMap({
     // 添加恢复原始大小的处理函数
     const handleResetZoom = () => {
         setZoomLevel(1);
+    };
+
+    // 添加定位到玩家位置的处理函数
+    const handleLocatePlayer = () => {
+        if (!viewportRef.current || !character?.position_x || !character?.position_y) return;
+        
+        const viewportWidth = viewportRef.current.clientWidth;
+        const viewportHeight = viewportRef.current.clientHeight;
+        
+        // 计算视口应该滚动到的位置，使玩家保持在中心
+        const scrollX = Math.max(0, character.position_x - (viewportWidth / 2));
+        const scrollY = Math.max(0, character.position_y - (viewportHeight / 2));
+        
+        // 平滑滚动到玩家位置
+        viewportRef.current.scrollTo({
+            left: scrollX,
+            top: scrollY,
+            behavior: 'smooth'
+        });
     };
 
     // 添加视口滚动监听
@@ -1071,6 +1089,7 @@ function GameMap({
 
             {/* 缩放控制器 */}
             <ZoomControls>
+                <ZoomButton onClick={handleLocatePlayer} title="定位到玩家">👤</ZoomButton>
                 <ZoomButton onClick={() => handleZoom(0.1)}>+</ZoomButton>
                 <ZoomButton onClick={() => handleZoom(-0.1)}>-</ZoomButton>
                 <ZoomButton onClick={handleResetZoom} title="恢复原始大小">⟲</ZoomButton>
