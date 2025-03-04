@@ -39,6 +39,13 @@ const useGameStore = create((set, get) => ({
     recentMessages: {},
     characterEnterTimes: {},
     
+    // 地图状态
+    mapSize: { width: 1000, height: 1000 },
+    zoomLevel: 1,
+    viewportPosition: { left: 0, top: 0 },
+    damageEffects: [],
+    attackingMonsters: {},
+    
     // 状态更新方法
     setCharacter: (character) => set({ character }),
     setCurrentMap: (map) => set({ currentMap: map }),
@@ -250,7 +257,20 @@ const useGameStore = create((set, get) => ({
         npcs: data.npcs || [],
         teleportPoints: data.teleport_points || [],
         mapMarkers: data.map_markers || []
-    })
+    }),
+    
+    // 地图状态更新方法
+    setMapSize: (size) => set({ mapSize: size }),
+    setZoomLevel: (level) => set({ zoomLevel: level }),
+    setViewportPosition: (position) => set({ viewportPosition: position }),
+    setDamageEffects: (effects) => set({ damageEffects: effects }),
+    setAttackingMonsters: (monsters) => set({ attackingMonsters: monsters }),
+    addDamageEffect: (effect) => set(state => ({
+        damageEffects: [...state.damageEffects, effect]
+    })),
+    removeDamageEffect: (effectId) => set(state => ({
+        damageEffects: state.damageEffects.filter(effect => effect.id !== effectId)
+    })),
 }));
 
 export default useGameStore; 
