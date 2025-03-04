@@ -178,7 +178,8 @@ function GameMap({
         setMapSize,
         addDamageEffect,
         removeDamageEffect,
-        setAttackingMonsters
+        setAttackingMonsters,
+        otherPlayers
     } = useGameStore();
 
     // 更新地图尺寸
@@ -311,6 +312,26 @@ function GameMap({
                         isBeingAttacked={attackingMonsters[monster.id] > Date.now()}
                         onClick={handleMonsterClick}
                     />
+                ))}
+
+                {/* 其他玩家 */}
+                {otherPlayers?.map(player => (
+                    <div
+                        key={player.id}
+                        className="other-player"
+                        style={{
+                            left: player.x || player.position_x,
+                            top: player.y || player.position_y,
+                        }}
+                    >
+                        <div className="player-name-container">
+                            <span className="player-level">Lv.{player.level}</span>
+                            <span className="player-name">{player.name}</span>
+                        </div>
+                        <div className="other-player-logo">
+                            😊
+                        </div>
+                    </div>
                 ))}
 
                 {/* 伤害效果 */}
