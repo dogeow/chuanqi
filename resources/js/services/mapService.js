@@ -75,12 +75,13 @@ class MapService {
                 window.Echo.leave(`map.${gameStore.currentMap.id}`);
             }
             
-            // 更新角色位置和地图
+            // 直接更新角色位置，不触发移动动画
             gameStore.updateCharacterAttributes({
-                x: response.data.new_x,
-                y: response.data.new_y,
-                map_id: response.data.new_map_id
+                position_x: response.data.character.position_x,
+                position_y: response.data.character.position_y,
+                current_map_id: response.data.character.current_map_id
             });
+            
             gameStore.setLoading(true);
             
             // 重新加载地图数据
@@ -89,6 +90,27 @@ class MapService {
             
             // 初始化新地图的WebSocket连接
             websocketService.initWebSocketWithData(gameStore.character, mapData);
+            
+            // 定位到玩家新位置
+            const viewport = document.querySelector('.map-viewport');
+            if (viewport) {
+                const viewportWidth = viewport.clientWidth;
+                const viewportHeight = viewport.clientHeight;
+                const zoomLevel = gameStore.zoomLevel;
+                
+                const targetX = response.data.character.position_x * zoomLevel;
+                const targetY = response.data.character.position_y * zoomLevel;
+                
+                const scrollX = Math.max(0, targetX - (viewportWidth / 2));
+                const scrollY = Math.max(0, targetY - (viewportHeight / 2));
+                
+                viewport.scrollTo({
+                    left: Math.round(scrollX),
+                    top: Math.round(scrollY),
+                    behavior: 'smooth'
+                });
+            }
+            
         } catch (error) {
             console.error('传送失败:', error);
             gameStore.addMessage(`传送失败: ${error.message}`, 'error');

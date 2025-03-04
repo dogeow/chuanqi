@@ -289,4 +289,61 @@ export const TeleportPoint = ({ point, onTeleportClick }) => {
             <span style={{ fontSize: '16px' }}>📍</span>
         </TeleportPointContainer>
     );
+};
+
+const ShopContainer = styled.div`
+    position: absolute;
+    left: ${props => props.x}px;
+    top: ${props => props.y}px;
+    width: 32px;
+    height: 32px;
+    transform: translate(-50%, -50%);
+    z-index: 4;
+    cursor: pointer;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    font-size: 24px;
+    transition: transform 0.2s ease;
+
+    &:hover {
+        transform: translate(-50%, -50%) scale(1.1);
+    }
+
+    &:active {
+        transform: translate(-50%, -50%) scale(0.9);
+    }
+`;
+
+const ShopName = styled.div`
+    position: absolute;
+    bottom: -20px;
+    left: 50%;
+    transform: translateX(-50%);
+    background-color: rgba(0, 0, 0, 0.7);
+    color: white;
+    padding: 2px 6px;
+    border-radius: 4px;
+    font-size: 12px;
+    white-space: nowrap;
+    text-align: center;
+    z-index: 5;
+`;
+
+export const Shop = ({ shop, onShopClick }) => {
+    return (
+        <ShopContainer
+            x={shop.x || shop.position_x || 0}
+            y={shop.y || shop.position_y || 0}
+            onClick={(e) => {
+                e.stopPropagation();
+                onShopClick(shop.id);
+            }}
+            className="shop"
+            title={`${shop.name} (点击交易)`}
+        >
+            <span>🏪</span>
+            <ShopName>{shop.name}</ShopName>
+        </ShopContainer>
+    );
 }; 

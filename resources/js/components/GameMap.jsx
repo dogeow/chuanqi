@@ -4,7 +4,7 @@ import useGameStore from '../store/gameStore';
 import MapViewport from './map/MapViewport';
 import MapControls from './map/MapControls';
 import MiniMap from './map/MiniMap';
-import { Player, Monster, TeleportPoint } from './map/MapEntities';
+import { Player, Monster, TeleportPoint, Shop } from './map/MapEntities';
 
 // 添加动画keyframes
 const animations = `
@@ -179,7 +179,8 @@ function GameMap({
         addDamageEffect,
         removeDamageEffect,
         setAttackingMonsters,
-        otherPlayers
+        otherPlayers,
+        shops
     } = useGameStore();
 
     // 更新地图尺寸
@@ -301,6 +302,15 @@ function GameMap({
                     />
                 ))}
 
+                {/* 商店 */}
+                {shops?.map(shop => (
+                    <Shop
+                        key={`shop-${shop.id}`}
+                        shop={shop}
+                        onShopClick={onShopClick}
+                    />
+                ))}
+
                 {/* 玩家角色 */}
                 <Player character={character} />
 
@@ -316,22 +326,11 @@ function GameMap({
 
                 {/* 其他玩家 */}
                 {otherPlayers?.map(player => (
-                    <div
-                        key={player.id}
-                        className="other-player"
-                        style={{
-                            left: player.x || player.position_x,
-                            top: player.y || player.position_y,
-                        }}
-                    >
-                        <div className="player-name-container">
-                            <span className="player-level">Lv.{player.level}</span>
-                            <span className="player-name">{player.name}</span>
-                        </div>
-                        <div className="other-player-logo">
-                            😊
-                        </div>
-                    </div>
+                    <Player
+                        key={`player-${player.id}`}
+                        character={player}
+                        isOtherPlayer={true}
+                    />
                 ))}
 
                 {/* 伤害效果 */}

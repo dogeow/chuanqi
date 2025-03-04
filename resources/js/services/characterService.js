@@ -98,39 +98,8 @@ class CharacterService {
                 throw error;
             }
 
-            // 计算移动距离和方向
-            const dx = finalX - currentX;
-            const dy = finalY - currentY;
-            const distance = Math.sqrt(dx * dx + dy * dy);
-            
-            // 设置移动速度（每秒移动的像素数）
-            const speed = 200; // 可以根据需要调整速度
-            const duration = (distance / speed) * 1000; // 转换为毫秒
-            
-            // 开始移动动画
-            const startTime = Date.now();
-            const animate = () => {
-                const currentTime = Date.now();
-                const progress = Math.min((currentTime - startTime) / duration, 1);
-                
-                // 使用线性插值计算当前位置
-                const currentPosX = currentX + dx * progress;
-                const currentPosY = currentY + dy * progress;
-                
-                // 更新游戏状态中的位置
-                gameStore.updateCharacterPosition(
-                    Math.round(currentPosX),
-                    Math.round(currentPosY)
-                );
-                
-                // 如果动画未完成，继续下一帧
-                if (progress < 1) {
-                    requestAnimationFrame(animate);
-                }
-            };
-            
-            // 启动动画
-            animate();
+            // 使用gameStore的动画逻辑更新位置
+            gameStore.updateCharacterPosition(finalX, finalY);
             
             return true;
         } catch (error) {

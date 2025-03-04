@@ -1,5 +1,54 @@
 import { create } from 'zustand';
 
+// 角色移动动画函数
+const moveCharacter = (get, set) => {
+    const state = get();
+    const character = state.character;
+    
+    if (!character || !character.target_x || !character.target_y) {
+        set({ isMoving: false });
+        return;
+    }
+    
+    const dx = character.target_x - (character.position_x || 0);
+    const dy = character.target_y - (character.position_y || 0);
+    const distance = Math.sqrt(dx * dx + dy * dy);
+    
+    // 如果已经到达目标位置
+    if (distance < 0.1) {
+        set(state => ({
+            character: {
+                ...state.character,
+                position_x: character.target_x,
+                position_y: character.target_y,
+                target_x: undefined,
+                target_y: undefined
+            },
+            isMoving: false
+        }));
+        return;
+    }
+    
+    // 计算移动速度（每帧移动的距离）
+    const speed = 5; // 可以调整这个值来改变移动速度
+    const ratio = Math.min(speed / distance, 1);
+    
+    // 更新位置
+    const newX = character.position_x + dx * ratio;
+    const newY = character.position_y + dy * ratio;
+    
+    set(state => ({
+        character: {
+            ...state.character,
+            position_x: newX,
+            position_y: newY
+        }
+    }));
+    
+    // 继续动画
+    requestAnimationFrame(() => moveCharacter(get, set));
+};
+
 // 创建游戏状态存储
 const useGameStore = create((set, get) => ({
     // 状态
@@ -16,6 +65,7 @@ const useGameStore = create((set, get) => ({
     isAutoAttacking: false,
     currentAttackingMonsterId: null,
     isLoading: true,
+    isMoving: false,
     
     // 碰撞检测开关
     isCollisionEnabled: true,
@@ -120,21 +170,71 @@ const useGameStore = create((set, get) => ({
     closeShopModal: () => set({ shopModal: { isOpen: false, shop: null, shopItems: [] } }),
     
     // 更新角色位置
-    updateCharacterPosition: (x, y) => set(state => ({
-        character: {
-            ...state.character,
-            position_x: x,
-            position_y: y
-        }
-    })),
+    updateCharacterPosition: (x, y, skipAnimation = false) => {
+        set(state => {
+            const newState = { ...state };
+            const oldCharacter = { ...state.character };
+            
+            if (skipAnimation) {
+                // 直接更新位置，不使用动画
+                newState.character = {
+                    ...oldCharacter,
+                    position_x: x,
+                    position_y: y
+                };
+            } else {
+                // 使用动画更新位置
+                newState.character = {
+                    ...oldCharacter,
+                    target_x: x,
+                    target_y: y
+                };
+                
+                if (!state.isMoving) {
+                    newState.isMoving = true;
+                    requestAnimationFrame(() => moveCharacter(get, set));
+                }
+            }
+            
+            return newState;
+        });
+    },
     
     // 更新角色属性
-    updateCharacterAttributes: (attributes) => set(state => ({
-        character: {
-            ...state.character,
-            ...attributes
-        }
-    })),
+    updateCharacterAttributes: (attributes) => {
+        set(state => {
+            const newState = { ...state };
+            const oldCharacter = { ...state.character };
+            
+            // 如果是地图切换，直接更新位置
+            if (attributes.current_map_id !== undefined && 
+                attributes.current_map_id !== oldCharacter.current_map_id) {
+                newState.character = {
+                    ...oldCharacter,
+                    ...attributes,
+                    position_x: attributes.position_x ?? oldCharacter.position_x,
+                    position_y: attributes.position_y ?? oldCharacter.position_y
+                };
+            } else {
+                // 其他情况使用现有的更新逻辑
+                newState.character = {
+                    ...oldCharacter,
+                    ...attributes
+                };
+                
+                // 如果包含位置更新且不是地图切换，使用动画
+                if ((attributes.position_x !== undefined || attributes.position_y !== undefined) && 
+                    !state.isMoving) {
+                    newState.character.target_x = attributes.position_x ?? oldCharacter.position_x;
+                    newState.character.target_y = attributes.position_y ?? oldCharacter.position_y;
+                    newState.isMoving = true;
+                    requestAnimationFrame(() => moveCharacter(get, set));
+                }
+            }
+            
+            return newState;
+        });
+    },
     
     // 更新怪物状态
     updateMonster: (monsterId, updates) => set(state => ({

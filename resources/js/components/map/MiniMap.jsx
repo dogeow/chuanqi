@@ -78,6 +78,18 @@ const NpcIndicator = styled.div`
     z-index: 1;
 `;
 
+const ShopIndicator = styled.div`
+    position: absolute;
+    width: 4px;
+    height: 4px;
+    background-color: #66ff66;
+    border-radius: 50%;
+    left: ${props => props.left}%;
+    top: ${props => props.top}%;
+    transform: translate(-50%, -50%);
+    z-index: 1;
+`;
+
 const ViewportIndicator = styled.div`
     position: absolute;
     width: ${props => props.width}%;
@@ -96,7 +108,8 @@ function MiniMap({ viewportRef, onMiniMapClick }) {
         viewportPosition,
         otherPlayers,
         teleportPoints,
-        npcs 
+        npcs,
+        shops 
     } = useGameStore();
 
     const handleClick = (e) => {
@@ -140,6 +153,15 @@ function MiniMap({ viewportRef, onMiniMapClick }) {
                     left={(player.position_x || player.x || 0) / mapSize.width * 100}
                     top={(player.position_y || player.y || 0) / mapSize.height * 100}
                     duration={0.5}
+                />
+            ))}
+
+            {/* 商店指示器 */}
+            {shops?.map(shop => (
+                <ShopIndicator
+                    key={`mini-shop-${shop.id}`}
+                    left={(shop.position_x || shop.x || 0) / mapSize.width * 100}
+                    top={(shop.position_y || shop.y || 0) / mapSize.height * 100}
                 />
             ))}
 
