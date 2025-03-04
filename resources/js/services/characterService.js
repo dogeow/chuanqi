@@ -88,25 +88,59 @@ class CharacterService {
                 finalX = nearestPosition.x;
                 finalY = nearestPosition.y;
             }
-            
-            // 发送移动请求，使用调整后的位置
-            const response = await axios.post('/api/character/move', { 
-                position_x: finalX, 
-                position_y: finalY 
-            });
-            
-            if (!response.data.success) {
-                throw new Error(response.data.message || '移动失败');
+
+            // 立即发送最终位置到服务器
+            try {
+                const response = await axios.post('/api/character/move', { 
+                    position_x: finalX, 
+                    position_y: finalY 
+                });
+                
+                if (!response.data.success) {
+                    throw new Error(response.data.message || '移动失败');
+                }
+            } catch (error) {
+                console.error('发送位置失败:', error);
+                throw error;
             }
+
+            // 计算移动距离和方向
+            const dx = finalX - currentX;
+            const dy = finalY - currentY;
+            const distance = Math.sqrt(dx * dx + dy * dy);
             
-            // 更新角色位置 - 使用服务器返回的位置
-            const newX = response.data.character.position_x;
-            const newY = response.data.character.position_y;
-            gameStore.updateCharacterPosition(newX, newY);
+            // 设置移动速度（每秒移动的像素数）
+            const speed = 200; // 可以根据需要调整速度
+            const duration = (distance / speed) * 1000; // 转换为毫秒
+            
+            // 开始移动动画
+            const startTime = Date.now();
+            const animate = () => {
+                const currentTime = Date.now();
+                const progress = Math.min((currentTime - startTime) / duration, 1);
+                
+                // 使用线性插值计算当前位置
+                const currentPosX = currentX + dx * progress;
+                const currentPosY = currentY + dy * progress;
+                
+                // 更新游戏状态中的位置
+                gameStore.updateCharacterPosition(
+                    Math.round(currentPosX),
+                    Math.round(currentPosY)
+                );
+                
+                // 如果动画未完成，继续下一帧
+                if (progress < 1) {
+                    requestAnimationFrame(animate);
+                }
+            };
+            
+            // 启动动画
+            animate();
             
             return true;
         } catch (error) {
-            throw error; // 重新抛出错误，让调用者处理
+            throw error;
         }
     }
     
@@ -201,8 +235,55 @@ class CharacterService {
                 return;
             }
             
-            console.log(`更新玩家 ${characterId}(${characterName}) 位置到 (${positionX}, ${positionY})`);
-            gameStore.updateOtherPlayerPosition(characterId, positionX, positionY, characterName);
+            // 获取其他玩家当前位置
+            const otherPlayer = gameStore.otherPlayers.find(p => p.id === characterId);
+            if (!otherPlayer) {
+                // 如果玩家不存在，直接添加到新位置
+                gameStore.updateOtherPlayerPosition(characterId, positionX, positionY, characterName);
+                return;
+            }
+
+            // 计算移动距离和方向
+            const currentX = otherPlayer.position_x || 0;
+            const currentY = otherPlayer.position_y || 0;
+            const dx = positionX - currentX;
+            const dy = positionY - currentY;
+            const distance = Math.sqrt(dx * dx + dy * dy);
+            
+            // 设置移动速度（与玩家角色相同）
+            const speed = 200;
+            const duration = (distance / speed) * 1000;
+            
+            // 开始移动动画
+            const startTime = Date.now();
+            const animate = () => {
+                const currentTime = Date.now();
+                const progress = Math.min((currentTime - startTime) / duration, 1);
+                
+                // 使用线性插值计算当前位置
+                const currentPosX = currentX + dx * progress;
+                const currentPosY = currentY + dy * progress;
+                
+                // 更新其他玩家位置
+                gameStore.updateOtherPlayerPosition(
+                    characterId,
+                    Math.round(currentPosX),
+                    Math.round(currentPosY),
+                    characterName
+                );
+                
+                // 如果动画未完成，继续下一帧
+                if (progress < 1) {
+                    requestAnimationFrame(animate);
+                } else {
+                    // 动画完成后，更新最终位置
+                    gameStore.updateOtherPlayerFinalPosition(characterId, positionX, positionY);
+                }
+            };
+            
+            // 启动动画
+            animate();
+            
         } catch (error) {
             console.error('处理角色移动事件出错:', error, data);
         }

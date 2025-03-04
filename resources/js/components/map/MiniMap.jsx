@@ -26,13 +26,39 @@ const PlayerIndicator = styled.div`
     top: ${props => props.top}%;
     transform: translate(-50%, -50%);
     z-index: 2;
+    transition: all ${props => props.duration || 0.5}s linear;
+`;
+
+const OtherPlayerIndicator = styled.div`
+    position: absolute;
+    width: 4px;
+    height: 4px;
+    background-color: #ffcc00;
+    border-radius: 50%;
+    left: ${props => props.left}%;
+    top: ${props => props.top}%;
+    transform: translate(-50%, -50%);
+    z-index: 1;
+    transition: all ${props => props.duration || 0.5}s linear;
 `;
 
 const MonsterIndicator = styled.div`
     position: absolute;
     width: 4px;
     height: 4px;
-    background-color: #ff3366;
+    background-color: #33cc33;
+    border-radius: 50%;
+    left: ${props => props.left}%;
+    top: ${props => props.top}%;
+    transform: translate(-50%, -50%);
+    z-index: 1;
+`;
+
+const TeleportIndicator = styled.div`
+    position: absolute;
+    width: 4px;
+    height: 4px;
+    background-color: #9966ff;
     border-radius: 50%;
     left: ${props => props.left}%;
     top: ${props => props.top}%;
@@ -55,7 +81,9 @@ function MiniMap({ viewportRef, onMiniMapClick }) {
         character, 
         monsters, 
         mapSize, 
-        viewportPosition 
+        viewportPosition,
+        otherPlayers,
+        teleportPoints 
     } = useGameStore();
 
     const handleClick = (e) => {
@@ -83,13 +111,33 @@ function MiniMap({ viewportRef, onMiniMapClick }) {
 
     return (
         <MiniMapContainer onClick={handleClick}>
-            {/* 玩家位置指示器 */}
+            {/* 玩家指示器 */}
             {character && (
-                <PlayerIndicator 
+                <PlayerIndicator
                     left={(character.position_x / mapSize.width) * 100}
                     top={(character.position_y / mapSize.height) * 100}
+                    duration={0.5}
                 />
             )}
+
+            {/* 其他玩家位置指示器 */}
+            {otherPlayers?.map(player => (
+                <OtherPlayerIndicator
+                    key={`mini-player-${player.id}`}
+                    left={(player.position_x || player.x || 0) / mapSize.width * 100}
+                    top={(player.position_y || player.y || 0) / mapSize.height * 100}
+                    duration={0.5}
+                />
+            ))}
+
+            {/* 传送点指示器 */}
+            {teleportPoints?.map(point => (
+                <TeleportIndicator
+                    key={`mini-teleport-${point.id}`}
+                    left={(point.position_x || point.x || 0) / mapSize.width * 100}
+                    top={(point.position_y || point.y || 0) / mapSize.height * 100}
+                />
+            ))}
 
             {/* 视口范围指示器 */}
             {viewportRef.current && (
@@ -100,8 +148,8 @@ function MiniMap({ viewportRef, onMiniMapClick }) {
             {monsters?.map(monster => (
                 <MonsterIndicator
                     key={`mini-monster-${monster.id}`}
-                    left={((monster.position_x || monster.x) / mapSize.width) * 100}
-                    top={((monster.position_y || monster.y) / mapSize.height) * 100}
+                    left={(monster.position_x || monster.x || 0) / mapSize.width * 100}
+                    top={(monster.position_y || monster.y || 0) / mapSize.height * 100}
                 />
             ))}
         </MiniMapContainer>

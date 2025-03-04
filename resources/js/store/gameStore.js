@@ -162,19 +162,18 @@ const useGameStore = create((set, get) => ({
 
         logPlayerInfo('gameStore更新');
 
+        const existingPlayer = state.otherPlayers.find(player => player.id === playerId);
         const newPlayerData = {
             id: playerId,
-            name: playerName || `玩家${playerId}`,
-            x,
-            y,
-            level: 1
+            name: playerName || existingPlayer?.name || `玩家${playerId}`,
+            position_x: x,
+            position_y: y,
+            x: x, // 保持x, y属性的兼容性
+            y: y,
+            level: existingPlayer?.level || 1
         };
 
-        const existingPlayerIndex = state.otherPlayers.findIndex(
-            player => player.id === playerId
-        );
-
-        if (existingPlayerIndex === -1) {
+        if (!existingPlayer) {
             logPlayerInfo('添加新');
             return {
                 otherPlayers: [...state.otherPlayers, newPlayerData]
@@ -185,6 +184,26 @@ const useGameStore = create((set, get) => ({
             otherPlayers: state.otherPlayers.map(player =>
                 player.id === playerId
                     ? { ...player, ...newPlayerData }
+                    : player
+            )
+        };
+    }),
+    
+    // 更新其他玩家最终位置
+    updateOtherPlayerFinalPosition: (playerId, x, y) => set(state => {
+        const existingPlayer = state.otherPlayers.find(player => player.id === playerId);
+        if (!existingPlayer) return state;
+
+        return {
+            otherPlayers: state.otherPlayers.map(player =>
+                player.id === playerId
+                    ? {
+                        ...player,
+                        position_x: x,
+                        position_y: y,
+                        x: x,
+                        y: y
+                    }
                     : player
             )
         };
