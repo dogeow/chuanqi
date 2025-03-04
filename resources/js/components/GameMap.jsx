@@ -3,6 +3,129 @@ import CollisionService from '../services/collisionService';
 import useGameStore from '../store/gameStore';
 import styled from '@emotion/styled';
 
+// 添加动画keyframes
+const animations = `
+    @keyframes pulse {
+        0% { transform: translate(-50%, -50%) scale(1); opacity: 0.8; box-shadow: 0 0 15px rgba(153, 102, 255, 0.7); }
+        50% { transform: translate(-50%, -50%) scale(1.1); opacity: 1; box-shadow: 0 0 20px rgba(153, 102, 255, 0.9); }
+        100% { transform: translate(-50%, -50%) scale(1); opacity: 0.8; box-shadow: 0 0 15px rgba(153, 102, 255, 0.7); }
+    }
+
+    @keyframes damageFloat {
+        0% { transform: translateY(0); opacity: 1; }
+        100% { transform: translateY(-30px); opacity: 0; }
+    }
+
+    @keyframes attackPulse {
+        0% { transform: scale(1); }
+        50% { transform: scale(1.2); }
+        100% { transform: scale(1); }
+    }
+
+    @keyframes hpChange {
+        0% { transform: scale(1); }
+        50% { transform: scale(1.05); }
+        100% { transform: scale(1); }
+    }
+
+    @keyframes attackEmoji {
+        0% { transform: translateY(0) scale(1); opacity: 1; }
+        50% { transform: translateY(-15px) scale(1.2); opacity: 1; }
+        100% { transform: translateY(-30px) scale(1); opacity: 0; }
+    }
+`;
+
+const GameMapViewport = styled.div`
+    width: 100%;
+    height: 100%;
+    overflow: auto;
+    position: relative;
+`;
+
+const GameMapContainer = styled.div`
+    background-color: #111;
+    position: relative;
+    width: ${props => props.width}px;
+    height: ${props => props.height}px;
+    transform: scale(${props => props.zoomLevel});
+    transform-origin: 0 0;
+    transition: transform 0.3s ease;
+`;
+
+const MapBackground = styled.div`
+    background-image: url(${props => props.backgroundUrl});
+    background-color: #222;
+    position: absolute;
+    width: 100%;
+    height: 100%;
+    background-size: cover;
+    background-position: center;
+`;
+
+const MapName = styled.div`
+    position: fixed;
+    padding: 5px 10px;
+    background-color: rgba(0,0,0,0.7);
+    border-radius: 5px;
+    z-index: 15;
+`;
+
+const HpBarContainer = styled.div`
+    position: absolute;
+    bottom: -15px;
+    left: 50%;
+    transform: translateX(-50%);
+    width: ${props => props.width || '40px'};
+    height: 6px;
+    background-color: rgba(0, 0, 0, 0.7);
+    border-radius: 3px;
+    overflow: hidden;
+`;
+
+const HpBar = styled.div`
+    width: ${props => props.percentage}%;
+    height: 100%;
+    background-color: #ff3333;
+    transition: width 0.3s ease-out;
+    animation: ${props => props.isChanging ? 'hpChange 0.5s' : 'none'};
+`;
+
+const HpText = styled.div`
+    position: absolute;
+    bottom: -25px;
+    left: 50%;
+    transform: translateX(-50%);
+    font-size: 10px;
+    background-color: rgba(0,0,0,0.5);
+    padding: 1px 3px;
+    border-radius: 2px;
+`;
+
+const NameTag = styled.div`
+    position: absolute;
+    bottom: 100%;
+    left: 50%;
+    transform: translateX(-50%);
+    white-space: nowrap;
+    background-color: rgba(0,0,0,0.7);
+    padding: 2px 5px;
+    border-radius: 3px;
+    font-size: 12px;
+    text-align: center;
+`;
+
+const CollisionIndicator = styled.div`
+    position: absolute;
+    top: -25px;
+    right: -25px;
+    background-color: rgba(255, 0, 0, 0.7);
+    color: white;
+    padding: 2px 5px;
+    border-radius: 3px;
+    font-size: 10px;
+    white-space: nowrap;
+`;
+
 // 添加缩放控制器样式
 const ZoomControls = styled.div`
     position: fixed;
@@ -48,36 +171,130 @@ const MiniMap = styled.div`
     cursor: pointer;
 `;
 
-// 添加传送点脉动动画样式
-const teleportPulseStyle = `
-@keyframes pulse {
-    0% { transform: translate(-50%, -50%) scale(1); opacity: 0.8; box-shadow: 0 0 15px rgba(153, 102, 255, 0.7); }
-    50% { transform: translate(-50%, -50%) scale(1.1); opacity: 1; box-shadow: 0 0 20px rgba(153, 102, 255, 0.9); }
-    100% { transform: translate(-50%, -50%) scale(1); opacity: 0.8; box-shadow: 0 0 15px rgba(153, 102, 255, 0.7); }
-}
+const Player = styled.div`
+    position: absolute;
+    width: 32px;
+    height: 32px;
+    background-color: #3366ff;
+    border-radius: 50%;
+    z-index: 10;
+    left: ${props => props.x}px;
+    top: ${props => props.y}px;
+    transform: translate(-50%, -50%);
+    transition: left 0.2s ease-out, top 0.2s ease-out;
+    box-shadow: ${props => props.isColliding ? 
+        '0 0 15px rgba(255, 0, 0, 0.7)' : 
+        '0 0 10px rgba(51, 102, 255, 0.7)'};
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    color: white;
+    font-size: 10px;
+    font-weight: bold;
+    animation: ${props => props.isHpChanging ? 'hpChange 0.5s' : 'none'};
+`;
 
-@keyframes damageFloat {
-    0% { transform: translateY(0); opacity: 1; }
-    100% { transform: translateY(-30px); opacity: 0; }
-}
+const PlayerLevel = styled.div`
+    position: absolute;
+    top: -100%;
+    left: 50%;
+    transform: translateX(-50%);
+    font-size: 10px;
+    white-space: nowrap;
+`;
 
-@keyframes attackPulse {
-    0% { transform: scale(1); }
-    50% { transform: scale(1.2); }
-    100% { transform: scale(1); }
-}
+const Monster = styled.div`
+    position: absolute;
+    left: ${props => props.x}px;
+    top: ${props => props.y}px;
+    z-index: 5;
+    width: 40px;
+    height: 40px;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    cursor: pointer;
+    transition: transform 0.2s ease-out;
+    box-shadow: ${props => props.isColliding ? 
+        '0 0 15px rgba(255, 0, 0, 0.7)' : 
+        (props.isBeingAttacked ? '0 0 10px rgba(255, 0, 0, 0.7)' : 'none')};
+`;
 
-@keyframes hpChange {
-    0% { transform: scale(1); }
-    50% { transform: scale(1.05); }
-    100% { transform: scale(1); }
-}
+const MonsterEmoji = styled.div`
+    font-size: 24px;
+    transform: ${props => props.isColliding ? 'scale(1.2)' : 'scale(1)'};
+    transition: transform 0.2s ease-out;
+    animation: ${props => props.isColliding ? 'attackPulse 0.5s infinite' : 'none'};
+`;
 
-@keyframes attackEmoji {
-    0% { transform: translateY(0) scale(1); opacity: 1; }
-    50% { transform: translateY(-15px) scale(1.2); opacity: 1; }
-    100% { transform: translateY(-30px) scale(1); opacity: 0; }
-}
+const DamageEffect = styled.div`
+    position: absolute;
+    left: ${props => props.x}px;
+    top: ${props => props.y - 20}px;
+    color: ${props => props.type === 'damage' ? '#ff3333' : '#33ff33'};
+    font-weight: bold;
+    font-size: 16px;
+    z-index: 100;
+    text-shadow: 0 0 3px black;
+    animation: damageFloat 2s forwards;
+    transform: translateX(-50%);
+`;
+
+const AttackEmoji = styled.div`
+    position: absolute;
+    left: ${props => props.x}px;
+    top: ${props => props.y}px;
+    font-size: 24px;
+    z-index: 101;
+    animation: attackEmoji 1s forwards;
+    transform: translateX(-50%);
+`;
+
+const TeleportPoint = styled.div`
+    position: absolute;
+    left: ${props => props.x}px;
+    top: ${props => props.y}px;
+    background-color: #9966ff;
+    width: 40px;
+    height: 40px;
+    border-radius: 50%;
+    transform: translate(-50%, -50%);
+    z-index: 4;
+    cursor: pointer;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    box-shadow: 0 0 15px rgba(153, 102, 255, 0.7);
+    animation: pulse 2s infinite;
+    border: 2px solid #fff;
+`;
+
+const TeleportMapName = styled.div`
+    position: absolute;
+    bottom: -20px;
+    left: 50%;
+    transform: translateX(-50%);
+    background-color: rgba(0, 0, 0, 0.7);
+    color: white;
+    padding: 2px 6px;
+    border-radius: 4px;
+    font-size: 12px;
+    white-space: nowrap;
+    text-align: center;
+    z-index: 5;
+`;
+
+const LevelRequired = styled.div`
+    position: absolute;
+    top: -20px;
+    left: 50%;
+    transform: translateX(-50%);
+    background-color: rgba(0, 0, 0, 0.7);
+    color: white;
+    padding: 2px 6px;
+    border-radius: 4px;
+    font-size: 10px;
+    white-space: nowrap;
 `;
 
 function GameMap({ 
@@ -375,492 +592,105 @@ function GameMap({
 
     return (
         <>
-            <div 
-                className="game-map-viewport" 
-                ref={viewportRef}
-                style={{ 
-                    width: '100%', 
-                    height: '100%', 
-                    overflow: 'auto',
-                    position: 'relative'
-                }}
-            >
-                <div 
-                    className="game-map" 
+            <GameMapViewport ref={viewportRef}>
+                <GameMapContainer 
                     ref={gameMapRef}
                     onClick={handleMapClick}
-                    style={{ 
-                        backgroundColor: '#111', 
-                        position: 'relative', 
-                        width: `${mapSize.width}px`, 
-                        height: `${mapSize.height}px`,
-                        transform: `scale(${zoomLevel})`,
-                        transformOrigin: '0 0',
-                        transition: 'transform 0.3s ease'
-                    }}
+                    width={mapSize.width}
+                    height={mapSize.height}
+                    zoomLevel={zoomLevel}
                 >
-                    
-                     {/* 添加动画样式 */}
-                     <style>{teleportPulseStyle}</style>
+                    <style>{animations}</style>
+                    <MapBackground backgroundUrl={backgroundUrl} />
+                    <MapName>{mapData.name || '未知地图'}</MapName>
 
-                    {/* 渲染地图背景 */}
-                    <div 
-                        className="map-background" 
-                        style={{ 
-                            backgroundImage: `url(${backgroundUrl})`,
-                            backgroundColor: '#222',
-                            position: 'absolute',
-                            width: '100%',
-                            height: '100%',
-                            backgroundSize: 'cover',
-                            backgroundPosition: 'center'
-                        }}
-                    ></div>
-                    
-                    {/* 显示路径调整效果 */}
-                    {pathAdjustment && pathAdjustment.originalTarget && pathAdjustment.adjustedTarget && (
-                        <>
-                            {/* 原始目标位置标记 */}
-                            <div 
-                                className="original-target-marker"
-                                style={{
-                                    position: 'absolute',
-                                    left: `${pathAdjustment.originalTarget.x}px`,
-                                    top: `${pathAdjustment.originalTarget.y}px`,
-                                    width: '16px',
-                                    height: '16px',
-                                    backgroundColor: 'rgba(255, 0, 0, 0.5)',
-                                    borderRadius: '50%',
-                                    transform: 'translate(-50%, -50%)',
-                                    zIndex: 3,
-                                    border: '2px solid red',
-                                    boxShadow: '0 0 5px rgba(255, 0, 0, 0.7)',
-                                    opacity: 0.7
-                                }}
-                            ></div>
-                            
-                            {/* 调整后的目标位置标记 */}
-                            <div 
-                                className="adjusted-target-marker"
-                                style={{
-                                    position: 'absolute',
-                                    left: `${pathAdjustment.adjustedTarget.x}px`,
-                                    top: `${pathAdjustment.adjustedTarget.y}px`,
-                                    width: '16px',
-                                    height: '16px',
-                                    backgroundColor: 'rgba(0, 255, 0, 0.5)',
-                                    borderRadius: '50%',
-                                    transform: 'translate(-50%, -50%)',
-                                    zIndex: 3,
-                                    border: '2px solid green',
-                                    boxShadow: '0 0 5px rgba(0, 255, 0, 0.7)',
-                                    opacity: 0.7
-                                }}
-                            ></div>
-                            
-                            {/* 连接线 */}
-                            <svg 
-                                style={{
-                                    position: 'absolute',
-                                    left: 0,
-                                    top: 0,
-                                    width: '100%',
-                                    height: '100%',
-                                    zIndex: 2,
-                                    pointerEvents: 'none'
-                                }}
-                            >
-                                <line 
-                                    x1={pathAdjustment.originalTarget.x} 
-                                    y1={pathAdjustment.originalTarget.y} 
-                                    x2={pathAdjustment.adjustedTarget.x} 
-                                    y2={pathAdjustment.adjustedTarget.y}
-                                    style={{
-                                        stroke: 'rgba(255, 255, 0, 0.7)',
-                                        strokeWidth: 2,
-                                        strokeDasharray: '5,5'
-                                    }}
-                                />
-                            </svg>
-                        </>
-                    )}
-                    
-                    {/* 地图名称显示 */}
-                    <div className="map-name" style={{ 
-                        position: 'fixed', 
-                        padding: '5px 10px', 
-                        backgroundColor: 'rgba(0,0,0,0.7)', 
-                        borderRadius: '5px',
-                        zIndex: 15
-                    }}>
-                        {mapData.name || '未知地图'}
-                    </div>
-                    
-                    {/* 渲染地图边界 */}
-                    {mapData.boundaries && mapData.boundaries.map((boundary, index) => (
-                        <div 
-                            key={`boundary-${index}`}
-                            className="map-boundary"
-                            style={{
-                                left: `${boundary.position_x || boundary.x}px`,
-                                top: `${boundary.position_y || boundary.y}px`,
-                                width: `${boundary.width}px`,
-                                height: `${boundary.height}px`
-                            }}
-                        ></div>
-                    ))}
-                    
-                    {/* 渲染地图标记 */}
-                    {mapMarkers && mapMarkers.map((marker, index) => (
-                        <div 
-                            key={`marker-${index}`}
-                            className={`map-marker ${marker.type}`}
-                            style={{
-                                left: `${marker.position_x || marker.x}px`,
-                                top: `${marker.position_y || marker.y}px`
-                            }}
-                        >
-                            {marker.type === 'quest' && '❗'}
-                            {marker.type === 'point-of-interest' && '📌'}
-                            {marker.type === 'danger' && '⚠️'}
-                        </div>
-                    ))}
-                    
                     {/* 渲染传送点 */}
-                    {teleportPoints && teleportPoints.length > 0 ? teleportPoints.map(point => (
-                        <div 
+                    {teleportPoints && teleportPoints.length > 0 && teleportPoints.map(point => (
+                        <TeleportPoint
                             key={`teleport-${point.id}`}
-                            className="teleport-point"
-                            style={{
-                                left: `${point.x || 300}px`,
-                                top: `${point.y || 300}px`,
-                                backgroundColor: '#9966ff',
-                                width: '40px',
-                                height: '40px',
-                                borderRadius: '50%',
-                                transform: 'translate(-50%, -50%)',
-                                zIndex: 4,
-                                cursor: 'pointer',
-                                display: 'flex',
-                                justifyContent: 'center',
-                                alignItems: 'center',
-                                boxShadow: '0 0 15px rgba(153, 102, 255, 0.7)',
-                                animation: 'pulse 2s infinite',
-                                border: '2px solid #fff',
-                            }}
+                            x={point.x || 300}
+                            y={point.y || 300}
                             onClick={(e) => {
                                 e.stopPropagation();
                                 onTeleportClick(point.target_map_id);
                             }}
                         >
-                            <div className="teleport-map-name" style={{
-                                position: 'absolute',
-                                bottom: '-20px',
-                                left: '50%',
-                                transform: 'translateX(-50%)',
-                                backgroundColor: 'rgba(0, 0, 0, 0.7)',
-                                color: 'white',
-                                padding: '2px 6px',
-                                borderRadius: '4px',
-                                fontSize: '12px',
-                                whiteSpace: 'nowrap',
-                                textAlign: 'center',
-                                zIndex: 5
-                            }}>{point.target_map_name || point.name}</div>
-                            {point.level_required && 
-                                <div className="map-level-required" style={{
-                                    position: 'absolute',
-                                    top: '-20px',
-                                    left: '50%',
-                                    transform: 'translateX(-50%)',
-                                    backgroundColor: 'rgba(0, 0, 0, 0.7)',
-                                    color: 'white',
-                                    padding: '2px 6px',
-                                    borderRadius: '4px',
-                                    fontSize: '10px',
-                                    whiteSpace: 'nowrap'
-                                }}>等级要求: {point.level_required}</div>
-                            }
+                            <TeleportMapName>
+                                {point.target_map_name || point.name}
+                            </TeleportMapName>
+                            {point.level_required && (
+                                <LevelRequired>
+                                    等级要求: {point.level_required}
+                                </LevelRequired>
+                            )}
                             <span style={{ fontSize: '16px' }}>📍</span>
-                        </div>
-                    )) : null}
-                    
-                    {/* 渲染NPC */}
-                    {npcs && npcs.length > 0 ? npcs.map(npc => (
-                        <div 
-                            key={`npc-${npc.id}`}
-                            className={`npc ${npc.has_quest ? 'has-quest' : ''}`}
-                            style={{
-                                position: 'absolute',
-                                left: `${npc.position_x || 400}px`,
-                                top: `${npc.position_y || 400}px`,
-                                width: '32px',
-                                height: '32px',
-                                backgroundColor: '#ffcc00',
-                                borderRadius: '50%',
-                                zIndex: 6,
-                                display: 'flex',
-                                justifyContent: 'center',
-                                alignItems: 'center',
-                                cursor: 'pointer',
-                                transform: 'translate(-50%, -50%)'
-                            }}
-                            onClick={(e) => {
-                                e.stopPropagation();
-                                onNpcClick(npc.id);
-                            }}
-                        >
-                            <div className="npc-name" style={{
-                                position: 'absolute',
-                                bottom: '100%',
-                                left: '50%',
-                                transform: 'translateX(-50%)',
-                                whiteSpace: 'nowrap',
-                                backgroundColor: 'rgba(0,0,0,0.7)',
-                                padding: '2px 5px',
-                                borderRadius: '3px',
-                                fontSize: '12px'
-                            }}>{npc.name}</div>
-                            
-                            {/* NPC血条 - 始终显示 */}
-                            <div className="npc-hp-bar-container" style={{
-                                position: 'absolute',
-                                bottom: '-15px',
-                                left: '50%',
-                                transform: 'translateX(-50%)',
-                                width: '40px',
-                                height: '6px',
-                                backgroundColor: 'rgba(0, 0, 0, 0.7)',
-                                borderRadius: '3px',
-                                overflow: 'hidden'
-                            }}>
-                                <div 
-                                    className="npc-hp-bar" 
-                                    style={{
-                                        width: `${npc?.current_hp && npc?.hp ? (npc.current_hp / npc.hp) * 100 : 100}%`,
-                                        height: '100%',
-                                        backgroundColor: '#ff3333',
-                                        transition: 'width 0.3s ease-out'
-                                    }}
-                                ></div>
-                            </div>
-                            
-                            {/* 显示血量数值 */}
-                            <div className="npc-hp-text" style={{
-                                position: 'absolute',
-                                bottom: '-25px',
-                                left: '50%',
-                                transform: 'translateX(-50%)',
-                                fontSize: '10px',
-                                backgroundColor: 'rgba(0,0,0,0.5)',
-                                padding: '1px 3px',
-                                borderRadius: '2px'
-                            }}>{npc?.current_hp || '?'}/{npc?.hp || '?'}</div>
-                            
-                            <div style={{ fontSize: '16px' }}>
-                                {npc.emoji || '👨‍💼'}
-                            </div>
-                        </div>
-                    )) : null}
-                    
+                        </TeleportPoint>
+                    ))}
+
                     {/* 渲染玩家角色 */}
-                    <div 
-                        className="player" 
+                    <Player
                         ref={playerRef}
-                        style={{
-                            position: 'absolute',
-                            width: '32px',
-                            height: '32px',
-                            backgroundColor: '#3366ff',
-                            borderRadius: '50%',
-                            zIndex: 10,
-                            left: `${character?.position_x || 100}px`,
-                            top: `${character?.position_y || 100}px`,
-                            transform: 'translate(-50%, -50%)',
-                            transition: 'left 0.2s ease-out, top 0.2s ease-out',
-                            boxShadow: collisions.monsters.length > 0 || collisions.players.length > 0 ? 
-                                '0 0 15px rgba(255, 0, 0, 0.7)' : 
-                                '0 0 10px rgba(51, 102, 255, 0.7)',
-                            display: 'flex',
-                            justifyContent: 'center',
-                            alignItems: 'center',
-                            color: 'white',
-                            fontSize: '10px',
-                            fontWeight: 'bold',
-                            animation: character?.lastHp !== character?.current_hp && character?.lastHp > character?.current_hp ? 'hpChange 0.5s' : 'none'
-                        }}
+                        x={character?.position_x || 100}
+                        y={character?.position_y || 100}
+                        isColliding={collisions.monsters.length > 0 || collisions.players.length > 0}
+                        isHpChanging={character?.lastHp !== character?.current_hp && character?.lastHp > character?.current_hp}
                     >
-                        <div className="player-level" style={{
-                            position: 'absolute',
-                            top: '-100%',
-                            left: '50%',
-                            transform: 'translateX(-50%)',
-                            fontSize: '10px',
-                            whiteSpace: 'nowrap'
-                        }}>Lv.{character?.level || 1}</div>
+                        <PlayerLevel>Lv.{character?.level || 1}</PlayerLevel>
                         
-                        {/* 玩家血条 - 始终显示 */}
-                        <div className="player-hp-bar-container" style={{
-                            position: 'absolute',
-                            bottom: '-15px',
-                            left: '50%',
-                            transform: 'translateX(-50%)',
-                            width: '40px',
-                            height: '6px',
-                            backgroundColor: 'rgba(0, 0, 0, 0.7)',
-                            borderRadius: '3px',
-                            overflow: 'hidden'
-                        }}>
-                            <div 
-                                className="player-hp-bar" 
-                                style={{
-                                    width: `${character?.current_hp && character?.max_hp ? (character.current_hp / character.max_hp) * 100 : 100}%`,
-                                    height: '100%',
-                                    backgroundColor: '#ff3333',
-                                    transition: 'width 0.3s ease-out',
-                                    animation: character?.lastHp !== character?.current_hp ? 'hpChange 0.5s' : 'none'
-                                }}
-                            ></div>
-                        </div>
+                        <HpBarContainer>
+                            <HpBar 
+                                percentage={character?.current_hp && character?.max_hp ? (character.current_hp / character.max_hp) * 100 : 100}
+                                isChanging={character?.lastHp !== character?.current_hp}
+                            />
+                        </HpBarContainer>
                         
-                        {/* 显示血量数值 */}
-                        <div className="player-hp-text" style={{
-                            position: 'absolute',
-                            bottom: '-25px',
-                            left: '50%',
-                            transform: 'translateX(-50%)',
-                            fontSize: '10px',
-                            padding: '1px 3px',
-                        }}>{character?.current_hp || '???'}/{character?.max_hp || '?'}</div>
+                        <HpText>
+                            {character?.current_hp || '???'}/{character?.max_hp || '?'}
+                        </HpText>
                         
-                        {/* 玩家攻击状态 */}
-                        {Object.keys(attackingMonsters).length > 0 && (
-                            <div className="player-attack-indicator" style={{
-                                position: 'absolute',
-                                right: '-20px',
-                                top: '0',
-                                fontSize: '16px',
-                                animation: 'attackPulse 0.5s infinite'
-                            }}>
-                                ⚔️
-                            </div>
-                        )}
-                        
-                        {/* 玩家表情 */}
                         <div style={{ fontSize: '16px' }}>
                             {character?.lastHp !== character?.current_hp && character?.lastHp > character?.current_hp ? '😣' : '😊'}
                         </div>
                         
-                        {/* 碰撞指示器 */}
                         {(collisions.monsters.length > 0 || collisions.players.length > 0) && (
-                            <div className="collision-indicator" style={{
-                                position: 'absolute',
-                                top: '-25px',
-                                left: '50%',
-                                transform: 'translateX(-50%)',
-                                backgroundColor: 'rgba(255, 0, 0, 0.7)',
-                                color: 'white',
-                                padding: '2px 5px',
-                                borderRadius: '3px',
-                                fontSize: '10px',
-                                whiteSpace: 'nowrap'
-                            }}>
-                                碰撞中!
-                            </div>
+                            <CollisionIndicator>碰撞中!</CollisionIndicator>
                         )}
-                    </div>
-                    
+                    </Player>
+
                     {/* 渲染怪物 */}
-                    {monsters && monsters.length > 0 ? monsters.filter(monster => !monster.is_dead && monster.current_hp > 0).map(monster => {
-                        // 检查这个怪物是否与玩家碰撞
+                    {monsters && monsters.length > 0 && monsters.filter(monster => !monster.is_dead && monster.current_hp > 0).map(monster => {
                         const isColliding = collisions.monsters.some(m => m.id === monster.id);
                         
                         return (
-                            <div 
-                                key={monster.id} 
-                                className={`monster ${isColliding ? 'colliding' : ''}`}
-                                data-monster-id={monster.id}
-                                style={{ 
-                                    position: 'absolute',
-                                    left: `${monster.x || monster.position_x || 100}px`, 
-                                    top: `${monster.y || monster.position_y || 100}px`,
-                                    zIndex: 5,
-                                    width: '40px',
-                                    height: '40px',
-                                    display: 'flex',
-                                    justifyContent: 'center',
-                                    alignItems: 'center',
-                                    cursor: 'pointer',
-                                    transition: 'transform 0.2s ease-out',
-                                    boxShadow: isColliding ? 
-                                        '0 0 15px rgba(255, 0, 0, 0.7)' : 
-                                        (isMonsterBeingAttacked(monster.id) ? '0 0 10px rgba(255, 0, 0, 0.7)' : 'none')
-                                }}
+                            <Monster
+                                key={monster.id}
+                                x={monster.x || monster.position_x || 100}
+                                y={monster.y || monster.position_y || 100}
+                                isColliding={isColliding}
+                                isBeingAttacked={isMonsterBeingAttacked(monster.id)}
                                 onClick={(e) => {
                                     e.stopPropagation();
                                     handleMonsterClick(monster.id);
                                 }}
                                 title={`${monster.name} Lv.${monster.level || '?'} (点击攻击)`}
                             >
-                                <div className="monster-name" style={{
-                                    position: 'absolute',
-                                    bottom: '100%',
-                                    left: '50%',
-                                    transform: 'translateX(-50%)',
-                                    whiteSpace: 'nowrap',
-                                    backgroundColor: 'rgba(0,0,0,0.7)',
-                                    padding: '2px 5px',
-                                    borderRadius: '3px',
-                                    fontSize: '12px',
-                                    textAlign: 'center'
-                                }}>
+                                <NameTag>
                                     <div>{monster.name}</div>
                                     <div>Lv.{monster.level || '?'}</div>
-                                </div>
+                                </NameTag>
                                 
-                                <div className="monster-hp-bar-container" style={{
-                                    position: 'absolute',
-                                    bottom: '-15px',
-                                    left: '50%',
-                                    transform: 'translateX(-50%)',
-                                    width: '50px',
-                                    height: '6px',
-                                    backgroundColor: 'rgba(0, 0, 0, 0.7)',
-                                    borderRadius: '3px',
-                                    overflow: 'hidden'
-                                }}>
-                                    <div 
-                                        className="monster-hp-bar" 
-                                        style={{
-                                            width: `${monster.hp_percentage || (monster?.current_hp && monster?.hp ? (monster.current_hp / monster.hp) * 100 : 100)}%`,
-                                            height: '100%',
-                                            backgroundColor: '#ff3333',
-                                            transition: 'width 0.3s ease-out',
-                                            animation: monster.lastHp !== monster.current_hp ? 'hpChange 0.5s' : 'none'
-                                        }}
-                                    ></div>
-                                </div>
+                                <HpBarContainer width="50px">
+                                    <HpBar 
+                                        percentage={monster.hp_percentage || (monster?.current_hp && monster?.hp ? (monster.current_hp / monster.hp) * 100 : 100)}
+                                        isChanging={monster.lastHp !== monster.current_hp}
+                                    />
+                                </HpBarContainer>
                                 
-                                <div className="monster-hp-text" style={{
-                                    position: 'absolute',
-                                    bottom: '-25px',
-                                    left: '50%',
-                                    transform: 'translateX(-50%)',
-                                    fontSize: '10px',
-                                    backgroundColor: 'rgba(0,0,0,0.5)',
-                                    padding: '1px 3px',
-                                    borderRadius: '2px'
-                                }}>{monster.current_hp || '?'}/{monster.hp || '?'}</div>
+                                <HpText>
+                                    {monster.current_hp || '?'}/{monster.hp || '?'}
+                                </HpText>
                                 
-                                <div 
-                                    className="monster-emoji"
-                                    style={{
-                                        fontSize: '24px',
-                                        transform: isColliding ? 'scale(1.2)' : 'scale(1)',
-                                        transition: 'transform 0.2s ease-out',
-                                        animation: isColliding ? 'attackPulse 0.5s infinite' : 'none'
-                                    }}
-                                >
+                                <MonsterEmoji isColliding={isColliding}>
                                     {monster.emoji || '👾'}
                                     {isColliding && (
                                         <span style={{ 
@@ -871,223 +701,45 @@ function GameMap({
                                             animation: 'attackPulse 0.3s infinite'
                                         }}>💥</span>
                                     )}
-                                </div>
+                                </MonsterEmoji>
                                 
-                                {/* 碰撞指示器 */}
-                                {isColliding && (
-                                    <div className="monster-collision-indicator" style={{
-                                        position: 'absolute',
-                                        top: '-25px',
-                                        right: '-25px',
-                                        backgroundColor: 'rgba(255, 0, 0, 0.7)',
-                                        color: 'white',
-                                        padding: '2px 5px',
-                                        borderRadius: '3px',
-                                        fontSize: '10px',
-                                        whiteSpace: 'nowrap'
-                                    }}>
-                                        碰撞!
-                                    </div>
-                                )}
-                            </div>
+                                {isColliding && <CollisionIndicator>碰撞!</CollisionIndicator>}
+                            </Monster>
                         );
-                    }) : <div style={{ position: 'absolute', top: '40px', left: '10px', color: 'white' }}>没有怪物</div>}
-                    
-                    {/* 渲染商店 */}
-                    {shops && shops.length > 0 ? shops.map(shop => (
-                        <div 
-                            key={shop.id} 
-                            className="shop" 
-                            data-shop-id={shop.id}
-                            style={{ 
-                                position: 'absolute',
-                                left: `${shop.x || shop.position_x || 200}px`, 
-                                top: `${shop.y || shop.position_y || 200}px`,
-                                width: '32px',
-                                height: '32px',
-                                backgroundColor: 'gold',
-                                borderRadius: '5px',
-                                zIndex: 5
-                            }}
-                            onClick={(e) => {
-                                e.stopPropagation();
-                                onShopClick(shop.id);
-                            }}
-                        >
-                            <div className="shop-name" style={{
-                                position: 'absolute',
-                                bottom: '100%',
-                                left: '50%',
-                                transform: 'translateX(-50%)',
-                                whiteSpace: 'nowrap',
-                                backgroundColor: 'rgba(0,0,0,0.7)',
-                                padding: '2px 5px',
-                                borderRadius: '3px',
-                                fontSize: '12px'
-                            }}>{shop.name}</div>
-                        </div>
-                    )) : null}
-                    
-                    {/* 渲染其他玩家 */}
-                    {otherPlayers && otherPlayers.length > 0 ? otherPlayers.map(player => {
-                        // 检查这个玩家是否与当前玩家碰撞
-                        const isColliding = collisions.players.some(p => p.id === player.id);
-                        
-                        // 确保使用正确的位置属性
-                        const playerX = player.position_x !== undefined ? player.position_x : (player.x || 150);
-                        const playerY = player.position_y !== undefined ? player.position_y : (player.y || 150);
-                        
-                        return (
-                            <div 
-                                key={`player-${player.id}`}
-                                className={`other-player ${isColliding ? 'colliding' : ''}`}
-                                style={{
-                                    position: 'absolute',
-                                    width: '32px',
-                                    height: '32px',
-                                    backgroundColor: isColliding ? 'red' : 'green',
-                                    borderRadius: '50%',
-                                    zIndex: 8,
-                                    left: `${playerX}px`,
-                                    top: `${playerY}px`,
-                                    transform: 'translate(-50%, -50%)',
-                                    transition: 'left 0.3s ease-out, top 0.3s ease-out',
-                                    boxShadow: isColliding ? '0 0 15px rgba(255, 0, 0, 0.7)' : 'none'
-                                }}
-                            >
-                                <div className="player-name-container" style={{
-                                    position: 'absolute',
-                                    bottom: '100%',
-                                    left: '50%',
-                                    transform: 'translateX(-50%)',
-                                    whiteSpace: 'nowrap',
-                                    backgroundColor: 'rgba(0,0,0,0.7)',
-                                    padding: '2px 5px',
-                                    borderRadius: '3px',
-                                    fontSize: '12px',
-                                    textAlign: 'center'
-                                }}>
-                                    <div className="player-name">{player.name}</div>
-                                    <div className="player-level">Lv.{player.level || 1}</div>
-                                    <div className="player-position" style={{ fontSize: '10px', color: '#aaa' }}>
-                                        ({Math.round(playerX)}, {Math.round(playerY)})
-                                    </div>
-                                </div>
-                                
-                                {/* 其他玩家血条 - 始终显示 */}
-                                <div className="player-hp-bar-container" style={{
-                                    position: 'absolute',
-                                    bottom: '-15px',
-                                    left: '50%',
-                                    transform: 'translateX(-50%)',
-                                    width: '40px',
-                                    height: '6px',
-                                    backgroundColor: 'rgba(0, 0, 0, 0.7)',
-                                    borderRadius: '3px',
-                                    overflow: 'hidden'
-                                }}>
-                                    <div 
-                                        className="player-hp-bar" 
-                                        style={{
-                                            width: `${player?.current_hp && player?.max_hp ? (player.current_hp / player.max_hp) * 100 : 100}%`,
-                                            height: '100%',
-                                            backgroundColor: '#ff3333',
-                                            transition: 'width 0.3s ease-out'
-                                        }}
-                                    ></div>
-                                </div>
-                                
-                                {/* 显示血量数值 */}
-                                <div className="player-hp-text" style={{
-                                    position: 'absolute',
-                                    bottom: '-25px',
-                                    left: '50%',
-                                    transform: 'translateX(-50%)',
-                                    fontSize: '10px',
-                                    padding: '1px 3px',
-                                }}>{player?.current_hp || '??'}/{player?.max_hp || '?'}</div>
-                                
-                                {/* 碰撞指示器 */}
-                                {isColliding && (
-                                    <div className="player-collision-indicator" style={{
-                                        position: 'absolute',
-                                        top: '-25px',
-                                        right: '-25px',
-                                        backgroundColor: 'rgba(255, 0, 0, 0.7)',
-                                        color: 'white',
-                                        padding: '2px 5px',
-                                        borderRadius: '3px',
-                                        fontSize: '10px',
-                                        whiteSpace: 'nowrap'
-                                    }}>
-                                        碰撞!
-                                    </div>
-                                )}
-                            </div>
-                        );
-                    }) : null}
-                    
-                    {/* 渲染伤害/治疗效果 */}
+                    })}
+
+                    {/* 渲染伤害效果 */}
                     {damageEffects.map(effect => {
-                        // 确定目标位置
-                        let targetElement;
-                        let targetX = 0;
-                        let targetY = 0;
+                        const targetX = effect.targetId === 'player' ? 
+                            (character?.position_x || 100) : 
+                            (monsters.find(m => m.id === effect.targetId)?.position_x || 100);
                         
-                        if (effect.targetId === 'player') {
-                            // 玩家位置
-                            targetX = character?.position_x || 100;
-                            targetY = character?.position_y || 100;
-                        } else {
-                            // 怪物位置
-                            const monster = monsters.find(m => m.id === effect.targetId);
-                            if (monster) {
-                                targetX = monster.position_x || monster.x || 100;
-                                targetY = monster.position_y || monster.y || 100;
-                            }
-                        }
-                        
+                        const targetY = effect.targetId === 'player' ? 
+                            (character?.position_y || 100) : 
+                            (monsters.find(m => m.id === effect.targetId)?.position_y || 100);
+
                         return (
                             <React.Fragment key={effect.id}>
-                                {/* 伤害/治疗数值 */}
-                                <div 
-                                    style={{
-                                        position: 'absolute',
-                                        left: `${targetX}px`,
-                                        top: `${targetY - 20}px`,
-                                        color: effect.type === 'damage' ? '#ff3333' : '#33ff33',
-                                        fontWeight: 'bold',
-                                        fontSize: '16px',
-                                        zIndex: 100,
-                                        textShadow: '0 0 3px black',
-                                        animation: 'damageFloat 2s forwards',
-                                        transform: 'translateX(-50%)'
-                                    }}
+                                <DamageEffect
+                                    x={targetX}
+                                    y={targetY}
+                                    type={effect.type}
                                 >
                                     {effect.type === 'damage' ? '-' : '+'}{effect.amount}
-                                </div>
+                                </DamageEffect>
                                 
-                                {/* 攻击表情符号 */}
-                                <div 
-                                    style={{
-                                        position: 'absolute',
-                                        left: `${targetX}px`,
-                                        top: `${targetY}px`,
-                                        fontSize: '24px',
-                                        zIndex: 101,
-                                        animation: 'attackEmoji 1s forwards',
-                                        transform: 'translateX(-50%)'
-                                    }}
+                                <AttackEmoji
+                                    x={targetX}
+                                    y={targetY}
                                 >
                                     {effect.emoji}
-                                </div>
+                                </AttackEmoji>
                             </React.Fragment>
                         );
                     })}
-                </div>
-            </div>
+                </GameMapContainer>
+            </GameMapViewport>
 
-            {/* 缩放控制器 */}
             <ZoomControls>
                 <ZoomButton onClick={handleLocatePlayer} title="定位到玩家">👤</ZoomButton>
                 <ZoomButton onClick={() => handleZoom(0.1)}>+</ZoomButton>
@@ -1095,7 +747,6 @@ function GameMap({
                 <ZoomButton onClick={handleResetZoom} title="恢复原始大小">⟲</ZoomButton>
             </ZoomControls>
 
-            {/* 小地图 */}
             <MiniMap onClick={handleMiniMapClick}>
                 {/* 玩家位置指示器 */}
                 <div style={{
@@ -1110,7 +761,7 @@ function GameMap({
                     zIndex: 2
                 }} />
 
-                {/* 视口范围指示器 - 使用 viewportPosition 状态 */}
+                {/* 视口范围指示器 */}
                 {viewportRef.current && (
                     <div style={{
                         position: 'absolute',

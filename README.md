@@ -1,4 +1,29 @@
-# 启动
+# 游戏介绍
+
+不烧脑的角色养成游戏，适合快节奏的都市群体玩家放松、怀旧、聊天。
+
+主要目标：
+
+1. 画面、文字比例协调。
+2. 按钮、逻辑的交互简单、高效。
+3. 哪些需要显示，哪些不需要显示，恰到好处。（提供 DIY 设置）。
+4. 符合主流角色养成游戏的功能点。
+5. 使用 Emoji 来暂时替代图片。
+
+# PowerBy
+
+1. Laravel + Reverb
+2. React
+3. Emotion
+4. Tailwind CSS
+5. Axios
+
+# 缺失点
+
+1. 没有图片
+2. 没有声音
+
+# 部署、启动
 
 php artisan reverb:start
 php artisan queue:listen
