@@ -1035,11 +1035,8 @@ class GameService {
             
             // 显示受伤消息
             const attackerName = data.attacker_name || '怪物';
-            if (data.is_critical) {
-                gameStore.addMessage(`暴击！${attackerName} 对你造成了 ${data.damage} 点伤害！`, 'error');
-            } else {
-                gameStore.addMessage(`${attackerName}-${data.character_damage}, 你-${data.monster_damage}`, 'warning');
-            }
+
+            gameStore.addMessage(`${attackerName}-${data.character_damage}, 你-${data.monster_damage}`, 'warning');
             
             // 手动触发一个自定义事件，通知UI更新
             window.dispatchEvent(new CustomEvent('character-hp-changed', {

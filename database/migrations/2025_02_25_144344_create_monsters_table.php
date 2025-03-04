@@ -14,6 +14,7 @@ return new class extends Migration
         Schema::create('monsters', function (Blueprint $table) {
             $table->id();
             $table->string('name');
+            $table->boolean('is_boss')->default(false);
             $table->text('description');
             $table->integer('level')->default(1);
             $table->integer('hp')->default(100);

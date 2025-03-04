@@ -8,6 +8,7 @@ use App\Models\Map;
 use App\Models\Monster;
 use App\Models\Shop;
 use Illuminate\Http\Request;
+use App\Services\CombatService;
 use Illuminate\Support\Facades\Auth;
 use App\Services\ItemDropService;
 
@@ -284,7 +285,7 @@ class GameController extends Controller
         ]);
     }
 
-    /**
+   /**
      * 攻击怪物
      */
     public function attackMonster(Request $request)
@@ -313,223 +314,9 @@ class GameController extends Controller
             ], 400);
         }
 
-        // 计算角色对怪物的伤害
-        $damage = rand($character->getAttackMinAttribute(), $character->getAttackMaxAttribute());
-        $monster->current_hp -= $damage;
-
-        // 确保怪物生命值不会小于0
-        if ($monster->current_hp < 0) {
-            $monster->current_hp = 0;
-        }
-
-        $result = [
-            'success' => true,
-            'damage' => $damage,
-            'monster' => $monster,
-        ];
-        
-        // 怪物反击（如果怪物没有死亡）
-        if ($monster->current_hp > 0) {
-            // 计算怪物对角色的伤害
-            $monsterDamage = max(1, round($monster->attack * (1 - $character->defense / 100)));
-            $character->current_hp -= $monsterDamage;
-            
-            // 确保角色生命值不会小于0
-            if ($character->current_hp < 0) {
-                $character->current_hp = 0;
-            }
-            
-            $character->save();
-            
-            // 添加怪物反击信息到结果
-            $result['monster_damage'] = $monsterDamage;
-            $result['character'] = $character;
-            
-            // 广播角色受伤事件
-            event(new GameEvent('character.damaged', [
-                'character_id' => $character->id,
-                'character_name' => $character->name,
-                'attacker_id' => $monster->id,
-                'attacker_name' => $monster->name,
-                'character_damage' => $damage,
-                'monster_damage' => $monsterDamage,
-                'current_hp' => $character->current_hp,
-                'max_hp' => $character->max_hp,
-                'hp_percentage' => ($character->current_hp / $character->max_hp) * 100,
-                'is_critical' => false,
-                'is_heal' => false
-            ], $character->current_map_id));
-            
-            // 检查角色是否死亡
-            if ($character->current_hp <= 0) {
-                $result['character_died'] = true;
-                
-                // 角色死亡处理（可以在这里添加复活逻辑）
-                // 例如：将角色传送回新手村，恢复一定生命值等
-                $character->current_hp = max(1, round($character->max_hp * 0.1)); // 恢复10%生命值
-                $character->current_map_id = 1; // 传送回新手村
-                $character->position_x = 100;
-                $character->position_y = 100;
-                $character->save();
-                
-                $result['character'] = $character;
-                $result['respawn_message'] = '您已被击败，已传送回新手村并恢复少量生命值';
-                
-                // 广播角色死亡和复活事件
-                event(new GameEvent('character.died', [
-                    'character_id' => $character->id,
-                    'character_name' => $character->name,
-                    'killer_id' => $monster->id,
-                    'killer_name' => $monster->name
-                ], $character->current_map_id));
-                
-                // 广播角色复活事件
-                event(new GameEvent('character.respawned', [
-                    'character_id' => $character->id,
-                    'character_name' => $character->name,
-                    'current_hp' => $character->current_hp,
-                    'max_hp' => $character->max_hp,
-                    'hp_percentage' => ($character->current_hp / $character->max_hp) * 100,
-                    'position_x' => $character->position_x,
-                    'position_y' => $character->position_y,
-                    'map_id' => $character->current_map_id
-                ], $character->current_map_id));
-            }
-        }
-
-        // 检查怪物是否死亡
-        if ($monster->current_hp <= 0) {
-            $monster->current_hp = 0;
-            $monster->save();
-            
-            // 计算获得的经验和金币
-            $expGained = $monster->exp_reward;
-            $goldGained = $monster->gold_reward;
-            
-            $character->exp += $expGained;
-            $character->gold += $goldGained;
-            $user->save();
-            
-            // 检查是否升级
-            $leveledUp = false;
-            while ($character->exp >= $character->getExpToLevelAttribute()) {
-                $character->level += 1;
-                $character->exp -= $character->getExpToLevelAttribute();
-                // 确保经验值不会变为负数
-                if ($character->exp < 0) {
-                    $character->exp = 0;
-                }
-                $character->max_hp += 10;
-                $character->current_hp = $character->max_hp;
-                $character->attack += 2;
-                $leveledUp = true;
-            }
-            
-            $character->save();
-            
-            $result['monster_killed'] = true;
-            $result['exp_gained'] = $expGained;
-            $result['gold_gained'] = $goldGained;
-            $result['character'] = $character;
-            
-            if ($leveledUp) {
-                $result['leveled_up'] = true;
-                $result['new_level'] = $character->level;
-            }
-            
-            // 处理物品掉落
-            $itemDropService = new ItemDropService();
-            $droppedItems = $itemDropService->processMonsterDrop($monster, $character);
-            
-            if (!empty($droppedItems)) {
-                $result['dropped_items'] = $droppedItems;
-                
-                // 构建掉落物品的消息
-                $dropMessage = '获得了物品：';
-                foreach ($droppedItems as $item) {
-                    $dropMessage .= $item['item_name'] . ' x' . $item['quantity'] . '、';
-                }
-                $dropMessage = rtrim($dropMessage, '、');
-                $result['drop_message'] = $dropMessage;
-                
-                // 广播物品掉落事件
-                event(new GameEvent('item.dropped', [
-                    'character_id' => $character->id,
-                    'character_name' => $character->name,
-                    'monster_id' => $monster->id,
-                    'monster_name' => $monster->name,
-                    'items' => $droppedItems
-                ], $character->current_map_id));
-            }
-            
-            // 广播怪物死亡事件
-            event(new GameEvent('monster.killed', [
-                'monster_id' => $monster->id,
-                'monster_name' => $monster->name,
-                'killer_id' => $character->id,
-                'killer_name' => $character->name,
-                'exp_gained' => $expGained,
-                'gold_gained' => $goldGained
-            ], $character->current_map_id));
-            
-            // 怪物重生逻辑
-            // 设置一个临时标记，表示怪物已死亡，前端可以根据这个标记隐藏怪物
-            $monster->is_dead = true;
-            $monster->save();
-            
-            // 使用队列延迟执行怪物重生
-            // 这里我们使用简单的方式，通过广播一个事件通知前端怪物重生
-            $respawnTime = $monster->respawn_time ?? 60; // 默认60秒重生
-            
-            // 广播怪物即将重生的消息
-            event(new GameEvent('monster.respawning', [
-                'monster_id' => $monster->id,
-                'monster_name' => $monster->name,
-                'respawn_time' => $respawnTime
-            ], $character->current_map_id));
-            
-            // 使用队列延迟执行怪物重生
-            dispatch(function() use ($monster, $character) {
-                // 重置怪物生命值
-                $monster->current_hp = $monster->hp;
-                $monster->is_dead = false;
-                $monster->save();
-                
-                // 广播怪物重生事件
-                event(new GameEvent('monster.respawned', [
-                    'monster_id' => $monster->id,
-                    'monster_name' => $monster->name,
-                    'hp' => $monster->hp,
-                    'current_hp' => $monster->current_hp,
-                    'hp_percentage' => 100, // 重生时血量为满
-                    'position_x' => $monster->position_x,
-                    'position_y' => $monster->position_y,
-                    'is_dead' => false
-                ], $monster->map_id));
-            })->delay(now()->addSeconds($respawnTime));
-        } else {
-            $monster->save();
-            
-            // 广播怪物受伤事件
-            broadcast(new GameEvent('monster.damaged', [
-                'monster_id' => $monster->id,
-                'monster_name' => $monster->name,
-                'attacker_id' => $character->id,
-                'attacker_name' => $character->name,
-                'damage' => $damage,
-                'current_hp' => $monster->current_hp,
-                'hp_percentage' => ($monster->current_hp / $monster->hp) * 100,
-                'is_dead' => false
-            ]));
-        }
-        
-        // 重新获取最新的怪物信息
-        $monster = Monster::find($monster->id);
-        
-        // 确保返回的怪物数据包含hp_percentage
-        $monster->hp_percentage = ($monster->current_hp / $monster->hp) * 100;
-        
-        $result['monster'] = $monster;
+        // 使用战斗服务处理攻击逻辑
+        $combatService = new CombatService();
+        $result = $combatService->characterAttackMonster($character, $monster);
         
         return response()->json($result);
     }
