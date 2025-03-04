@@ -1,9 +1,67 @@
 import React, { useState, useEffect, useMemo, memo } from 'react';
 import useGameStore from '../store/gameStore';
 import styled from '@emotion/styled';
+import {
+  colors,
+  spacing,
+  fontSize,
+  borderRadius,
+  shadows,
+  breakpoints,
+  zIndex,
+  opacity
+} from '../theme';
+
+// 基础样式组件
+const FlexBox = styled.div`
+  display: flex;
+  align-items: center;
+`;
+
+const FlexColumn = styled(FlexBox)`
+  flex-direction: column;
+`;
+
+const FlexBetween = styled(FlexBox)`
+  justify-content: space-between;
+`;
+
+const BaseText = styled.div`
+  color: ${props => props.color || colors.text.primary};
+  font-size: ${props => props.fontSize || fontSize.sm};
+  font-weight: ${props => props.bold ? 'bold' : 'normal'};
+  ${props => props.ellipsis && `
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  `}
+`;
+
+const BaseButton = styled.button`
+  padding: ${spacing.xs} 0;
+  color: ${colors.text.primary};
+  border: none;
+  border-radius: ${borderRadius.sm};
+  cursor: pointer;
+  font-weight: bold;
+  transition: background-color 0.2s;
+  
+  &:disabled {
+    opacity: ${opacity.disabled};
+    cursor: not-allowed;
+    background-color: ${colors.button.disabled};
+  }
+`;
+
+const BaseModal = styled.div`
+  background-color: ${colors.background.primary};
+  border-radius: ${borderRadius.md};
+  overflow: hidden;
+  box-shadow: ${shadows.modal};
+`;
 
 // 样式定义
-const ModalOverlay = styled.div`
+const ModalOverlay = styled(FlexBox)`
   position: fixed;
   top: 0;
   left: 0;
@@ -11,69 +69,54 @@ const ModalOverlay = styled.div`
   bottom: 0;
   width: 100%;
   height: 100%;
-  background-color: rgba(0, 0, 0, 0.7);
-  display: flex;
+  background-color: ${colors.background.overlay};
   justify-content: center;
-  align-items: center;
-  z-index: 9999;
+  z-index: ${zIndex.modal};
   pointer-events: auto;
 `;
 
-const ModalContent = styled.div`
-  background-color: #333;
-  border-radius: 8px;
+const ModalContent = styled(BaseModal)`
   width: 90%;
   max-width: 600px;
   max-height: 90vh;
-  overflow: hidden;
-  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3);
   
-  @media (min-width: 1024px) {
+  @media (min-width: ${breakpoints.desktop}) {
     max-width: 800px;
   }
 `;
 
-const ModalHeader = styled.div`
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  padding: 10px 15px;
-  background-color: #222;
-  color: white;
+const ModalHeader = styled(FlexColumn)`
+  padding: ${spacing.sm} ${spacing.md};
+  background-color: ${colors.background.secondary};
   position: relative;
-  flex-wrap: wrap;
   
   .shop-title {
-    font-size: 1.5rem;
+    font-size: ${fontSize.xl};
     font-weight: bold;
     text-align: center;
     width: 100%;
   }
   
   .player-gold {
-    font-size: 1rem;
-    color: gold;
-    display: block;
+    font-size: ${fontSize.sm};
+    color: ${colors.text.gold};
     text-align: center;
-    margin-top: 5px;
+    margin-top: ${spacing.xs};
     width: 100%;
   }
 `;
 
-const CloseButton = styled.button`
+const CloseButton = styled(BaseButton)`
   background: none;
-  border: none;
-  color: white;
-  font-size: 1.8rem;
-  cursor: pointer;
-  padding: 0 5px;
+  font-size: ${fontSize.xxl};
+  padding: 0 ${spacing.xs};
   position: absolute;
-  right: 15px;
-  top: 15px;
+  right: ${spacing.md};
+  top: ${spacing.md};
   z-index: 10;
   
   &:hover {
-    color: #ff6b6b;
+    color: ${colors.danger};
   }
 `;
 
@@ -81,10 +124,10 @@ const ModalBody = styled.div`
   padding: 0;
   overflow-y: auto;
   max-height: calc(90vh - 60px);
-  background-color: #333;
+  background-color: ${colors.background.primary};
   
-  @media (min-width: 1024px) {
-    padding: 5px;
+  @media (min-width: ${breakpoints.desktop}) {
+    padding: ${spacing.xs};
   }
 `;
 
@@ -92,193 +135,142 @@ const ShopItems = styled.div`
   display: flex;
   flex-direction: column;
   
-  @media (min-width: 1024px) {
+  @media (min-width: ${breakpoints.desktop}) {
     display: grid;
     grid-template-columns: repeat(auto-fill, minmax(350px, 1fr));
-    gap: 5px;
+    gap: ${spacing.xs};
   }
 `;
 
-const ShopItem = styled.div`
-  background-color: #333;
-  padding: 15px;
-  border-bottom: 1px solid #444;
+const ShopItem = styled(BaseModal)`
+  padding: ${spacing.md};
+  border-bottom: 1px solid ${colors.border.primary};
   display: flex;
   flex-direction: column;
   align-items: center;
   
   &.cannot-afford {
-    opacity: 0.7;
+    opacity: ${opacity.dimmed};
   }
   
-  @media (min-width: 1024px) {
-    border: 1px solid #444;
-    border-radius: 8px;
-    margin: 5px;
+  @media (min-width: ${breakpoints.desktop}) {
+    border: 1px solid ${colors.border.primary};
+    margin: ${spacing.xs};
   }
 `;
 
-const ItemHeader = styled.div`
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
+const ItemHeader = styled(FlexBetween)`
   width: 100%;
-  margin-bottom: 15px;
+  margin-bottom: ${spacing.md};
   
-  @media (max-width: 480px) {
+  @media (max-width: ${breakpoints.mobile}) {
     align-items: flex-start;
   }
 `;
 
-const ItemInfo = styled.div`
-  display: flex;
-  align-items: center;
-  gap: 10px;
+const ItemInfo = styled(FlexBox)`
+  gap: ${spacing.sm};
   flex: 3;
   
-  @media (max-width: 480px) {
+  @media (max-width: ${breakpoints.mobile}) {
     width: 100%;
-    margin-bottom: 5px;
+    margin-bottom: ${spacing.xs};
   }
 `;
 
-const ItemIcon = styled.div`
+const ItemIcon = styled(FlexBox)`
   width: 40px;
   height: 40px;
-  display: flex;
-  align-items: center;
   justify-content: center;
-  font-size: 24px;
+  font-size: ${fontSize.xl};
   flex-shrink: 0;
 `;
 
-const ItemTextInfo = styled.div`
-  display: flex;
-  flex-direction: column;
+const ItemTextInfo = styled(FlexColumn)`
   min-width: 0;
 `;
 
-const ItemName = styled.div`
+const ItemName = styled(BaseText)`
+  font-size: ${fontSize.lg};
   font-weight: bold;
-  font-size: 1.2rem;
-  color: white;
-  word-wrap: break-word;
-  overflow-wrap: break-word;
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
 `;
 
-const ItemType = styled.div`
-  font-size: 0.9rem;
-  color: #aaa;
+const ItemType = styled(BaseText)`
+  font-size: ${fontSize.xs};
+  color: ${colors.text.secondary};
   text-transform: lowercase;
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
 `;
 
-const ItemPrice = styled.div`
+const ItemPrice = styled(BaseText)`
+  font-size: ${fontSize.lg};
   font-weight: bold;
-  font-size: 1.2rem;
-  color: #e67e22;
+  color: ${colors.text.price};
   flex: 1;
   text-align: right;
   white-space: nowrap;
   
-  @media (max-width: 480px) {
+  @media (max-width: ${breakpoints.mobile}) {
     width: 100%;
     text-align: left;
   }
 `;
 
-const ItemContent = styled.div`
-  display: flex;
-  flex-direction: column;
+const ItemContent = styled(FlexColumn)`
   width: 100%;
   word-wrap: break-word;
   overflow-wrap: break-word;
 `;
 
-const ActionButtons = styled.div`
-  display: flex;
-  flex-direction: column;
+const ActionButtons = styled(FlexColumn)`
   width: 100%;
-  gap: 10px;
-  margin-top: 10px;
+  gap: ${spacing.sm};
+  margin-top: ${spacing.sm};
 `;
 
-const QuantitySelector = styled.div`
+const QuantitySelector = styled(FlexBox)`
   width: 100%;
-  display: flex;
-  align-items: center;
-  gap: 5px;
+  gap: ${spacing.xs};
 `;
 
-const QuantityButtons = styled.div`
-  display: flex;
-  gap: 5px;
+const QuantityButtons = styled(FlexBox)`
+  gap: ${spacing.xs};
   flex: 3;
   
-  @media (max-width: 480px) {
+  @media (max-width: ${breakpoints.mobile}) {
     width: 100%;
   }
 `;
 
-const QuantityButton = styled.button`
-  padding: 5px 0;
-  background-color: ${props => props.selected ? '#4a90e2' : '#666'};
-  color: white;
-  border: none;
-  border-radius: 4px;
-  cursor: pointer;
+const QuantityButton = styled(BaseButton)`
+  background-color: ${props => props.selected ? colors.primary : colors.button.quantity};
   flex: 1;
-  font-weight: bold;
-  font-size: 1rem;
+  font-size: ${fontSize.sm};
   min-width: 50px;
-  
-  &:disabled {
-    opacity: 0.5;
-    cursor: not-allowed;
-    background-color: #555;
-  }
 `;
 
-const BuyButton = styled.button`
-  padding: 5px 0;
-  background-color: #27ae60;
-  color: white;
-  border: none;
-  border-radius: 4px;
-  cursor: pointer;
-  font-weight: bold;
-  font-size: 1.1rem;
-  transition: background-color 0.2s;
+const BuyButton = styled(BaseButton)`
+  background-color: ${colors.success};
+  font-size: ${fontSize.md};
   flex: 2;
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
-  margin-left: 10px;
+  margin-left: ${spacing.sm};
   
-  @media (max-width: 480px) {
+  @media (max-width: ${breakpoints.mobile}) {
     margin-left: 0;
     width: 100%;
   }
   
   &:hover:not(:disabled) {
-    background-color: #219653;
-  }
-  
-  &:disabled {
-    background-color: #555;
-    cursor: not-allowed;
+    background-color: ${colors.successHover};
   }
 `;
 
-const NoItems = styled.div`
+const NoItems = styled(BaseText)`
   text-align: center;
-  padding: 30px;
-  color: #aaa;
+  padding: ${spacing.xl};
+  color: ${colors.text.secondary};
   font-style: italic;
 `;
 
