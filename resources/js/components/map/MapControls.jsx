@@ -45,10 +45,10 @@ function MapControls({ onLocatePlayer }) {
 
     return (
         <ControlsContainer>
-            <ControlButton onClick={onLocatePlayer} title="定位到玩家">👤</ControlButton>
-            <ControlButton onClick={() => handleZoom(0.1)} title="放大">+</ControlButton>
-            <ControlButton onClick={() => handleZoom(-0.1)} title="缩小">-</ControlButton>
-            <ControlButton onClick={handleResetZoom} title="恢复原始大小">⟲</ControlButton>
+            <ControlButton onClick={onLocatePlayer}>👤</ControlButton>
+            <ControlButton onClick={() => handleZoom(0.1)}>+</ControlButton>
+            <ControlButton onClick={() => handleZoom(-0.1)}>-</ControlButton>
+            <ControlButton onClick={handleResetZoom}>⟲</ControlButton>
         </ControlsContainer>
     );
 }
