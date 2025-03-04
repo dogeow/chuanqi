@@ -24,7 +24,7 @@ class CombatService {
             const dy = characterY - monsterY;
             const distance = Math.sqrt(dx * dx + dy * dy);
             
-            // 如果距离太远，先移动到怪物附近
+            // 如果距离太远，只移动到怪物附近
             if (distance > 2) {
                 // 计算移动目标点（怪物附近1格）
                 const angle = Math.atan2(dy, dx);
@@ -33,9 +33,12 @@ class CombatService {
                 
                 const characterService = await import('./characterService');
                 await characterService.default.moveCharacter(targetX, targetY);
+                
+                // 如果距离太远，不开始攻击
+                return;
             }
             
-            // 无论移动是否成功，都尝试攻击怪物
+            // 只有在足够近的距离才开始攻击
             const response = await axios.post('/api/monster/attack', {
                 monster_id: monsterId
             });

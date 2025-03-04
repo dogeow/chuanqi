@@ -314,6 +314,18 @@ class GameController extends Controller
             ], 400);
         }
 
+        // 检查与怪物的距离
+        $dx = $character->position_x - $monster->position_x;
+        $dy = $character->position_y - $monster->position_y;
+        $distance = sqrt($dx * $dx + $dy * $dy);
+
+        if ($distance > 2) {
+            return response()->json([
+                'success' => false,
+                'message' => '距离太远，无法攻击'
+            ], 400);
+        }
+
         // 使用战斗服务处理攻击逻辑
         $combatService = new CombatService();
         $result = $combatService->characterAttackMonster($character, $monster);

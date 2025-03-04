@@ -93,8 +93,8 @@ const PlayerLevel = styled.div`
 `;
 
 export const Player = ({ character }) => {
-    const { collisions } = useGameStore();
-    const isColliding = collisions.monsters.length > 0 || collisions.players.length > 0;
+    const { collisions, isCollisionEnabled } = useGameStore();
+    const isColliding = isCollisionEnabled && (collisions.monsters.length > 0 || collisions.players.length > 0);
     const isHpChanging = character?.lastHp !== character?.current_hp && character?.lastHp > character?.current_hp;
 
     return (
@@ -121,7 +121,7 @@ export const Player = ({ character }) => {
                 {isHpChanging ? '😣' : '😊'}
             </div>
             
-            {isColliding && <CollisionIndicator>碰撞中!</CollisionIndicator>}
+            {isColliding && isCollisionEnabled && <CollisionIndicator>碰撞中!</CollisionIndicator>}
         </PlayerContainer>
     );
 };
@@ -152,8 +152,18 @@ const MonsterEmoji = styled.div`
 `;
 
 export const Monster = ({ monster, isBeingAttacked, onClick }) => {
-    const { collisions } = useGameStore();
-    const isColliding = collisions.monsters.some(m => m.id === monster.id);
+    const { collisions, isCollisionEnabled } = useGameStore();
+    const isColliding = isCollisionEnabled && collisions.monsters.some(m => m.id === monster.id);
+
+    const handleClick = (e) => {
+        // 阻止事件冒泡和默认行为
+        e.stopPropagation();
+        e.preventDefault();
+        e.nativeEvent.stopImmediatePropagation();
+        
+        // 调用点击回调
+        onClick(monster.id);
+    };
 
     return (
         <MonsterContainer
@@ -161,11 +171,12 @@ export const Monster = ({ monster, isBeingAttacked, onClick }) => {
             y={monster.y || monster.position_y || 100}
             isColliding={isColliding}
             isBeingAttacked={isBeingAttacked}
-            onClick={(e) => {
-                e.stopPropagation();
-                onClick(monster.id);
-            }}
+            onClick={handleClick}
+            onMouseDown={(e) => e.stopPropagation()}
+            onMouseUp={(e) => e.stopPropagation()}
+            className="monster"
             title={`${monster.name} Lv.${monster.level || '?'} (点击攻击)`}
+            data-monster-id={monster.id}
         >
             <NameTag>
                 <div>{monster.name}</div>
@@ -196,7 +207,7 @@ export const Monster = ({ monster, isBeingAttacked, onClick }) => {
                 )}
             </MonsterEmoji>
             
-            {isColliding && <CollisionIndicator>碰撞!</CollisionIndicator>}
+            {isColliding && isCollisionEnabled && <CollisionIndicator>碰撞!</CollisionIndicator>}
         </MonsterContainer>
     );
 };

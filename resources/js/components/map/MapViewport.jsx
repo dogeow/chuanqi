@@ -46,10 +46,9 @@ const MapName = styled.div`
 `;
 
 const MapViewportComponent = forwardRef(({ children, mapData, onMapClick }, ref) => {
-    const { character, mapSize, zoomLevel, setViewportPosition } = useGameStore();
+    const { character, mapSize, zoomLevel, setViewportPosition, collisions, isCollisionEnabled } = useGameStore();
     const [isScrolling, setIsScrolling] = useState(false);
-    const [shouldFollowPlayer, setShouldFollowPlayer] = useState(false);
-    const lastPositionRef = useRef({ x: null, y: null });
+    const [shouldFollowPlayer, setShouldFollowPlayer] = useState(true);
     const internalRef = useRef(null);
     
     // 合并外部和内部的 ref
@@ -62,35 +61,27 @@ const MapViewportComponent = forwardRef(({ children, mapData, onMapClick }, ref)
         }
     }, [ref]);
 
-    // 只在角色初次加载或传送后跟随一次
+    // 计算视口中心位置
     useEffect(() => {
-        if (!internalRef.current || !character?.position_x || !character?.position_y) return;
-        
-        const posX = Number(character.position_x);
-        const posY = Number(character.position_y);
-        
-        // 检查是否是初次加载或传送
-        if (lastPositionRef.current.x === null || 
-            lastPositionRef.current.y === null ||
-            Math.abs(lastPositionRef.current.x - posX) > 100 ||
-            Math.abs(lastPositionRef.current.y - posY) > 100
-        ) {
-            const viewportWidth = internalRef.current.clientWidth;
-            const viewportHeight = internalRef.current.clientHeight;
-            
-            const scrollX = Math.max(0, posX - (viewportWidth / 2));
-            const scrollY = Math.max(0, posY - (viewportHeight / 2));
-            
-            internalRef.current.scrollTo({
-                left: scrollX,
-                top: scrollY,
-                behavior: 'smooth'
-            });
-        }
-        
-        // 更新最后位置
-        lastPositionRef.current = { x: posX, y: posY };
-    }, [character?.position_x, character?.position_y]);
+        if (!character || !internalRef.current) return;
+
+        const viewport = internalRef.current;
+        const viewportWidth = viewport.clientWidth;
+        const viewportHeight = viewport.clientHeight;
+
+        // 计算目标滚动位置，使角色保持在视口中心
+        const targetX = Math.max(0, (character.position_x * zoomLevel) - (viewportWidth / 2));
+        const targetY = Math.max(0, (character.position_y * zoomLevel) - (viewportHeight / 2));
+
+        // 限制滚动范围不超过地图边界
+        const maxScrollX = Math.max(0, (mapSize.width * zoomLevel) - viewportWidth);
+        const maxScrollY = Math.max(0, (mapSize.height * zoomLevel) - viewportHeight);
+
+        setViewportPosition({
+            x: Math.min(targetX, maxScrollX),
+            y: Math.min(targetY, maxScrollY)
+        });
+    }, [character?.position_x, character?.position_y, zoomLevel, mapSize.width, mapSize.height]);
 
     // 监听视口滚动
     useEffect(() => {
@@ -100,17 +91,19 @@ const MapViewportComponent = forwardRef(({ children, mapData, onMapClick }, ref)
         let scrollTimeout;
 
         const handleScroll = () => {
-            setIsScrolling(true);
-            setViewportPosition({
-                left: viewport.scrollLeft,
-                top: viewport.scrollTop
-            });
-            
-            // 滚动结束后重置状态
-            clearTimeout(scrollTimeout);
-            scrollTimeout = setTimeout(() => {
-                setIsScrolling(false);
-            }, 150);
+            if (!shouldFollowPlayer) {
+                setIsScrolling(true);
+                setViewportPosition({
+                    x: viewport.scrollLeft,
+                    y: viewport.scrollTop
+                });
+                
+                // 滚动结束后重置状态
+                clearTimeout(scrollTimeout);
+                scrollTimeout = setTimeout(() => {
+                    setIsScrolling(false);
+                }, 150);
+            }
         };
 
         viewport.addEventListener('scroll', handleScroll);
@@ -118,34 +111,66 @@ const MapViewportComponent = forwardRef(({ children, mapData, onMapClick }, ref)
             viewport.removeEventListener('scroll', handleScroll);
             clearTimeout(scrollTimeout);
         };
-    }, [setViewportPosition]);
+    }, [setViewportPosition, shouldFollowPlayer]);
 
-    // 处理地图点击
-    const handleMapClick = useCallback((e) => {
-        if (!internalRef.current) return;
+    const handleClick = (e) => {
+        // 如果点击的是特殊元素（怪物、商店等），不处理地图点击
+        if (e.target.closest('.monster, .shop, .teleport-point, .npc')) {
+            return;
+        }
+
+        // 阻止事件冒泡
+        e.stopPropagation();
+
+        // 计算相对于地图的点击坐标
+        const viewport = internalRef.current;
+        const rect = viewport.getBoundingClientRect();
+        const scrollLeft = viewport.scrollLeft;
+        const scrollTop = viewport.scrollTop;
         
-        const viewportRect = internalRef.current.getBoundingClientRect();
-        const scrollLeft = internalRef.current.scrollLeft;
-        const scrollTop = internalRef.current.scrollTop;
-        
-        const clickXRelativeToViewport = e.clientX - viewportRect.left;
-        const clickYRelativeToViewport = e.clientY - viewportRect.top;
-        
-        const x = (clickXRelativeToViewport + scrollLeft) / zoomLevel;
-        const y = (clickYRelativeToViewport + scrollTop) / zoomLevel;
-        
-        onMapClick(x, y);
-    }, [onMapClick, zoomLevel]);
+        // 修正坐标计算方式
+        const x = Math.round((e.clientX - rect.left + scrollLeft) / zoomLevel);
+        const y = Math.round((e.clientY - rect.top + scrollTop) / zoomLevel);
+
+        // 检查是否启用碰撞检测
+        if (isCollisionEnabled) {
+            // 检查点击位置是否有碰撞
+            const hasCollision = collisions.monsters.some(monster => {
+                const dx = monster.x - x;
+                const dy = monster.y - y;
+                return Math.sqrt(dx * dx + dy * dy) < 32;
+            });
+
+            if (hasCollision) {
+                return;
+            }
+        }
+
+        // 确保坐标在地图范围内
+        const boundedX = Math.max(0, Math.min(x, mapSize.width));
+        const boundedY = Math.max(0, Math.min(y, mapSize.height));
+
+        // 调用点击回调
+        onMapClick(boundedX, boundedY);
+    };
 
     return (
         <MapViewport 
             ref={setRefs}
-            onClick={handleMapClick}
+            onClick={handleClick}
+            onMouseDown={(e) => {
+                // 如果点击的是特殊元素，阻止事件冒泡
+                if (e.target.closest('.monster, .shop, .teleport-point, .npc')) {
+                    e.stopPropagation();
+                }
+            }}
+            className="map-viewport"
         >
             <MapContainer 
                 width={mapSize.width}
                 height={mapSize.height}
                 zoomLevel={zoomLevel}
+                className="map-container"
             >
                 <MapBackground 
                     backgroundUrl={mapData?.background || '/images/default-map.jpg'}

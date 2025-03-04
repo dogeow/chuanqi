@@ -17,6 +17,10 @@ const useGameStore = create((set, get) => ({
     currentAttackingMonsterId: null,
     isLoading: true,
     
+    // 碰撞检测开关
+    isCollisionEnabled: false,
+    setCollisionEnabled: (enabled) => set({ isCollisionEnabled: enabled }),
+    
     // 碰撞状态
     collisions: {
         monsters: [],
@@ -67,30 +71,40 @@ const useGameStore = create((set, get) => ({
     clearPathAdjustment: () => set({ pathAdjustment: null }),
     
     // 添加碰撞
-    addCollision: (type, object) => set(state => {
-        // 确保不重复添加相同的碰撞对象
-        const existingCollisions = state.collisions[type] || [];
-        const exists = existingCollisions.some(item => item.id === object.id);
+    addCollision: (type, object) => {
+        const state = get();
+        if (!state.isCollisionEnabled) return;
         
-        if (!exists) {
-            return {
-                collisions: {
-                    ...state.collisions,
-                    [type]: [...existingCollisions, object]
-                }
-            };
-        }
-        
-        return state;
-    }),
+        set(state => {
+            // 确保不重复添加相同的碰撞对象
+            const existingCollisions = state.collisions[type] || [];
+            const exists = existingCollisions.some(item => item.id === object.id);
+            
+            if (!exists) {
+                return {
+                    collisions: {
+                        ...state.collisions,
+                        [type]: [...existingCollisions, object]
+                    }
+                };
+            }
+            
+            return state;
+        });
+    },
     
     // 移除碰撞
-    removeCollision: (type, objectId) => set(state => ({
-        collisions: {
-            ...state.collisions,
-            [type]: (state.collisions[type] || []).filter(item => item.id !== objectId)
-        }
-    })),
+    removeCollision: (type, objectId) => {
+        const state = get();
+        if (!state.isCollisionEnabled) return;
+        
+        set(state => ({
+            collisions: {
+                ...state.collisions,
+                [type]: (state.collisions[type] || []).filter(item => item.id !== objectId)
+            }
+        }));
+    },
     
     // 清除所有碰撞
     clearCollisions: () => set({
