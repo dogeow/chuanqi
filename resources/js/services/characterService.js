@@ -117,8 +117,25 @@ class CharacterService {
                 
                 // 如果有传送点在附近，并且设置了自动传送，则触发传送
                 if (nearbyTeleport && options.autoTeleport) {
-                    // 等待一小段时间，确保移动动画完成
-                    await new Promise(resolve => setTimeout(resolve, 300));
+                    // 计算从当前位置到目标位置的距离
+                    const startX = character.position_x || 0;
+                    const startY = character.position_y || 0;
+                    const dx = finalX - startX;
+                    const dy = finalY - startY;
+                    const distance = Math.sqrt(dx * dx + dy * dy);
+                    
+                    // 根据距离和速度计算移动所需时间（毫秒）
+                    // 游戏中的移动速度是每帧5个单位，假设每秒60帧
+                    const speed = 5 * 60; // 每秒的移动速度
+                    const moveTime = (distance / speed) * 1000; // 移动所需的毫秒数
+                    
+                    // 确保等待时间至少为100毫秒，最多为2000毫秒
+                    const waitTime = Math.max(100, Math.min(moveTime, 2000));
+                    
+                    console.log(`移动到传送点距离: ${distance.toFixed(2)}, 等待时间: ${waitTime.toFixed(0)}ms`);
+                    
+                    // 等待计算出的时间，确保移动动画完成
+                    await new Promise(resolve => setTimeout(resolve, waitTime));
                     
                     // 导入并调用mapService的handleTeleportClick方法
                     const mapService = await import('./mapService');
@@ -129,8 +146,25 @@ class CharacterService {
                 }
             } else if (options.isFromTeleport && options.autoTeleport) {
                 // 如果是由传送点触发的移动，并且设置了自动传送
-                // 等待一小段时间，确保移动动画完成
-                await new Promise(resolve => setTimeout(resolve, 300));
+                // 计算从当前位置到目标位置的距离
+                const startX = character.position_x || 0;
+                const startY = character.position_y || 0;
+                const dx = finalX - startX;
+                const dy = finalY - startY;
+                const distance = Math.sqrt(dx * dx + dy * dy);
+                
+                // 根据距离和速度计算移动所需时间（毫秒）
+                // 游戏中的移动速度是每帧5个单位，假设每秒60帧
+                const speed = 5 * 60; // 每秒的移动速度
+                const moveTime = (distance / speed) * 1000; // 移动所需的毫秒数
+                
+                // 确保等待时间至少为100毫秒，最多为2000毫秒
+                const waitTime = Math.max(100, Math.min(moveTime, 2000));
+                
+                console.log(`传送点移动距离: ${distance.toFixed(2)}, 等待时间: ${waitTime.toFixed(0)}ms`);
+                
+                // 等待计算出的时间，确保移动动画完成
+                await new Promise(resolve => setTimeout(resolve, waitTime));
                 
                 // 查找最近的传送点
                 const nearbyTeleport = gameStore.teleportPoints.find(teleport => {
@@ -157,8 +191,25 @@ class CharacterService {
             // 处理商店自动打开逻辑
             if (options.isFromShop && options.autoOpenShop && options.shopId) {
                 try {
-                    // 等待一小段时间，确保移动动画完成
-                    await new Promise(resolve => setTimeout(resolve, 300));
+                    // 计算从当前位置到目标位置的距离
+                    const startX = character.position_x || 0;
+                    const startY = character.position_y || 0;
+                    const dx = finalX - startX;
+                    const dy = finalY - startY;
+                    const distance = Math.sqrt(dx * dx + dy * dy);
+                    
+                    // 根据距离和速度计算移动所需时间（毫秒）
+                    // 游戏中的移动速度是每帧5个单位，假设每秒60帧
+                    const speed = 5 * 60; // 每秒的移动速度
+                    const moveTime = (distance / speed) * 1000; // 移动所需的毫秒数
+                    
+                    // 确保等待时间至少为100毫秒，最多为2000毫秒
+                    const waitTime = Math.max(100, Math.min(moveTime, 2000));
+                    
+                    console.log(`移动距离: ${distance.toFixed(2)}, 等待时间: ${waitTime.toFixed(0)}ms`);
+                    
+                    // 等待计算出的时间，确保移动动画完成
+                    await new Promise(resolve => setTimeout(resolve, waitTime));
                     
                     // 导入并调用npcService的handleShopClick方法
                     const { default: npcService } = await import('./npcService');
