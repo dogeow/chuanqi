@@ -83,6 +83,22 @@ const MapViewportComponent = forwardRef(({ children, mapData, onMapClick }, ref)
         });
     }, [character?.position_x, character?.position_y, zoomLevel, mapSize.width, mapSize.height]);
 
+    // 监听滚动事件
+    useEffect(() => {
+        const viewport = internalRef.current;
+        if (!viewport) return;
+
+        const handleScroll = () => {
+            setViewportPosition({
+                left: viewport.scrollLeft / zoomLevel,
+                top: viewport.scrollTop / zoomLevel
+            });
+        };
+
+        viewport.addEventListener('scroll', handleScroll);
+        return () => viewport.removeEventListener('scroll', handleScroll);
+    }, [zoomLevel, setViewportPosition]);
+
     // 监听视口滚动
     useEffect(() => {
         const viewport = internalRef.current;

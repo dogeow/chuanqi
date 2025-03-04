@@ -66,6 +66,18 @@ const TeleportIndicator = styled.div`
     z-index: 1;
 `;
 
+const NpcIndicator = styled.div`
+    position: absolute;
+    width: 4px;
+    height: 4px;
+    background-color: #ff9933;
+    border-radius: 50%;
+    left: ${props => props.left}%;
+    top: ${props => props.top}%;
+    transform: translate(-50%, -50%);
+    z-index: 1;
+`;
+
 const ViewportIndicator = styled.div`
     position: absolute;
     width: ${props => props.width}%;
@@ -83,7 +95,8 @@ function MiniMap({ viewportRef, onMiniMapClick }) {
         mapSize, 
         viewportPosition,
         otherPlayers,
-        teleportPoints 
+        teleportPoints,
+        npcs 
     } = useGameStore();
 
     const handleClick = (e) => {
@@ -139,10 +152,17 @@ function MiniMap({ viewportRef, onMiniMapClick }) {
                 />
             ))}
 
+            {/* NPC 指示器 */}
+            {npcs?.map(npc => (
+                <NpcIndicator
+                    key={`mini-npc-${npc.id}`}
+                    left={(npc.position_x || npc.x || 0) / mapSize.width * 100}
+                    top={(npc.position_y || npc.y || 0) / mapSize.height * 100}
+                />
+            ))}
+
             {/* 视口范围指示器 */}
-            {viewportRef.current && (
-                <ViewportIndicator {...viewportDimensions} />
-            )}
+            <ViewportIndicator {...viewportDimensions} />
 
             {/* 怪物位置指示器 */}
             {monsters?.map(monster => (
