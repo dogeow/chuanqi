@@ -18,7 +18,7 @@ const useGameStore = create((set, get) => ({
     isLoading: true,
     
     // 碰撞检测开关
-    isCollisionEnabled: false,
+    isCollisionEnabled: true,
     setCollisionEnabled: (enabled) => set({ isCollisionEnabled: enabled }),
     
     // 碰撞状态

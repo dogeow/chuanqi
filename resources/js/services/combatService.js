@@ -28,50 +28,53 @@ class CombatService {
             const dy = characterY - monsterY;
             const distance = Math.sqrt(dx * dx + dy * dy);
             
-            // 如果距离太远，只移动到怪物附近
-            if (distance > 1) {
-                // 计算移动目标点（怪物附近1格）
-                const angle = Math.atan2(dy, dx);
-                const targetX = monsterX + Math.round(Math.cos(angle));
-                const targetY = monsterY + Math.round(Math.sin(angle));
+            // 攻击范围设置为120（考虑到角色和怪物的大小各30，加上60的有效攻击距离）
+            const attackRange = 120;
+            
+            // 如果已经在攻击范围内，直接开始攻击
+            if (distance <= attackRange) {
+                // 开始攻击
+                const response = await axios.post('/api/monster/attack', {
+                    monster_id: monsterId
+                });
                 
-                const characterService = await import('./characterService');
-                await characterService.default.moveCharacter(targetX, targetY);
-                
-                // 设置自动攻击状态，这样移动完成后会自动开始攻击
-                this.startAutoAttack(monsterId);
-                return;
-            }
-            
-            // 只有在足够近的距离才开始攻击
-            const response = await axios.post('/api/monster/attack', {
-                monster_id: monsterId
-            });
-            
-            if (!response.data.success) {
-                throw new Error(response.data.message || '攻击失败');
-            }
-            
-            // 更新怪物血量
-            gameStore.updateMonster(monsterId, { current_hp: response.data.monster.current_hp });
-            
-            // 如果怪物被击杀
-            if (response.data.monster.current_hp <= 0 || response.data.character_died) {
-                if(response.data.character_died){
-                    gameStore.addMessage('你已经死亡！', 'error');
-
-                    // 传送到新手村
-                    const mapService = await import('./mapService');
-                    mapService.default.handleTeleportClick(1);
+                if (!response.data.success) {
+                    throw new Error(response.data.message || '攻击失败');
                 }
-                // 停止自动攻击
-                this.stopAutoAttack();
-
+                
+                // 更新怪物血量
+                gameStore.updateMonster(monsterId, { current_hp: response.data.monster.current_hp });
+                
+                // 如果怪物被击杀
+                if (response.data.monster.current_hp <= 0 || response.data.character_died) {
+                    if(response.data.character_died){
+                        gameStore.addMessage('你已经死亡！', 'error');
+                        
+                        // 传送到新手村
+                        const mapService = await import('./mapService');
+                        mapService.default.handleTeleportClick(1);
+                    }
+                    // 停止自动攻击
+                    this.stopAutoAttack();
+                    return;
+                } else {
+                    // 继续自动攻击
+                    this.startAutoAttack(monsterId);
+                }
                 return;
-            } else {
-                // 继续自动攻击
-                this.startAutoAttack(monsterId);
             }
+            
+            // 如果不在攻击范围内，移动到怪物附近
+            const angle = Math.atan2(dy, dx);
+            const targetX = monsterX + Math.round(Math.cos(angle) * (attackRange - 30)); // 减去角色半径
+            const targetY = monsterY + Math.round(Math.sin(angle) * (attackRange - 30)); // 减去角色半径
+            
+            const characterService = await import('./characterService');
+            await characterService.default.moveCharacter(targetX, targetY);
+            
+            // 设置自动攻击状态，这样移动完成后会自动开始攻击
+            this.startAutoAttack(monsterId);
+            
         } catch (error) {
             console.error('攻击怪物失败:', error);
             gameStore.addMessage(`攻击怪物失败: ${error.message}`, 'error');

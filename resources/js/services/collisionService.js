@@ -1,7 +1,7 @@
 // 碰撞检测服务 - 处理游戏中的碰撞检测逻辑
 
 class CollisionService {
-    static isCollisionEnabled = false; // 添加碰撞检测开关
+    static isCollisionEnabled = true; // 添加碰撞检测开关
 
     static setCollisionEnabled(enabled) {
         this.isCollisionEnabled = enabled;
@@ -26,8 +26,8 @@ class CollisionService {
         const y2 = obj2.position_y || obj2.y || 0;
         
         // 获取对象的半径，如果没有指定则使用默认值
-        const r1 = obj1.radius || 8; // 默认半径改为8像素
-        const r2 = obj2.radius || 8;
+        const r1 = obj1.radius || 30; // 默认半径改为30像素
+        const r2 = obj2.radius || 30; // 默认半径改为30像素
         
         // 计算两点之间的距离
         const dx = x2 - x1;
@@ -112,7 +112,7 @@ class CollisionService {
         const startY = player.position_y || player.y || 0;
         
         // 玩家半径
-        const playerRadius = player.radius || 16;
+        const playerRadius = player.radius || 30; // 默认半径改为30像素
         
         // 计算移动方向向量
         const dx = targetX - startX;
@@ -140,7 +140,7 @@ class CollisionService {
             const obstacleY = obstacle.position_y || obstacle.y || 0;
             
             // 障碍物半径
-            const obstacleRadius = obstacle.radius || 16;
+            const obstacleRadius = obstacle.radius || 30; // 默认半径改为30像素
             
             // 计算安全距离（两个半径之和）
             const safeDistance = playerRadius + obstacleRadius;

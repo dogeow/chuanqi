@@ -319,7 +319,7 @@ class GameController extends Controller
         $dy = $character->position_y - $monster->position_y;
         $distance = sqrt($dx * $dx + $dy * $dy);
 
-        if ($distance > 2) {
+        if ($distance > 120) {
             return response()->json([
                 'success' => false,
                 'message' => '距离太远，无法攻击'
