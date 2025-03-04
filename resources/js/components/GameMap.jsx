@@ -2,38 +2,6 @@ import React, { useRef, useEffect, useState } from 'react';
 import CollisionService from '../services/collisionService';
 import useGameStore from '../store/gameStore';
 
-// 添加传送点脉动动画样式
-const teleportPulseStyle = `
-@keyframes pulse {
-    0% { transform: translate(-50%, -50%) scale(1); opacity: 0.8; box-shadow: 0 0 15px rgba(153, 102, 255, 0.7); }
-    50% { transform: translate(-50%, -50%) scale(1.1); opacity: 1; box-shadow: 0 0 20px rgba(153, 102, 255, 0.9); }
-    100% { transform: translate(-50%, -50%) scale(1); opacity: 0.8; box-shadow: 0 0 15px rgba(153, 102, 255, 0.7); }
-}
-
-@keyframes damageFloat {
-    0% { transform: translateY(0); opacity: 1; }
-    100% { transform: translateY(-30px); opacity: 0; }
-}
-
-@keyframes attackPulse {
-    0% { transform: scale(1); }
-    50% { transform: scale(1.2); }
-    100% { transform: scale(1); }
-}
-
-@keyframes hpChange {
-    0% { transform: scale(1); }
-    50% { transform: scale(1.05); }
-    100% { transform: scale(1); }
-}
-
-@keyframes attackEmoji {
-    0% { transform: translateY(0) scale(1); opacity: 1; }
-    50% { transform: translateY(-15px) scale(1.2); opacity: 1; }
-    100% { transform: translateY(-30px) scale(1); opacity: 0; }
-}
-`;
-
 function GameMap({ 
     mapData, 
     character, 
@@ -64,12 +32,6 @@ function GameMap({
     
     // 调试信息
     useEffect(() => {
-        console.log('地图数据:', mapData);
-        console.log('怪物数据:', monsters);
-        console.log('NPC数据:', npcs);
-        console.log('传送点数据:', teleportPoints);
-        console.log('角色位置:', character?.position_x, character?.position_y);
-        
         // 如果地图有自定义尺寸，则使用
         if (mapData && (mapData.width || mapData.height)) {
             setMapSize({
@@ -278,8 +240,6 @@ function GameMap({
                     height: `${mapSize.height}px`
                 }}
             >
-                {/* 添加动画样式 */}
-                <style>{teleportPulseStyle}</style>
                 
                 {/* 渲染地图背景 */}
                 <div 
@@ -424,7 +384,6 @@ function GameMap({
                             alignItems: 'center',
                             boxShadow: '0 0 15px rgba(153, 102, 255, 0.7)',
                             border: '2px solid #fff',
-                            animation: 'pulse 2s infinite'
                         }}
                         onClick={(e) => {
                             e.stopPropagation();
