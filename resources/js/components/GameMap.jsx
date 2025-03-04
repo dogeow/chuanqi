@@ -308,6 +308,11 @@ function GameMap({
         });
     };
 
+    // 添加恢复原始大小的处理函数
+    const handleResetZoom = () => {
+        setZoomLevel(1);
+    };
+
     // 添加视口滚动监听
     useEffect(() => {
         const viewport = viewportRef.current;
@@ -1068,6 +1073,7 @@ function GameMap({
             <ZoomControls>
                 <ZoomButton onClick={() => handleZoom(0.1)}>+</ZoomButton>
                 <ZoomButton onClick={() => handleZoom(-0.1)}>-</ZoomButton>
+                <ZoomButton onClick={handleResetZoom} title="恢复原始大小">⟲</ZoomButton>
             </ZoomControls>
 
             {/* 小地图 */}
