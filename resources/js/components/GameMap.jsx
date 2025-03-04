@@ -220,18 +220,50 @@ function GameMap({
 
     // 定位到玩家位置
     const handleLocatePlayer = () => {
-        if (!viewportRef.current || !character?.position_x || !character?.position_y) return;
+        if (!viewportRef.current || !character?.position_x || !character?.position_y) {
+            console.warn('定位失败：', {
+                hasViewport: !!viewportRef.current,
+                characterX: character?.position_x,
+                characterY: character?.position_y
+            });
+            return;
+        }
         
         const viewportWidth = viewportRef.current.clientWidth;
         const viewportHeight = viewportRef.current.clientHeight;
         
-        const scrollX = Math.max(0, character.position_x - (viewportWidth / 2));
-        const scrollY = Math.max(0, character.position_y - (viewportHeight / 2));
+        // 确保位置是数字
+        const posX = Number(character.position_x);
+        const posY = Number(character.position_y);
         
-        viewportRef.current.scrollTo({
-            left: scrollX,
-            top: scrollY,
-            behavior: 'smooth'
+        // 根据缩放比例调整滚动位置
+        const zoomLevel = useGameStore.getState().zoomLevel;
+        
+        // 计算目标位置（考虑缩放）
+        const targetX = posX * zoomLevel;
+        const targetY = posY * zoomLevel;
+        
+        // 计算滚动位置（使目标位置居中）
+        const scrollX = Math.max(0, targetX - (viewportWidth / 2));
+        const scrollY = Math.max(0, targetY - (viewportHeight / 2));
+        
+        console.log('手动定位到玩家：', {
+            playerPos: { x: posX, y: posY },
+            targetPos: { x: targetX, y: targetY },
+            viewport: { width: viewportWidth, height: viewportHeight },
+            scroll: { x: scrollX, y: scrollY },
+            zoomLevel
+        });
+        
+        // 使用 requestAnimationFrame 确保在下一帧执行滚动
+        requestAnimationFrame(() => {
+            if (viewportRef.current) {
+                viewportRef.current.scrollTo({
+                    left: Math.round(scrollX),
+                    top: Math.round(scrollY),
+                    behavior: 'smooth'
+                });
+            }
         });
     };
 
