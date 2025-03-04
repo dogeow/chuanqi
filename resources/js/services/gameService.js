@@ -176,7 +176,8 @@ class GameService {
                         'character.damaged': () => this.handleCharacterDamaged(eventData.data),
                         'character.healed': () => this.handleCharacterHealed(eventData.data),
                         'character.died': () => this.handleCharacterDied(eventData.data),
-                        'character.respawned': () => this.handleCharacterRespawned(eventData.data)
+                        'character.respawned': () => this.handleCharacterRespawned(eventData.data),
+                        'combat.update': () => this.handleCombatUpdate(eventData.data)
                     };
                     
                     const eventType = eventData.type;
@@ -362,6 +363,12 @@ class GameService {
             experienceGained = eventData.exp_gained;
             goldGained = eventData.gold_gained;
         }
+
+        // 如果是当前玩家击杀的，计算新的经验和金币值
+        if (killerId === gameStore.character?.id) {
+            newExperience = gameStore.character.exp + experienceGained;
+            newGold = gameStore.character.gold + goldGained;
+        }
         
         if (!monsterId) {
             console.error('无法解析怪物被击杀数据:', data);
@@ -402,16 +409,22 @@ class GameService {
         if (killerId === gameStore.character?.id) {
             // 只有当有这些数据时才更新
             const attributesToUpdate = {};
-            if (newExperience !== undefined) attributesToUpdate.experience = newExperience;
-            if (newGold !== undefined) attributesToUpdate.gold = newGold;
-            if (newLevel !== undefined) attributesToUpdate.level = newLevel;
+            if (experienceGained !== undefined) {
+                attributesToUpdate.exp = gameStore.character.exp + experienceGained;
+            }
+            if (goldGained !== undefined) {
+                attributesToUpdate.gold = gameStore.character.gold + goldGained;
+            }
+            if (newLevel !== undefined) {
+                attributesToUpdate.level = newLevel;
+            }
             
             if (Object.keys(attributesToUpdate).length > 0) {
+                console.log('更新角色属性:', attributesToUpdate);
                 gameStore.updateCharacterAttributes(attributesToUpdate);
             }
             
             // 显示击杀消息
-
             gameStore.addMessage(`你击杀了 ${monsterName}，获得了 ${experienceGained} 经验和 ${goldGained} 金币！`, 'success');
             
             // 如果升级了
@@ -1033,11 +1046,6 @@ class GameService {
             // 直接设置角色状态
             gameStore.setCharacter(updatedCharacter);
             
-            // 显示受伤消息
-            const attackerName = data.attacker_name || '怪物';
-
-            gameStore.addMessage(`${attackerName}-${data.character_damage}, 你-${data.monster_damage}`, 'warning');
-            
             // 手动触发一个自定义事件，通知UI更新
             window.dispatchEvent(new CustomEvent('character-hp-changed', {
                 detail: { oldHp: currentHp, newHp: newHp }
@@ -1057,6 +1065,82 @@ class GameService {
                 
                 gameStore.setOtherPlayers(updatedPlayers);
             }
+        }
+    }
+
+    // 处理战斗更新事件（合并了角色和怪物的伤害信息）
+    handleCombatUpdate(data) {
+        console.log('处理战斗更新事件:', data);
+        const gameStore = useGameStore.getState();
+        
+        // 处理角色伤害信息
+        if (data.character_id === gameStore.character?.id) {
+            console.log('当前角色在战斗中:', data);
+            
+            // 更新角色血量
+            const currentHp = gameStore.character.current_hp;
+            const newHp = data.character_hp.current_hp;
+            
+            // 强制设置lastHp以触发动画效果
+            const updatedCharacter = {
+                ...gameStore.character,
+                lastHp: currentHp,
+                current_hp: newHp,
+                max_hp: data.character_hp.max_hp || gameStore.character.max_hp
+            };
+            
+            // 直接设置角色状态
+            gameStore.setCharacter(updatedCharacter);
+            
+            // 显示战斗消息
+            const monsterName = data.monster_name || '怪物';
+            gameStore.addMessage(`${monsterName}-${data.character_damage}, 你-${data.monster_damage}`, 'warning');
+            
+            // 手动触发一个自定义事件，通知UI更新
+            window.dispatchEvent(new CustomEvent('character-hp-changed', {
+                detail: { oldHp: currentHp, newHp: newHp }
+            }));
+        } else {
+            // 如果是其他玩家在战斗，也可以更新其血量显示
+            const otherPlayers = gameStore.otherPlayers;
+            const playerIndex = otherPlayers.findIndex(p => p.id === data.character_id);
+            
+            if (playerIndex !== -1) {
+                const updatedPlayers = [...otherPlayers];
+                updatedPlayers[playerIndex] = {
+                    ...updatedPlayers[playerIndex],
+                    current_hp: data.character_hp.current_hp,
+                    max_hp: data.character_hp.max_hp
+                };
+                
+                gameStore.setOtherPlayers(updatedPlayers);
+            }
+        }
+        
+        // 处理怪物伤害信息
+        const monsters = gameStore.monsters;
+        const monsterIndex = monsters.findIndex(m => m.id === data.monster_id);
+        
+        if (monsterIndex !== -1) {
+            const updatedMonsters = [...monsters];
+            updatedMonsters[monsterIndex] = {
+                ...updatedMonsters[monsterIndex],
+                current_hp: data.monster_hp.current_hp,
+                hp: data.monster_hp.max_hp,
+                hp_percentage: data.monster_hp.hp_percentage
+            };
+            
+            gameStore.setMonsters(updatedMonsters);
+            
+            // 触发怪物血量变化事件
+            window.dispatchEvent(new CustomEvent('monster-hp-changed', {
+                detail: { 
+                    monsterId: data.monster_id,
+                    newHp: data.monster_hp.current_hp,
+                    maxHp: data.monster_hp.max_hp,
+                    percentage: data.monster_hp.hp_percentage
+                }
+            }));
         }
     }
     

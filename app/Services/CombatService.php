@@ -46,8 +46,8 @@ class CombatService
         } else {
             $monster->save();
             
-            // 广播怪物受伤事件
-            $this->broadcastMonsterDamaged($monster, $character, $damage);
+            // 广播战斗更新事件（包含怪物受伤信息）
+            $this->broadcastCombatUpdate($monster, $character, $damage, $result['monster_damage'] ?? 0);
         }
         
         // 重新获取最新的怪物信息
@@ -59,6 +59,32 @@ class CombatService
         $result['monster'] = $monster;
         
         return $result;
+    }
+
+    /**
+     * 广播战斗更新事件（合并角色和怪物的伤害信息）
+     */
+    private function broadcastCombatUpdate(Monster $monster, Character $character, $characterDamage, $monsterDamage)
+    {
+        event(new GameEvent('combat.update', [
+            'character_id' => $character->id,
+            'character_name' => $character->name,
+            'monster_id' => $monster->id,
+            'monster_name' => $monster->name,
+            'character_damage' => $characterDamage, // 角色对怪物造成的伤害
+            'monster_damage' => $monsterDamage,    // 怪物对角色造成的伤害
+            'character_hp' => [
+                'current_hp' => $character->current_hp,
+                'max_hp' => $character->max_hp,
+                'hp_percentage' => ($character->current_hp / $character->max_hp) * 100,
+            ],
+            'monster_hp' => [
+                'current_hp' => $monster->current_hp,
+                'max_hp' => $monster->hp,
+                'hp_percentage' => ($monster->current_hp / $monster->hp) * 100,
+            ],
+            'timestamp' => now()->timestamp
+        ], $character->current_map_id));
     }
 
     /**
@@ -87,8 +113,7 @@ class CombatService
         $result['monster_damage'] = $monsterDamage;
         $result['character'] = $character;
         
-        // 广播角色受伤事件
-        $this->broadcastCharacterDamaged($character, $monster, $monsterDamage);
+        // 不再单独广播角色受伤事件，而是在主函数中合并广播
         
         // 检查角色是否死亡
         if ($character->current_hp <= 0) {
@@ -232,8 +257,6 @@ class CombatService
         $monster->is_dead = true;
         $monster->save();
         
-        // 使用队列延迟执行怪物重生
-        // 这里我们使用简单的方式，通过广播一个事件通知前端怪物重生
         $respawnTime = $monster->respawn_time ?? 60; // 默认60秒重生
         
         // 广播怪物即将重生的消息
@@ -258,6 +281,7 @@ class CombatService
      */
     private function broadcastCharacterDamaged(Character $character, Monster $monster, $damage)
     {
+        // 此方法保留但不再单独使用，改为使用broadcastCombatUpdate
         event(new GameEvent('character.damaged', [
             'character_id' => $character->id,
             'character_name' => $character->name,
@@ -307,6 +331,7 @@ class CombatService
      */
     private function broadcastMonsterDamaged(Monster $monster, Character $character, $damage)
     {
+        // 此方法保留但不再单独使用，改为使用broadcastCombatUpdate
         event(new GameEvent('monster.damaged', [
             'monster_id' => $monster->id,
             'monster_name' => $monster->name,
@@ -318,7 +343,7 @@ class CombatService
             'is_dead' => false
         ], $monster->map_id));
     }
-
+    
     /**
      * 广播怪物死亡事件
      */
