@@ -722,9 +722,6 @@ class GameService {
                 await this.moveCharacter(targetX, targetY);
             }
             
-            // 执行传送
-            gameStore.addMessage(`正在传送到 ${teleport.name}...`, 'info');
-            
             const response = await axios.post('/api/map/change', {
                 map_id: teleportId
             });
@@ -758,9 +755,6 @@ class GameService {
             
             // 初始化新地图的WebSocket连接
             this.initWebSocketWithData(gameStore.character, mapData);
-            
-            gameStore.addMessage(`成功传送到 ${mapData.name}！`, 'success');
-            
         } catch (error) {
             console.error('传送失败:', error);
             gameStore.addMessage(`传送失败: ${error.message}`, 'error');
