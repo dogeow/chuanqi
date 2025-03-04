@@ -1,6 +1,12 @@
 // 碰撞检测服务 - 处理游戏中的碰撞检测逻辑
 
 class CollisionService {
+    static isCollisionEnabled = false; // 添加碰撞检测开关
+
+    static setCollisionEnabled(enabled) {
+        this.isCollisionEnabled = enabled;
+    }
+
     /**
      * 检测两个圆形对象之间是否发生碰撞
      * @param {Object} obj1 - 第一个对象，包含 x, y 和 radius 属性
@@ -8,6 +14,11 @@ class CollisionService {
      * @returns {boolean} - 如果碰撞返回 true，否则返回 false
      */
     static checkCircleCollision(obj1, obj2) {
+        // 如果碰撞检测被禁用，直接返回false
+        if (!this.isCollisionEnabled) {
+            return false;
+        }
+
         // 获取对象的位置
         const x1 = obj1.position_x || obj1.x || 0;
         const y1 = obj1.position_y || obj1.y || 0;
@@ -15,8 +26,8 @@ class CollisionService {
         const y2 = obj2.position_y || obj2.y || 0;
         
         // 获取对象的半径，如果没有指定则使用默认值
-        const r1 = obj1.radius || 16; // 默认半径为16像素
-        const r2 = obj2.radius || 16;
+        const r1 = obj1.radius || 8; // 默认半径改为8像素
+        const r2 = obj2.radius || 8;
         
         // 计算两点之间的距离
         const dx = x2 - x1;
@@ -87,6 +98,11 @@ class CollisionService {
      * @returns {Object} - 最近的非碰撞位置 {x, y}
      */
     static findNearestNonCollidingPosition(player, targetX, targetY, obstacles) {
+        // 如果碰撞检测被禁用，直接返回目标位置
+        if (!this.isCollisionEnabled) {
+            return { x: targetX, y: targetY };
+        }
+        
         if (!obstacles || obstacles.length === 0) {
             return { x: targetX, y: targetY };
         }
@@ -197,6 +213,11 @@ class CollisionService {
      * @returns {boolean} - 如果有碰撞返回true，否则返回false
      */
     static isPositionColliding(player, x, y, obstacles) {
+        // 如果碰撞检测被禁用，直接返回false
+        if (!this.isCollisionEnabled) {
+            return false;
+        }
+
         if (!obstacles || obstacles.length === 0) {
             return false;
         }

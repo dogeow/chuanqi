@@ -115,7 +115,10 @@ const MapViewportComponent = forwardRef(({ children, mapData, onMapClick }, ref)
 
     const handleClick = (e) => {
         // 如果点击的是特殊元素（怪物、商店等），不处理地图点击
-        if (e.target.closest('.monster, .shop, .teleport-point, .npc')) {
+        const targetElement = e.target.closest('.monster, .shop, .teleport-point, .npc');
+        if (targetElement) {
+            e.stopPropagation();
+            e.preventDefault();
             return;
         }
 
@@ -159,9 +162,11 @@ const MapViewportComponent = forwardRef(({ children, mapData, onMapClick }, ref)
             ref={setRefs}
             onClick={handleClick}
             onMouseDown={(e) => {
-                // 如果点击的是特殊元素，阻止事件冒泡
-                if (e.target.closest('.monster, .shop, .teleport-point, .npc')) {
+                const targetElement = e.target.closest('.monster, .shop, .teleport-point, .npc');
+                if (targetElement) {
                     e.stopPropagation();
+                    e.preventDefault();
+                    e.nativeEvent.stopImmediatePropagation();
                 }
             }}
             className="map-viewport"

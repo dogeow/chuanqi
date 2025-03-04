@@ -172,8 +172,16 @@ export const Monster = ({ monster, isBeingAttacked, onClick }) => {
             isColliding={isColliding}
             isBeingAttacked={isBeingAttacked}
             onClick={handleClick}
-            onMouseDown={(e) => e.stopPropagation()}
-            onMouseUp={(e) => e.stopPropagation()}
+            onMouseDown={(e) => {
+                e.stopPropagation();
+                e.preventDefault();
+                e.nativeEvent.stopImmediatePropagation();
+            }}
+            onMouseUp={(e) => {
+                e.stopPropagation();
+                e.preventDefault();
+                e.nativeEvent.stopImmediatePropagation();
+            }}
             className="monster"
             title={`${monster.name} Lv.${monster.level || '?'} (点击攻击)`}
             data-monster-id={monster.id}

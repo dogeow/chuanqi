@@ -49,12 +49,6 @@ class CharacterService {
                 return true;
             }
             
-            // 停止自动攻击
-            if (gameStore.isAutoAttacking) {
-                const combatService = await import('./combatService');
-                combatService.default.stopAutoAttack();
-            }
-            
             // 合并所有可能的障碍物
             const obstacles = [
                 ...gameStore.monsters.filter(m => !m.is_dead && m.current_hp > 0),

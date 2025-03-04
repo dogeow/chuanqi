@@ -1,5 +1,6 @@
 import axios from 'axios';
 import useGameStore from '../store/gameStore';
+import CollisionService from './collisionService';
 
 // 战斗服务 - 处理战斗相关的API调用和业务逻辑
 class CombatService {
@@ -11,6 +12,9 @@ class CombatService {
         if (!monster || monster.is_dead) {
             return;
         }
+        
+        // 同步碰撞检测状态
+        CollisionService.setCollisionEnabled(gameStore.isCollisionEnabled);
         
         try {
             // 计算角色和怪物之间的距离
@@ -25,7 +29,7 @@ class CombatService {
             const distance = Math.sqrt(dx * dx + dy * dy);
             
             // 如果距离太远，只移动到怪物附近
-            if (distance > 2) {
+            if (distance > 1) {
                 // 计算移动目标点（怪物附近1格）
                 const angle = Math.atan2(dy, dx);
                 const targetX = monsterX + Math.round(Math.cos(angle));
@@ -34,7 +38,8 @@ class CombatService {
                 const characterService = await import('./characterService');
                 await characterService.default.moveCharacter(targetX, targetY);
                 
-                // 如果距离太远，不开始攻击
+                // 设置自动攻击状态，这样移动完成后会自动开始攻击
+                this.startAutoAttack(monsterId);
                 return;
             }
             
