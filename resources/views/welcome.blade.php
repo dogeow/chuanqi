@@ -2,12 +2,21 @@
 <html lang="zh">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>欢迎 - 传奇游戏</title>
     <meta name="csrf-token" content="{{ csrf_token() }}">
     @vite(['resources/css/app.css', 'resources/js/app.jsx'])
     <style>
+        html {
+            touch-action: manipulation;
+        }
         body {
+            -webkit-touch-callout: none;
+            -webkit-user-select: none;
+            -khtml-user-select: none;
+            -moz-user-select: none;
+            -ms-user-select: none;
+            user-select: none;
             font-family: 'Microsoft YaHei', sans-serif;
             background-color: #1a1a1a;
             color: #fff;
