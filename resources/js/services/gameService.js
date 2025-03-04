@@ -149,23 +149,7 @@ class GameService {
                     this.handleCharacterMove(data);
                 })
                 .listen('.game.event', (event) => {
-                    // 注意这里使用了.game.event而不是game.event，因为Laravel Echo会自动添加.前缀
-                    console.log('收到.game.event事件:', event);
-                    
-                    // 解析事件数据
-                    let eventData;
-                    try {
-                        // 如果data是字符串，尝试解析JSON
-                        if (typeof event.data === 'string') {
-                            eventData = JSON.parse(event.data);
-                        } else {
-                            eventData = event;
-                        }
-                        console.log('解析后的事件数据:', eventData);
-                    } catch (error) {
-                        console.error('解析game.event数据失败:', error, event);
-                        eventData = event;
-                    }
+                    let eventData = event;
                     
                     // 处理不同类型的游戏事件
                     const eventHandlers = {
@@ -814,12 +798,6 @@ class GameService {
                 
                 finalX = nearestPosition.x;
                 finalY = nearestPosition.y;
-                
-                // 如果计算出的位置与当前位置相同，说明无法移动
-                if (Math.abs(finalX - currentX) < 1 && Math.abs(finalY - currentY) < 1) {
-                    // 抛出错误，以便调用者可以捕获并处理
-                    throw new Error('无法移动，路径被阻挡');
-                }
             }
             
             // 发送移动请求，使用调整后的位置
