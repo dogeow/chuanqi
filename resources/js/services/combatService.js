@@ -52,7 +52,7 @@ class CombatService {
                         
                         // 传送到新手村
                         const mapService = await import('./mapService');
-                        mapService.default.handleTeleportClick(1);
+                        mapService.default.handleTeleportClick(1, true);
                     }
                     // 停止自动攻击
                     this.stopAutoAttack();
