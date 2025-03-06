@@ -100,6 +100,24 @@ class CharacterService {
 
             // 使用gameStore的动画逻辑更新位置
             gameStore.updateCharacterPosition(finalX, finalY);
+
+            // 计算从当前位置到目标位置的距离
+            const startX = character.position_x || 0;
+            const startY = character.position_y || 0;
+            const dx = finalX - startX;
+            const dy = finalY - startY;
+            const distance = Math.sqrt(dx * dx + dy * dy);
+            
+            // 根据距离和速度计算移动所需时间（毫秒）
+            // 游戏中的移动速度是每帧5个单位，假设每秒60帧
+            const speed = 5 * 60; // 每秒的移动速度
+            const moveTime = (distance / speed) * 1000; // 移动所需的毫秒数
+
+            // 移动完成后自动定位到玩家位置
+            setTimeout(() => {
+               const locatePlayerEvent = new CustomEvent('locatePlayer');
+               document.dispatchEvent(locatePlayerEvent);
+           }, moveTime); // 短暂延迟确保位置更新完成
             
             // 如果不是由传送点触发的移动，检查是否有传送点在附近
             if (!options.isFromTeleport && !options.skipTeleportCheck) {

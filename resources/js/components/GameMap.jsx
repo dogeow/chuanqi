@@ -1,4 +1,4 @@
-import React, { useRef, useEffect } from 'react';
+import React, { useRef, useEffect, useCallback } from 'react';
 import styled from '@emotion/styled';
 import useGameStore from '../store/gameStore';
 import MapViewport from './map/MapViewport';
@@ -193,35 +193,8 @@ function GameMap({
         }
     }, [mapData, setMapSize]);
 
-    // 处理怪物点击
-    const handleMonsterClick = (monsterId) => {
-        setAttackingMonsters(prev => ({
-            ...prev,
-            [monsterId]: Date.now() + 1000
-        }));
-        onMonsterClick(monsterId);
-    };
-
-    // 显示伤害效果
-    const showDamageEffect = (targetId, amount, type) => {
-        const newEffect = {
-            id: Date.now() + Math.random(),
-            targetId,
-            amount,
-            type,
-            createdAt: Date.now(),
-            emoji: type === 'damage' ? '💥' : '❤️'
-        };
-        
-        addDamageEffect(newEffect);
-        
-        setTimeout(() => {
-            removeDamageEffect(newEffect.id);
-        }, 2000);
-    };
-
     // 定位到玩家位置
-    const handleLocatePlayer = () => {
+    const handleLocatePlayer = useCallback(() => {
         if (!viewportRef.current || !character?.position_x || !character?.position_y) {
             console.warn('定位失败：', {
                 hasViewport: !!viewportRef.current,
@@ -267,6 +240,41 @@ function GameMap({
                 });
             }
         });
+    }, [character?.position_x, character?.position_y]);
+
+    // 监听定位玩家事件
+    useEffect(() => {
+        document.addEventListener('locatePlayer', handleLocatePlayer);
+        return () => {
+            document.removeEventListener('locatePlayer', handleLocatePlayer);
+        };
+    }, [handleLocatePlayer]);
+
+    // 处理怪物点击
+    const handleMonsterClick = (monsterId) => {
+        setAttackingMonsters(prev => ({
+            ...prev,
+            [monsterId]: Date.now() + 1000
+        }));
+        onMonsterClick(monsterId);
+    };
+
+    // 显示伤害效果
+    const showDamageEffect = (targetId, amount, type) => {
+        const newEffect = {
+            id: Date.now() + Math.random(),
+            targetId,
+            amount,
+            type,
+            createdAt: Date.now(),
+            emoji: type === 'damage' ? '💥' : '❤️'
+        };
+        
+        addDamageEffect(newEffect);
+        
+        setTimeout(() => {
+            removeDamageEffect(newEffect.id);
+        }, 2000);
     };
 
     // 处理小地图点击
