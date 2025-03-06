@@ -261,10 +261,6 @@ const BuyButton = styled(BaseButton)`
     margin-left: 0;
     width: 100%;
   }
-  
-  &:hover:not(:disabled) {
-    background-color: ${colors.successHover};
-  }
 `;
 
 const NoItems = styled(BaseText)`
