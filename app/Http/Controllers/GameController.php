@@ -273,8 +273,8 @@ class GameController extends Controller
                     $character->position_y = $spawnPoint['y'];
                 } else {
                     // 如果没有出生点，则使用默认位置
-                    $character->position_x = 160;
-                    $character->position_y = 200;
+                    $character->position_x = 100;
+                    $character->position_y = 100;
                 }
             }
         }

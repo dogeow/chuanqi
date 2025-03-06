@@ -30,7 +30,7 @@ class MapService {
     }
     
     // 处理传送点点击
-    async handleTeleportClick(teleportId, isSystem = false) {
+    async handleTeleportClick(teleportId, teleportPosition, options = {}) {
         const gameStore = useGameStore.getState();
         
         try {
@@ -39,19 +39,19 @@ class MapService {
                 throw new Error('传送点不存在');
             }
             
-            // 玩家自己传送的话，检查如果距离太远，先移动到传送点附近
-            if (! isSystem && distance > 120) {
-                // 计算角色和传送点之间的距离
-                const character = gameStore.character;
-                const characterX = character.position_x || 0;
-                const characterY = character.position_y || 0;
-                const teleportX = teleport?.x || teleport?.position_x || 0;
-                const teleportY = teleport?.y || teleport?.position_y || 0;
-                
-                const dx = characterX - teleportX;
-                const dy = characterY - teleportY;
-                const distance = Math.sqrt(dx * dx + dy * dy);
-                
+            // 计算角色和传送点之间的距离
+            const character = gameStore.character;
+            const characterX = character.position_x || 0;
+            const characterY = character.position_y || 0;
+            const teleportX = teleport?.x || teleport?.position_x || 0;
+            const teleportY = teleport?.y || teleport?.position_y || 0;
+            
+            const dx = characterX - teleportX;
+            const dy = characterY - teleportY;
+            const distance = Math.sqrt(dx * dx + dy * dy);
+            
+            // 如果距离太远，先移动到传送点附近
+            if (distance > 120) {
                 gameStore.addMessage('距离传送点太远，请先靠近传送点', 'warning');
                 
                 // 计算移动目标点（传送点附近1格）
@@ -73,21 +73,13 @@ class MapService {
             // 查找目标地图中对应的传送点（从当前地图传送到目标地图的传送点）
             const currentMapId = gameStore.currentMap.id;
             
-            let response;
-            if(! isSystem){
-                // 发送地图切换请求，并传递当前传送点信息
-                response = await axios.post('/api/map/change', {
-                    map_id: teleportId,
-                    from_map_id: currentMapId,
-                    from_teleport_x: teleportX,
-                    from_teleport_y: teleportY
-                });
-            } else {
-                response = await axios.post('/api/map/change', {
-                    map_id: teleportId,
-                    from_map_id: currentMapId,
-                });
-            }
+            // 发送地图切换请求，并传递当前传送点信息
+            const response = await axios.post('/api/map/change', {
+                map_id: teleportId,
+                from_map_id: currentMapId,
+                from_teleport_x: teleportX,
+                from_teleport_y: teleportY
+            });
             
             if (!response.data.success) {
                 throw new Error(response.data.message || '传送失败');
@@ -98,14 +90,14 @@ class MapService {
                 window.Echo.leave(`map.${gameStore.currentMap.id}`);
             }
             
-            gameStore.setLoading(true);
-
             // 直接更新角色位置，不触发移动动画
             gameStore.updateCharacterAttributes({
                 position_x: response.data.character.position_x,
                 position_y: response.data.character.position_y,
                 current_map_id: response.data.character.current_map_id
             });
+            
+            gameStore.setLoading(true);
             
             // 重新加载地图数据
             const mapData = await this.loadMapData(teleportId);
