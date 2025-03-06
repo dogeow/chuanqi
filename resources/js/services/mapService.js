@@ -34,17 +34,8 @@ class MapService {
         const gameStore = useGameStore.getState();
         
         try {
-            // 如果是自动传送调用，并且已经在处理中，则直接返回
-            if (options.isAutoTeleport && this._isProcessingTeleport) {
-                return;
-            }
-            
-            // 设置处理标志
-            this._isProcessingTeleport = true;
-            
             const teleport = gameStore.teleportPoints.find(t => t.target_map_id === teleportId);
             if (!teleport && teleportId != 1) {
-                this._isProcessingTeleport = false;
                 throw new Error('传送点不存在');
             }
             
@@ -75,30 +66,6 @@ class MapService {
                     autoTeleport: true
                 });
                 
-                // 重置处理标志
-                this._isProcessingTeleport = false;
-                
-                // 直接返回，移动完成后会自动触发传送
-                return;
-            }
-            
-            // 如果距离适中但不够近，先移动到传送点附近
-            if (distance > 2) {
-                // 计算移动目标点（传送点附近1格）
-                const angle = Math.atan2(dy, dx);
-                const targetX = teleportX + Math.round(Math.cos(angle));
-                const targetY = teleportY + Math.round(Math.sin(angle));
-                
-                // 移动到目标点，并设置自动传送选项
-                const characterService = await import('./characterService');
-                await characterService.default.moveCharacter(targetX, targetY, {
-                    isFromTeleport: true,
-                    autoTeleport: true
-                });
-                
-                // 重置处理标志
-                this._isProcessingTeleport = false;
-                
                 // 直接返回，移动完成后会自动触发传送
                 return;
             }
@@ -115,7 +82,6 @@ class MapService {
             });
             
             if (!response.data.success) {
-                this._isProcessingTeleport = false;
                 throw new Error(response.data.message || '传送失败');
             }
             
@@ -159,15 +125,10 @@ class MapService {
                     behavior: 'smooth'
                 });
             }
-            
-            // 重置处理标志
-            this._isProcessingTeleport = false;
-            
         } catch (error) {
             console.error('传送失败:', error);
             gameStore.addMessage(`传送失败: ${error.message}`, 'error');
             gameStore.setLoading(false);
-            this._isProcessingTeleport = false;
         }
     }
 }

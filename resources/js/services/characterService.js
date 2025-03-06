@@ -152,6 +152,7 @@ class CharacterService {
                 const dx = finalX - startX;
                 const dy = finalY - startY;
                 const distance = Math.sqrt(dx * dx + dy * dy);
+                console.log('传送点移动距离:', distance);
                 
                 // 根据距离和速度计算移动所需时间（毫秒）
                 // 游戏中的移动速度是每帧5个单位，假设每秒60帧
@@ -167,7 +168,7 @@ class CharacterService {
                 await new Promise(resolve => setTimeout(resolve, waitTime));
                 
                 // 查找最近的传送点
-                const nearbyTeleport = gameStore.teleportPoints.find(teleport => {
+                const nearbyTeleport = gameStore.teleportPoints.reduce((closest, teleport) => {
                     const teleportX = teleport.x || teleport.position_x || 0;
                     const teleportY = teleport.y || teleport.position_y || 0;
                     
@@ -175,10 +176,17 @@ class CharacterService {
                     const dy = finalY - teleportY;
                     const distance = Math.sqrt(dx * dx + dy * dy);
                     
-                    return distance <= 2; // 如果距离小于等于2格，认为在传送点附近
-                });
+                    // 如果距离小于等于120，并且比当前最近点更近
+                    if (distance <= 120 && (!closest || distance < closest.distance)) {
+                        return { ...teleport, distance };
+                    }
+                    return closest;
+                }, null);
+
+                console.log('查找最近的传送点:', nearbyTeleport);
                 
                 if (nearbyTeleport) {
+                    console.log('找到最近的传送点，开始传送');
                     // 导入并调用mapService的handleTeleportClick方法
                     const mapService = await import('./mapService');
                     await mapService.default.handleTeleportClick(nearbyTeleport.target_map_id, {
