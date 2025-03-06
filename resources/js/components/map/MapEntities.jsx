@@ -92,10 +92,20 @@ const PlayerLevel = styled.div`
     white-space: nowrap;
 `;
 
+const MpBarContainer = styled(HpBarContainer)`
+    bottom: -25px;
+`;
+
+const MpBar = styled(HpBar)`
+    background-color: #ffeb3b;
+    opacity: 0.7;
+`;
+
 export const Player = ({ character }) => {
     const { collisions, isCollisionEnabled } = useGameStore();
     const isColliding = isCollisionEnabled && (collisions.monsters.length > 0 || collisions.players.length > 0);
     const isHpChanging = character?.lastHp !== character?.current_hp && character?.lastHp > character?.current_hp;
+    const isMpChanging = character?.lastMp !== character?.current_mp && character?.lastMp > character?.current_mp;
 
     return (
         <PlayerContainer
@@ -112,10 +122,13 @@ export const Player = ({ character }) => {
                     isChanging={isHpChanging}
                 />
             </HpBarContainer>
-            
-            <HpText>
-                {character?.current_hp || '???'}/{character?.max_hp || '?'}
-            </HpText>
+
+            <MpBarContainer>
+                <MpBar 
+                    percentage={character?.current_mp && character?.max_mp ? (character.current_mp / character.max_mp) * 100 : 100}
+                    isChanging={isMpChanging}
+                />
+            </MpBarContainer>
             
             <div style={{ fontSize: '16px' }}>
                 {isHpChanging ? '😣' : '😊'}
