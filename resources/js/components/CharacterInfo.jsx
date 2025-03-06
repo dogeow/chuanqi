@@ -7,7 +7,7 @@ const ProgressBar = ({ current, max, label, className }) => {
     
     return (
         <div className={`stat ${className}-stat`}>
-            <span>{label}:</span> 
+            <span>{label}：</span> 
             <div className="progress-bar">
                 <div 
                     className={`progress ${className}-progress`} 
@@ -22,7 +22,7 @@ const ProgressBar = ({ current, max, label, className }) => {
 // 基础属性组件
 const StatItem = ({ label, value, defaultValue = 0 }) => (
     <div className="stat">
-        <span className="stat-label">{label}:</span> 
+        <span className="stat-label">{label}：</span> 
         <span className="stat-value">{value ?? defaultValue}</span>
     </div>
 );
@@ -85,13 +85,8 @@ function CharacterInfo({ character }) {
                         className="mp" 
                     />
                 )}
-                
-                <ProgressBar 
-                    current={character.exp} 
-                    max={character.exp_to_level} 
-                    label="经验值" 
-                    className="exp" 
-                />
+
+                <div>经验值：{character.exp}</div>
                 
                 <div className="basic-stats">
                     <StatItem label="攻击力" value={character.attack} />

@@ -48,9 +48,9 @@ function MapControls({ onLocatePlayer }) {
             <ControlButton onClick={onLocatePlayer}>👤</ControlButton>
             <ControlButton onClick={() => handleZoom(0.1)}>+</ControlButton>
             <ControlButton onClick={() => handleZoom(-0.1)}>-</ControlButton>
-            <ControlButton onClick={handleResetZoom}>⟲</ControlButton>
+            <ControlButton style={zoomLevel === 1 ? { visibility: 'hidden' } : {}} onClick={handleResetZoom}>⟲</ControlButton>
         </ControlsContainer>
-    );
+    )
 }
 
 export default MapControls; 
