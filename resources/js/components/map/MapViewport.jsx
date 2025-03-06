@@ -47,8 +47,9 @@ const MapName = styled.div`
 
 const MapViewportComponent = forwardRef(({ children, mapData, onMapClick }, ref) => {
     const { character, mapSize, zoomLevel, setViewportPosition, collisions, isCollisionEnabled } = useGameStore();
+    const [isScrolling, setIsScrolling] = useState(false);
+    const [shouldFollowPlayer, setShouldFollowPlayer] = useState(true);
     const internalRef = useRef(null);
-    const animationFrameRef = useRef(null);
     
     // 合并外部和内部的 ref
     const setRefs = useCallback((element) => {
@@ -60,8 +61,8 @@ const MapViewportComponent = forwardRef(({ children, mapData, onMapClick }, ref)
         }
     }, [ref]);
 
-    // 更新视口位置的函数
-    const updateViewportPosition = useCallback(() => {
+    // 计算视口中心位置
+    useEffect(() => {
         if (!character || !internalRef.current) return;
 
         const viewport = internalRef.current;
@@ -76,31 +77,57 @@ const MapViewportComponent = forwardRef(({ children, mapData, onMapClick }, ref)
         const maxScrollX = Math.max(0, (mapSize.width * zoomLevel) - viewportWidth);
         const maxScrollY = Math.max(0, (mapSize.height * zoomLevel) - viewportHeight);
 
-        // 直接设置滚动位置，不使用 smooth 效果以避免延迟
-        viewport.scrollTo({
-            left: Math.min(targetX, maxScrollX),
-            top: Math.min(targetY, maxScrollY)
-        });
-
         setViewportPosition({
             x: Math.min(targetX, maxScrollX),
             y: Math.min(targetY, maxScrollY)
         });
-
-        // 继续下一帧更新
-        animationFrameRef.current = requestAnimationFrame(updateViewportPosition);
     }, [character?.position_x, character?.position_y, zoomLevel, mapSize.width, mapSize.height]);
 
-    // 启动和清理动画帧
+    // 监听滚动事件
     useEffect(() => {
-        animationFrameRef.current = requestAnimationFrame(updateViewportPosition);
-        
-        return () => {
-            if (animationFrameRef.current) {
-                cancelAnimationFrame(animationFrameRef.current);
+        const viewport = internalRef.current;
+        if (!viewport) return;
+
+        const handleScroll = () => {
+            setViewportPosition({
+                left: viewport.scrollLeft / zoomLevel,
+                top: viewport.scrollTop / zoomLevel
+            });
+        };
+
+        viewport.addEventListener('scroll', handleScroll);
+        return () => viewport.removeEventListener('scroll', handleScroll);
+    }, [zoomLevel, setViewportPosition]);
+
+    // 监听视口滚动
+    useEffect(() => {
+        const viewport = internalRef.current;
+        if (!viewport) return;
+
+        let scrollTimeout;
+
+        const handleScroll = () => {
+            if (!shouldFollowPlayer) {
+                setIsScrolling(true);
+                setViewportPosition({
+                    x: viewport.scrollLeft,
+                    y: viewport.scrollTop
+                });
+                
+                // 滚动结束后重置状态
+                clearTimeout(scrollTimeout);
+                scrollTimeout = setTimeout(() => {
+                    setIsScrolling(false);
+                }, 150);
             }
         };
-    }, [updateViewportPosition]);
+
+        viewport.addEventListener('scroll', handleScroll);
+        return () => {
+            viewport.removeEventListener('scroll', handleScroll);
+            clearTimeout(scrollTimeout);
+        };
+    }, [setViewportPosition, shouldFollowPlayer]);
 
     const handleClick = (e) => {
         // 如果点击的是特殊元素（怪物、商店等），不处理地图点击
