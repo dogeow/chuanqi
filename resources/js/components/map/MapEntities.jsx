@@ -2,10 +2,21 @@ import React from 'react';
 import styled from '@emotion/styled';
 import useGameStore from '../../store/gameStore';
 
-// 共享样式组件
-const HpBarContainer = styled.div`
+const MonsterHpBarContainer = styled.div`
     position: absolute;
-    bottom: -15px;
+    bottom: 100%;
+    left: 50%;
+    transform: translateX(-50%);
+    width: ${props => props.width || '40px'};
+    height: 6px;
+    background-color: rgba(0, 0, 0, 0.7);
+    border-radius: 3px;
+    overflow: hidden;
+`;
+
+const PlayerHpBarContainer = styled.div`
+    position: absolute;
+    bottom: 130%;
     left: 50%;
     transform: translateX(-50%);
     width: ${props => props.width || '40px'};
@@ -25,7 +36,7 @@ const HpBar = styled.div`
 
 const HpText = styled.div`
     position: absolute;
-    bottom: -25px;
+    bottom: 100%;
     left: 50%;
     transform: translateX(-50%);
     font-size: 10px;
@@ -36,7 +47,7 @@ const HpText = styled.div`
 
 const NameTag = styled.div`
     position: absolute;
-    bottom: 100%;
+    top: 100%;
     left: 50%;
     transform: translateX(-50%);
     white-space: nowrap;
@@ -92,8 +103,8 @@ const PlayerLevel = styled.div`
     white-space: nowrap;
 `;
 
-const MpBarContainer = styled(HpBarContainer)`
-    bottom: -25px;
+const MpBarContainer = styled(PlayerHpBarContainer)`
+    bottom: 100%;
 `;
 
 const MpBar = styled(HpBar)`
@@ -114,14 +125,14 @@ export const Player = ({ character }) => {
             isColliding={isColliding}
             isHpChanging={isHpChanging}
         >
-            <PlayerLevel>Lv.{character?.level || 1}</PlayerLevel>
+            <PlayerLevel>Lv.{character?.level || 1} {character?.name || '无名氏'} </PlayerLevel>
             
-            <HpBarContainer>
+            <PlayerHpBarContainer>
                 <HpBar 
                     percentage={character?.current_hp && character?.max_hp ? (character.current_hp / character.max_hp) * 100 : 100}
                     isChanging={isHpChanging}
                 />
-            </HpBarContainer>
+            </PlayerHpBarContainer>
 
             <MpBarContainer>
                 <MpBar 
@@ -198,22 +209,19 @@ export const Monster = ({ monster, isBeingAttacked, onClick }) => {
             className="monster"
             title={`${monster.name} Lv.${monster.level || '?'} (点击攻击)`}
             data-monster-id={monster.id}
-        >
-            <NameTag>
-                <div>{monster.name}</div>
-                <div>Lv.{monster.level || '?'}</div>
-            </NameTag>
-            
-            <HpBarContainer width="50px">
+        >  
+            <MonsterHpBarContainer width="40px">
                 <HpBar 
                     percentage={monster.hp_percentage || (monster?.current_hp && monster?.hp ? (monster.current_hp / monster.hp) * 100 : 100)}
                     isChanging={monster.lastHp !== monster.current_hp}
                 />
-            </HpBarContainer>
-            
+            </MonsterHpBarContainer>
             <HpText>
                 {monster.current_hp || '?'}/{monster.hp || '?'}
             </HpText>
+            <NameTag>
+                <div>{monster.name}</div>
+            </NameTag>
             
             <MonsterEmoji isColliding={isColliding}>
                 {monster.emoji || '👾'}
