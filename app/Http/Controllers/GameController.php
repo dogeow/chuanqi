@@ -49,15 +49,15 @@ class GameController extends Controller
                 'gold' => 0,
                 'level' => 1,
                 'exp' => 0,
-                'max_hp' => 100,
-                'current_hp' => 100,
-                'max_mp' => 50,
-                'current_mp' => 50,
+                'max_hp' => 30,
+                'current_hp' => 30,
+                'max_mp' => 0,
+                'current_mp' => 0,
                 'attack' => 10,
-                'defense' => 5,
+                'defense' => 10,
                 'current_map_id' => 1, // 默认从第一张地图开始
-                'position_x' => 100,
-                'position_y' => 100,
+                'position_x' => 150,
+                'position_y' => 150,
             ]);
             
             $user->character()->save($character);
