@@ -19,6 +19,7 @@ export const colors = {
     secondary: '#aaaaaa',
     gold: 'gold',
     price: '#e67e22',
+    silver: '#c0c0c0',
   },
   
   // 边框颜色

@@ -38,7 +38,6 @@ const BaseText = styled.div`
 `;
 
 const BaseButton = styled.button`
-  padding: ${spacing.xs} 0;
   color: ${colors.text.primary};
   border: none;
   border-radius: ${borderRadius.sm};
@@ -97,9 +96,9 @@ const ModalHeader = styled(FlexColumn)`
     width: 100%;
   }
   
-  .player-gold {
-    font-size: ${fontSize.sm};
-    color: ${colors.text.gold};
+  .player-sliver {
+    font-size: 2rem;
+    color: ${colors.text.silver};
     text-align: center;
     margin-top: ${spacing.xs};
     width: 100%;
@@ -133,21 +132,30 @@ const ModalBody = styled.div`
 
 const ShopItems = styled.div`
   display: flex;
-  flex-direction: column;
+  gap: ${spacing.xs};
+  flex-wrap: wrap;
+  justify-content: space-evenly;
+  margin-bottom: 10px;
+  
+  @media (min-width: ${breakpoints.mobile}) {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: ${spacing.xs};
+  }
   
   @media (min-width: ${breakpoints.desktop}) {
     display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(350px, 1fr));
+    grid-template-columns: repeat(2, 1fr);
     gap: ${spacing.xs};
   }
 `;
 
 const ShopItem = styled(BaseModal)`
-  padding: ${spacing.md};
-  border-bottom: 1px solid ${colors.border.primary};
   display: flex;
   flex-direction: column;
   align-items: center;
+  margin: 0 4px;
+  width: 45%;
   
   &.cannot-afford {
     opacity: ${opacity.dimmed};
@@ -161,7 +169,6 @@ const ShopItem = styled(BaseModal)`
 
 const ItemHeader = styled(FlexBetween)`
   width: 100%;
-  margin-bottom: ${spacing.md};
   
   @media (max-width: ${breakpoints.mobile}) {
     align-items: flex-start;
@@ -174,15 +181,14 @@ const ItemInfo = styled(FlexBox)`
   
   @media (max-width: ${breakpoints.mobile}) {
     width: 100%;
-    margin-bottom: ${spacing.xs};
   }
 `;
 
 const ItemIcon = styled(FlexBox)`
-  width: 40px;
-  height: 40px;
+  width: ${fontSize.sm};
+  height: ${fontSize.sm};
   justify-content: center;
-  font-size: ${fontSize.xl};
+  font-size: ${fontSize.sm};
   flex-shrink: 0;
 `;
 
@@ -191,7 +197,7 @@ const ItemTextInfo = styled(FlexColumn)`
 `;
 
 const ItemName = styled(BaseText)`
-  font-size: ${fontSize.lg};
+  font-size: ${fontSize.sm};
   font-weight: bold;
 `;
 
@@ -204,7 +210,7 @@ const ItemType = styled(BaseText)`
 const ItemPrice = styled(BaseText)`
   font-size: ${fontSize.lg};
   font-weight: bold;
-  color: ${colors.text.price};
+  color: ${colors.text.silver};
   flex: 1;
   text-align: right;
   white-space: nowrap;
@@ -242,7 +248,7 @@ const QuantityButtons = styled(FlexBox)`
 `;
 
 const QuantityButton = styled(BaseButton)`
-  background-color: ${props => props.selected ? colors.primary : colors.button.quantity};
+  background-color: ${props => props.disable ? colors.button.disabled : colors.success};
   flex: 1;
   font-size: ${fontSize.sm};
   min-width: 50px;
@@ -312,9 +318,7 @@ const ItemIconComponent = memo(({ image }) => {
 // 单个商品组件
 const ShopItemComponent = memo(({ 
   item, 
-  selectedQuantity, 
   canAfford, 
-  onQuantitySelect, 
   onBuy 
 }) => {
   const isConsumable = item.item && item.item.is_consumable;
@@ -323,7 +327,7 @@ const ShopItemComponent = memo(({
   const itemImage = item.item && item.item.image ? item.item.image : '/images/items/default.png';
   
   return (
-    <ShopItem className={canAfford(item.price, selectedQuantity) ? 'can-afford' : 'cannot-afford'}>
+    <ShopItem className={canAfford(item.price) ? 'can-afford' : 'cannot-afford'}>
       <ItemContent>
         <ItemHeader>
           <ItemInfo>
@@ -332,10 +336,9 @@ const ShopItemComponent = memo(({
             </ItemIcon>
             <ItemTextInfo>
               <ItemName>{itemName}</ItemName>
-              <ItemType>{itemType}</ItemType>
             </ItemTextInfo>
           </ItemInfo>
-          <ItemPrice>{item.price} 金币</ItemPrice>
+          {isConsumable ? <ItemPrice>🪙 {item.price}</ItemPrice> : ''}
         </ItemHeader>
         
         <ActionButtons>
@@ -343,41 +346,32 @@ const ShopItemComponent = memo(({
             <QuantitySelector>
               <QuantityButtons>
                 <QuantityButton 
-                  selected={selectedQuantity === 1}
-                  onClick={() => onQuantitySelect(item.id, 1)}
+                  onClick={() => onBuy(item.id)}
+                  disabled={!canAfford(item.price, 1)}
                 >
                   X1
                 </QuantityButton>
                 <QuantityButton 
-                  selected={selectedQuantity === 10}
-                  onClick={() => onQuantitySelect(item.id, 10)}
+                  onClick={() => onBuy(item.id, 10)}
                   disabled={!canAfford(item.price, 10)}
                 >
                   X10
                 </QuantityButton>
                 <QuantityButton 
-                  selected={selectedQuantity === 100}
-                  onClick={() => onQuantitySelect(item.id, 100)}
+                  onClick={() => onBuy(item.id, 100)}
                   disabled={!canAfford(item.price, 100)}
                 >
                   X100
                 </QuantityButton>
               </QuantityButtons>
-              <BuyButton 
-                onClick={() => onBuy(item.id)}
-                disabled={!canAfford(item.price, selectedQuantity)}
-                title={!canAfford(item.price, selectedQuantity) ? '金币不足' : ''}
-              >
-                购买 x{selectedQuantity}
-              </BuyButton>
             </QuantitySelector>
           ) : (
             <BuyButton 
               onClick={() => onBuy(item.id)}
               disabled={!canAfford(item.price, 1)}
-              title={!canAfford(item.price, 1) ? '金币不足' : ''}
+              title={!canAfford(item.price, 1) ? '🪙 不足' : ''}
             >
-              购买
+              🪙 {item.price}
             </BuyButton>
           )}
         </ActionButtons>
@@ -389,28 +383,9 @@ const ShopItemComponent = memo(({
 // 商店模态框组件
 const ShopModal = ({ shop, shopItems, onClose, onBuyItem }) => {
   const { character } = useGameStore();
-  const [selectedQuantities, setSelectedQuantities] = useState({});
-
-  // 初始化每个商品的默认数量为1
-  useEffect(() => {
-    const initialQuantities = {};
-    shopItems.forEach(item => {
-      initialQuantities[item.id] = 1;
-    });
-    setSelectedQuantities(initialQuantities);
-  }, [shopItems]);
-
-  // 处理数量选择
-  const handleQuantitySelect = (itemId, quantity) => {
-    setSelectedQuantities(prev => ({
-      ...prev,
-      [itemId]: quantity
-    }));
-  };
 
   // 处理购买按钮点击
-  const handleBuy = async (shopItemId) => {
-    const quantity = selectedQuantities[shopItemId] || 1;
+  const handleBuy = async (shopItemId, quantity) => {
     try {
       await onBuyItem(shopItemId, quantity);
     } catch (error) {
@@ -419,7 +394,7 @@ const ShopModal = ({ shop, shopItems, onClose, onBuyItem }) => {
   };
 
   // 检查是否能够购买指定数量的物品
-  const canAfford = (price, quantity) => {
+  const canAfford = (price, quantity=1) => {
     return character.gold >= price * quantity;
   };
 
@@ -433,20 +408,18 @@ const ShopModal = ({ shop, shopItems, onClose, onBuyItem }) => {
       <ShopItemComponent
         key={item.id}
         item={item}
-        selectedQuantity={selectedQuantities[item.id] || 1}
         canAfford={canAfford}
-        onQuantitySelect={handleQuantitySelect}
         onBuy={handleBuy}
       />
     ));
-  }, [shopItems, selectedQuantities, character.gold]);
+  }, [shopItems, character.gold]);
 
   return (
     <ModalOverlay>
       <ModalContent>
         <ModalHeader>
           <div className="shop-title">{shop.name}</div>
-          <div className="player-gold">您的金币: {character.gold}</div>
+          <div className="player-sliver">🪙 {character.gold}</div>
           <CloseButton onClick={onClose}>×</CloseButton>
         </ModalHeader>
         <ModalBody>
