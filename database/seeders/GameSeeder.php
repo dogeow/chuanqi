@@ -14,8 +14,8 @@ use Illuminate\Support\Facades\DB;
 
 class GameSeeder extends Seeder
 {
-    const WIDTH = 600;
-    const HEIGHT = 600;
+    const WIDTH = 2048;
+    const HEIGHT = 2048;
 
     public function run(): void
     {
@@ -34,9 +34,9 @@ class GameSeeder extends Seeder
                 ['x' => 300, 'y' => 300],
             ]),
             'teleport_points' => json_encode([
-                ['x' => 550, 'y' => 100, 'target_map_id' => 2, 'target_x' => 50, 'target_y' => 400, 'name' => '幽暗森林'],
-                ['x' => 550, 'y' => 200, 'target_map_id' => 3, 'target_x' => 50, 'target_y' => 200, 'name' => '古老矿洞'],
-                ['x' => 550, 'y' => 300, 'target_map_id' => 4, 'target_x' => 50, 'target_y' => 400, 'name' => '炽热沙漠'],
+                ['x' => 1024, 'y' => 50, 'target_map_id' => 2, 'target_x' => 1024, 'target_y' => 1980, 'name' => '幽暗森林'],
+                ['x' => 1980, 'y' => 1024, 'target_map_id' => 3, 'target_x' => 50, 'target_y' => 1024, 'name' => '古老矿洞'],
+                ['x' => 1024, 'y' => 1980, 'target_map_id' => 4, 'target_x' => 1024, 'target_y' => 50, 'name' => '炽热沙漠'],
             ]),
         ]);
 
@@ -55,8 +55,8 @@ class GameSeeder extends Seeder
                 ['x' => 300, 'y' => 300],
             ]),
             'teleport_points' => json_encode([
-                ['x' => 50, 'y' => 400, 'target_map_id' => 1, 'target_x' => 750, 'target_y' => 400, 'name' => '落霞岛'],
-                ['x' => 550, 'y' => 400, 'target_map_id' => 3, 'target_x' => 50, 'target_y' => 400, 'name' => '古老矿洞'],
+                ['x' => 1024, 'y' => 1980, 'target_map_id' => 1, 'target_x' => 1024, 'target_y' => 50, 'name' => '落霞岛'],
+                ['x' => 1980, 'y' => 1980, 'target_map_id' => 3, 'target_x' => 50, 'target_y' => 50, 'name' => '古老矿洞'],
             ]),
         ]);
 
@@ -75,9 +75,8 @@ class GameSeeder extends Seeder
                 ['x' => 300, 'y' => 300],
             ]),
             'teleport_points' => json_encode([
-                ['x' => 50, 'y' => 200, 'target_map_id' => 1, 'target_x' => 100, 'target_y' => 100, 'name' => '落霞岛'],
-                ['x' => 50, 'y' => 400, 'target_map_id' => 2, 'target_x' => 100, 'target_y' => 100, 'name' => '幽暗森林'],
-                ['x' => 550, 'y' => 400, 'target_map_id' => 4, 'target_x' => 100, 'target_y' => 100, 'name' => '炽热沙漠'],
+                ['x' => 50, 'y' => 1024, 'target_map_id' => 1, 'target_x' => 1024, 'target_y' => 1980, 'name' => '落霞岛'],
+                ['x' => 50, 'y' => 1980, 'target_map_id' => 4, 'target_x' => 1980, 'target_y' => 50, 'name' => '炽热沙漠'],
             ]),
         ]);
 
