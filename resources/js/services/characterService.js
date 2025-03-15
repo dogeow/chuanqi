@@ -117,7 +117,7 @@ class CharacterService {
             setTimeout(() => {
                const locatePlayerEvent = new CustomEvent('locatePlayer');
                document.dispatchEvent(locatePlayerEvent);
-           }, moveTime); // 短暂延迟确保位置更新完成
+           }, moveTime);
             
             // 如果不是由传送点触发的移动，检查是否有传送点在附近
             if (!options.isFromTeleport && !options.skipTeleportCheck) {

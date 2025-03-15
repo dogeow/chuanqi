@@ -95,8 +95,8 @@ class GameSeeder extends Seeder
                 ['x' => 300, 'y' => 300],
             ]),
             'teleport_points' => json_encode([
-                ['x' => 550, 'y' => 400, 'target_map_id' => 1, 'target_x' => 100, 'target_y' => 100, 'name' => '落霞岛'],
-                ['x' => 550, 'y' => 200, 'target_map_id' => 3, 'target_x' => 100, 'target_y' => 100, 'name' => '古老矿洞'],
+                ['x' => 1024, 'y' => 50, 'target_map_id' => 1, 'target_x' => 100, 'target_y' => 100, 'name' => '落霞岛'],
+                ['x' => 1980, 'y' => 50, 'target_map_id' => 3, 'target_x' => 100, 'target_y' => 100, 'name' => '古老矿洞'],
             ]),
         ]);
 
